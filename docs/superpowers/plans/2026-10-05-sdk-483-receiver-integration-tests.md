@@ -23,7 +23,7 @@
 - Keep the client-side driving logic trivial; no scenario-specific branching beyond the documented knobs.
 - Never run two suites at once (they share `target/docker-it.properties` and fixed container aliases). Never `mvn install`.
 - Run command (reactor build so the working tree is tested, not an installed snapshot):
-  `mvn -Pdocker-it verify -pl njams-sdk,njams-sdk-communication-it -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=<ClassName>` (omit `-Dit.test` for the full suite, about 6–10 minutes).
+  `mvn -Pdocker-it verify -pl njams-sdk,njams-sdk-communication-it -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Dit.test=<ClassName>` (omit `-Dit.test` for the full suite, about 6–10 minutes).
 - Do not generate artificial machine load; the ITs are timing-based, so run them on an otherwise idle machine and re-run once before treating a timing failure as real.
 - Test files need no copyright header or Javadoc (see `code-quality-general.md`).
 - Commit messages: `SDK-483 <description>` (no `#comment` on intermediate commits).
@@ -114,7 +114,7 @@ public class SpikeIT {
 
 - [ ] **Step 2: Run it**
 
-Run: `mvn -Pdocker-it verify -pl njams-sdk,njams-sdk-communication-it -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=SpikeIT`
+Run: `mvn -Pdocker-it verify -pl njams-sdk,njams-sdk-communication-it -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Dit.test=SpikeIT`
 Expected: prints `SSE status=200` with `Content-Type` `text/event-stream` and a stream that delivers its first bytes immediately and stays open for ~20 s.
 
 - [ ] **Step 3: Verify the receiver treats it as connected (HTTP)** — extend the spike with a started HTTP `Njams` (settings as in `HttpStartupOutageIT`, `PROPERTY_HTTP_BASE_URL=env.httpBaseUrlDirect()`), a stub whose event names the client's exact path (`njams.metadata().getClientPath().toString()`), then print the journal entries for `/api/httpcommunication/reply`. Expected: `start()` returns `true`, the subscribe stub is hit, and a `POST /api/httpcommunication/reply` with header `njams-reply-for: m1` appears in the journal.
@@ -423,7 +423,7 @@ public void receiverReconnectsAfterConnectionLossAndHandlesCommands() throws Exc
 
 ## Task 7 — HTTP variants of R1, R2, R3, R4, R5 (only if Task 1 confirmed SSE support)
 
-**Gate:** proceed only with the stub shape recorded in Task 1. Otherwise this task is replaced by the user's decision.
+**Gate:** passed (Task 1 spike, 2026-10-05). Verified stub shape for `WireMockStubs.sseStubFor(clientPath, messageId)`: a `GET` mapping on `urlPath` `/api/httpcommunication/subscribe`, response `status` 200, header `Content-Type: text/event-stream`, `chunkedDribbleDelay` `{numberOfChunks: 20, totalDuration: 20000}`, and a body built as `"id: 1\nevent: " + <JSON map {"njams-receiver": clientPath, "njams-message-id": messageId, "njams-content": "json"}> + "\ndata: {\"request\":{\"command\":\"Ping\"}}\n\n"` followed by 40 comment lines `": keepalive padding ...\n"`. The padding makes the first dribble chunk contain the complete first event (an SSE event is only dispatched at its blank line). Build the mapping JSON with Jackson (`ObjectMapper`/`Map`), never by string concatenation, and write Java files containing `\n` escapes with the Write tool. The receiver processed the event and the reply `POST /api/httpcommunication/reply` with header `njams-reply-for: <messageId>` was visible in the journal. The stream ends after ~20 s and the receiver resubscribes (further `GET .../subscribe` entries), so assert "at least one" for reply POSTs and "count increased" for subscribes.
 
 **Files:** create `WireMockStubs.java` (extract the private on-demand stub load/remove helper from `HttpStartupOutageIT:252-272` and add `sseStubFor(String clientPath, String messageId)` returning the mapping id; keep `HttpStartupOutageIT` behavior unchanged by delegating to it), extend `WireMockJournal` with `countMatching(env, method, urlPath, headerName, headerValue)` (match `request.headers`, same exact-URL rule), and create `HttpReceiverCommandRoundTripIT` (R3), `HttpReceiverReconnectIT` (R1/R2/R5: subscribe-GET count rises after the outage, a new reply POST appears), `HttpReceiverShutdownDuringReconnectIT` (R4: `stop()` < 10 s, no `Receiver-*` thread).
 

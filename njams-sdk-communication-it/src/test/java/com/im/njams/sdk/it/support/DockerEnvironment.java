@@ -9,10 +9,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.rules.ExternalResource;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -135,14 +137,54 @@ public class DockerEnvironment extends ExternalResource {
      * @return the number of connections the broker currently holds open.
      */
     public int brokerConnectionCount() throws IOException, InterruptedException, URISyntaxException {
+        return jolokiaRead("org.apache.activemq:type=Broker,brokerName=localhost", "CurrentConnectionsCount").asInt();
+    }
+
+    /**
+     * Reads the number of consumers attached to the SDK's commands topic (one per connected JMS receiver).
+     * Confirmed empirically (SDK-483 spike): the topic MBean exists only after the topic was first used.
+     *
+     * @return the consumer count, {@code 0} while the topic's MBean does not exist.
+     */
+    public int commandsTopicConsumerCount() throws IOException, InterruptedException, URISyntaxException {
+        JsonNode value = jolokiaRead("org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Topic,"
+            + "destinationName=" + ReceiverSettings.COMMANDS_TOPIC, "ConsumerCount");
+        return value == null || value.isNull() ? 0 : value.asInt();
+    }
+
+    /**
+     * Polls {@link #commandsTopicConsumerCount()} every 500 ms until it equals {@code expected} or {@code timeout}
+     * elapsed.
+     *
+     * @return the last value read.
+     */
+    public int awaitCommandsTopicConsumerCount(int expected, Duration timeout)
+        throws IOException, InterruptedException, URISyntaxException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        int last = commandsTopicConsumerCount();
+        while (last != expected && System.nanoTime() < deadline) {
+            Thread.sleep(500);
+            last = commandsTopicConsumerCount();
+        }
+        return last;
+    }
+
+    /**
+     * Reads one broker attribute via Jolokia.
+     *
+     * @return the attribute's value, or {@code null} if the MBean does not exist (yet).
+     */
+    public JsonNode jolokiaRead(String mbean, String attribute)
+        throws IOException, InterruptedException, URISyntaxException {
         URI jolokiaUri = URI.create(jolokiaUrl());
         String credentials = Base64.getEncoder().encodeToString(jolokiaUri.getUserInfo().getBytes());
         URI requestUri = new URI(jolokiaUri.getScheme(), null, jolokiaUri.getHost(), jolokiaUri.getPort(),
             jolokiaUri.getPath(), null, null);
         String origin = jolokiaUri.getScheme() + "://" + jolokiaUri.getHost() + ":" + jolokiaUri.getPort();
 
-        String requestBody = "{\"type\":\"read\",\"mbean\":\"org.apache.activemq:type=Broker,brokerName=localhost\","
-            + "\"attribute\":\"CurrentConnectionsCount\"}";
+        ObjectMapper mapper = new ObjectMapper();
+        String requestBody = mapper.writeValueAsString(
+            Map.of("type", "read", "mbean", mbean, "attribute", attribute));
         HttpRequest request = HttpRequest.newBuilder(requestUri)
             .header("Authorization", "Basic " + credentials)
             .header("Origin", origin)
@@ -151,7 +193,8 @@ public class DockerEnvironment extends ExternalResource {
             .build();
 
         String body = HttpClient.newHttpClient().send(request, BodyHandlers.ofString()).body();
-        return new ObjectMapper().readTree(body).get("value").asInt();
+        JsonNode root = mapper.readTree(body);
+        return root.has("value") ? root.get("value") : null;
     }
 
     private int port(String key) {
