@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -27,6 +28,7 @@ import com.im.njams.sdk.it.harness.MessageDriver;
 import com.im.njams.sdk.it.support.DiscardMode;
 import com.im.njams.sdk.it.support.DiscardObserver;
 import com.im.njams.sdk.it.support.DockerEnvironment;
+import com.im.njams.sdk.it.support.SdkThreads;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -96,6 +98,9 @@ public class RepeatedFlapIT {
 
         // Allow reconnect threads from the last cycle a moment to actually terminate.
         Thread.sleep(1000);
+        // The receiver's recovery cycle (started once per sender-group recovery) may still be closing a dead
+        // connection; it is transient, so wait for it before counting. A thread that never ends still fails below.
+        SdkThreads.awaitNone(Duration.ofSeconds(30), "Receiver-Recovery-Cycle-Thread");
         int finalThreadCount = threadBean.getThreadCount();
 
         // Modes that drop never build a backlog, so nothing may grow. Mode 'none' holds the flapped jobs, and that
