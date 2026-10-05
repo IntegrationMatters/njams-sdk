@@ -27,3 +27,6 @@ change would deviate from it, update the spec and confirm with the user rather t
 - **Keep the client-side driving logic trivial.** The process/activity model is intentionally fixed and simple
   (see the spec's harness section) so it cannot itself be a source of test flakiness — do not add branching,
   groups, or scenario-specific client logic beyond the three documented knobs.
+- **Leak checks cover SDK-owned threads only.** Thread-count and leak assertions must ignore threads owned by
+  third-party libraries (e.g. `OkHttp*`, `ActiveMQ*` pool threads) — their pooling is not under the SDK's control.
+  Only the SDK's own threads (`Sender-*`, `Receiver-*`, ...) must not leak.
