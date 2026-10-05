@@ -131,9 +131,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
             topicName = settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
         } else {
-            topicName = settings.getPropertyWithAlternativeKey(
-                    NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX)
-                    + ".commands";
+            topicName = settings.getPropertyWithAlternativeKey(NjamsSettings.PROPERTY_JMS_DESTINATION,
+                    JmsSender.DEFAULT_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX) + ".commands";
         }
         useMessageselector =
             !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));

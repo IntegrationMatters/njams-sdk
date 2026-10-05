@@ -151,8 +151,9 @@ class JmsReceiverMock extends JmsReceiver {
         if (settings.containsKey(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION)) {
             assertEquals(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION), impl.getTopicName());
         } else {
-            assertEquals(settings.getProperty(NjamsSettings.PROPERTY_JMS_DESTINATION) + ".commands",
-                impl.getTopicName());
+            String destination = settings.getPropertyWithAlternativeKey(NjamsSettings.PROPERTY_JMS_DESTINATION,
+                NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX);
+            assertEquals((destination != null ? destination : "njams") + ".commands", impl.getTopicName());
         }
         assertEquals(MESSAGESELECTORSTRING, impl.getMessageSelector());
     }

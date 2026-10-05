@@ -73,6 +73,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
      */
     public static final String COMMUNICATION_NAME = "JMS";
 
+    /** Destination used by sender and receiver when no destination setting is present. */
+    static final String DEFAULT_DESTINATION = "njams";
+
     private Connection connection = null;
     protected Session session = null;
     protected MessageProducer eventProducer = null;
@@ -145,7 +148,7 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     private void createProducers(JmsFactory jmsFactory, Session session) throws NamingException, JMSException {
         final String destination = settings.getPropertyWithAlternativeKey(
                 NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX);
-        final String prefix = destination != null ? destination : "njams";
+        final String prefix = destination != null ? destination : DEFAULT_DESTINATION;
         eventProducer = createProducer(jmsFactory, session, prefix + ".event");
         if (useProjectQueue) {
             // separate one for project/trace messages

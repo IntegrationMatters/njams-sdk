@@ -113,6 +113,16 @@ public class JmsReceiverTest {
         JmsReceiverMock.testAfterInit(impl, FILLEDPROPS);
     }
 
+    /**
+     * Without any destination setting, the commands topic must use the same default destination as the sender
+     * ({@code njams}); the receiver must not derive the literal {@code null.commands} from the missing setting.
+     */
+    @Test
+    public void testInitWithoutDestinationUsesTheSendersDefaultDestination() {
+        impl.init(EMPTYPROPS);
+        assertEquals("njams.commands", impl.getTopicName());
+    }
+
     //Delete this when SDK-111 has been resolved and uncomment the method with
     //the identical name.
 
