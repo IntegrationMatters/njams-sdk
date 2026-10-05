@@ -36,19 +36,20 @@ import com.faizsiegeln.njams.messageformat.v4.command.Request;
 import com.faizsiegeln.njams.messageformat.v4.command.Response;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Njams.Feature;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
- * This class should be extended when implementing an new Receiver for a new
- * communication type.
+ * This class must be extended when implementing a new Receiver for a new communication type. It is the SPI type
+ * that is registered via {@code META-INF/services} and used by the SDK to receive server commands.
  *
  * @author pnientiedt/krautenberg
  * @version 4.0.6
  */
-public abstract class AbstractReceiver implements Receiver, SenderRecoveryListener {
+public abstract class AbstractReceiver implements SenderRecoveryListener {
 
     //The Logger
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReceiver.class);
@@ -92,17 +93,26 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      *
      * @param njams the instance that holds the instructionListeners.
      */
-    @Override
     public void setNjams(Njams njams) {
         this.njams = njams;
     }
+
+    /**
+     * The implementation should return its name here, by which it can be
+     * identified. This name will be used as value in the
+     * CommunicationConfiguration via the Key
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its alternative
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE})
+     *
+     * @return the name of the receiver implementation
+     */
+    public abstract String getName();
 
     /**
      * Initializes this receiver with the given settings.
      *
      * @param settings the settings to be used for initialization
      */
-    @Override
     public void init(ClientSettings settings) {
         this.settings = settings;
     }
@@ -114,7 +124,6 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * @param instruction the instruction that will be handed to all
      *                    instructionListeners
      */
-    @Override
     public void onInstruction(Instruction instruction) {
         LOG.debug("Received instruction: {}", instruction == null ? "null" : instruction.getCommand());
         if (njams == null) {
@@ -195,6 +204,11 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
      * It should throw an Exception if anything unexpected or unwanted happens.
      */
     public abstract void connect();
+
+    /**
+     * Stops this receiver and releases its connection resources. Must not throw if the receiver is not connected.
+     */
+    public abstract void stop();
 
     /**
      * Starts the background connect thread immediately, if not already started. Idempotent — subsequent calls
@@ -344,26 +358,6 @@ public abstract class AbstractReceiver implements Receiver, SenderRecoveryListen
         }
         reconnectIntervalIncreasing.set(reconnect);
         return (reconnect - 1) / 10;
-    }
-
-    /**
-     * This method starts the Receiver. It tries to establish the connection,
-     * and if it fails, calls the method
-     * {@link #onException(Exception) onException}.
-     */
-    @Override
-    public void start() {
-        try {
-            connect();
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Started receiver {}", getName());
-            }
-        } catch (Exception e) {
-            connectionStatus = ConnectionStatus.DISCONNECTED;
-            LOG.error("Could not initialize receiver {}. Pushing reconnect task to background.", getName(), e);
-            // trigger reconnect
-            onException(e);
-        }
     }
 
     /**

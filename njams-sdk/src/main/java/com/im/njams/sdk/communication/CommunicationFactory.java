@@ -54,7 +54,7 @@ public class CommunicationFactory {
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
     private final ClientSettings settings;
-    private static final Map<Class<? extends Receiver>, ShareableReceiver<?>> sharedReceivers = new HashMap<>();
+    private static final Map<Class<? extends AbstractReceiver>, AbstractReceiver> sharedReceivers = new HashMap<>();
 
     /**
      * Create a new CommunicationFactory
@@ -65,8 +65,8 @@ public class CommunicationFactory {
         this.settings = settings;
     }
 
-    ServiceLoaderSupport<Receiver> getReceiverLoader() {
-        return new ServiceLoaderSupport<>(Receiver.class);
+    ServiceLoaderSupport<AbstractReceiver> getReceiverLoader() {
+        return new ServiceLoaderSupport<>(AbstractReceiver.class);
     }
 
     ServiceLoaderSupport<AbstractSender> getSenderLoader() {
@@ -81,7 +81,7 @@ public class CommunicationFactory {
      * @param njams The {@link Njams} client instance for that messages shall be received.
      * @return new initialized Receiver
      */
-    public Receiver getReceiver(Njams njams) {
+    public AbstractReceiver getReceiver(Njams njams) {
         String requiredReceiverName = settings.getPropertyWithAlternativeKey(
                 NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
         if (requiredReceiverName != null) {
@@ -89,14 +89,14 @@ public class CommunicationFactory {
                 requiredReceiverName = "HTTP";
             }
             final boolean shared = settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false);
-            Class<? extends Receiver> type = findReceiverType(requiredReceiverName, shared);
+            Class<? extends AbstractReceiver> type = findReceiverType(requiredReceiverName, shared);
             if (type != null) {
-                final Receiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
+                final AbstractReceiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
                 newInstance.setNjams(njams);
 
                 return newInstance;
             }
-            Collection<String> available = getReceiverLoader().stream().map(Receiver::getName).sorted()
+            Collection<String> available = getReceiverLoader().stream().map(AbstractReceiver::getName).sorted()
                     .collect(Collectors.toSet());
             throw new IllegalStateException(
                     "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
@@ -106,9 +106,9 @@ public class CommunicationFactory {
                 + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE + ") in settings properties");
     }
 
-    private Class<? extends Receiver> findReceiverType(String name, boolean wantsSharable) {
-        final ServiceLoaderSupport<Receiver> receivers = getReceiverLoader();
-        Receiver found =
+    private Class<? extends AbstractReceiver> findReceiverType(String name, boolean wantsSharable) {
+        final ServiceLoaderSupport<AbstractReceiver> receivers = getReceiverLoader();
+        AbstractReceiver found =
                 receivers.find(
                         r -> r.getName().equalsIgnoreCase(name) && wantsSharable == r instanceof ShareableReceiver);
         if (found == null) {
@@ -123,13 +123,13 @@ public class CommunicationFactory {
         return found == null ? null : found.getClass();
     }
 
-    private Receiver createReceiver(Class<? extends Receiver> clazz, Njams njams, boolean shared, String name) {
+    private AbstractReceiver createReceiver(Class<? extends AbstractReceiver> clazz, Njams njams, boolean shared, String name) {
         try {
             Map<String, String> copy = new LinkedHashMap<>();
             settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
             ClientSettings receiverSettings = ClientSettings.from(copy);
             receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.metadata().getClientPath().toString());
-            Receiver receiver;
+            AbstractReceiver receiver;
             if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
                 synchronized (sharedReceivers) {
                     receiver = sharedReceivers.get(clazz);
@@ -142,7 +142,7 @@ public class CommunicationFactory {
                     if (receiver instanceof ClasspathValidator) {
                         ((ClasspathValidator) receiver).validate();
                     }
-                    sharedReceivers.put(clazz, (ShareableReceiver<?>) receiver);
+                    sharedReceivers.put(clazz, receiver);
                     receiver.init(receiverSettings);
                     return receiver;
                 }

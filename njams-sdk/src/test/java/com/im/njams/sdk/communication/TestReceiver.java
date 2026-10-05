@@ -30,14 +30,14 @@ import com.im.njams.sdk.settings.ClientSettings;
 /**
  * Dummy implementation for testing.<br>
  * <b>Note:</b> For using this instance, the test environment needs to have a the full qualified class name of this
- * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.Receiver</code> file.
+ * {@link TestReceiver} in the <code>META_INF/services/com.im.njams.sdk.communication.AbstractReceiver</code> file.
  *
  * @author cwinkler
  *
  */
-public class TestReceiver implements Receiver {
+public class TestReceiver extends AbstractReceiver {
 
-    private static Receiver receiver = null;
+    private static AbstractReceiver receiver = null;
     public static final String NAME = TestSender.NAME;
 
     /**
@@ -45,7 +45,7 @@ public class TestReceiver implements Receiver {
      * <b>Note:</b> {@link #getName()} is invoked on the given receiver but the value returned is always {@link #NAME}.
      * @param receiver
      */
-    public static void setReceiverMock(Receiver receiver) {
+    public static void setReceiverMock(AbstractReceiver receiver) {
         TestReceiver.receiver = receiver;
     }
 
@@ -90,11 +90,10 @@ public class TestReceiver implements Receiver {
     }
 
     @Override
-    public void start() {
+    public void connect() {
         if (receiver != null) {
-            receiver.start();
+            receiver.connect();
         }
-
     }
 
     @Override

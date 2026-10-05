@@ -65,7 +65,7 @@ public class ReceiverStartupSpecTest extends AbstractLifecycleSpecTest {
         njams = new Njams(Path.of("test", "receiverStartupConstructionRetry"), "1.0", "test",
             LifecycleTestTransport.settings());
         // CommunicationFactory's SPI lookup constructs-and-discards throwaway probe instances of every
-        // registered Receiver class merely to read getName()/check instanceof (see SharedLifecycleTestReceiver's
+        // registered AbstractReceiver class merely to read getName()/check instanceof (see SharedLifecycleTestReceiver's
         // Javadoc), so LifecycleTestReceiver.lastCreated() is not a reliable "did the real earlyReceiver survive"
         // signal here. Asserting the positive invariant -- that the armed one-shot failure actually fired --
         // rather than the absence of a connect count (which could simply not have incremented yet on a slow

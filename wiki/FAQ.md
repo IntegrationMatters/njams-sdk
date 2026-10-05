@@ -33,6 +33,11 @@ already uses the replacements listed under "Deprecations and replacements" in
   `JsonSerializerFactory._internal()` (not for client code; use `JsonUtils` instead), and `createDefaultMapper(...)`,
   `createDefaultWriter()`, `propertiesToJsonString(...)` and the `addSerializer(...)` overloads taking Jackson
   serializers were removed or made private.
+- The receiver SPI interface `Receiver` was removed; `AbstractReceiver` is now the only receiver SPI type, and
+  its `start()` method was removed (the SDK connects receivers through `connect()`). A custom transport receiver
+  must extend `AbstractReceiver`, and its `META-INF/services` file must be named
+  `com.im.njams.sdk.communication.AbstractReceiver` (was `...communication.Receiver`). `CommunicationFactory.getReceiver(...)`
+  now returns `AbstractReceiver`.
 
 ## What changed in 6.0
 

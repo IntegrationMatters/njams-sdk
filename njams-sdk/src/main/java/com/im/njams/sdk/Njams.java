@@ -161,10 +161,10 @@ public class Njams {
     private final NjamsFeatures features = new NjamsFeatures(lifecycle);
 
     private NjamsSender sender;
-    private Receiver receiver;
+    private AbstractReceiver receiver;
 
     /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver(NjamsSender)}. */
-    private Receiver earlyReceiver;
+    private AbstractReceiver earlyReceiver;
 
     private NjamsConfiguration configuration;
 
@@ -330,9 +330,7 @@ public class Njams {
         }
         try {
             earlyReceiver = new CommunicationFactory(settings).getReceiver(this);
-            if (earlyReceiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) earlyReceiver).beginConnect();
-            }
+            earlyReceiver.beginConnect();
         } catch (Exception e) {
             LOG.warn("beginConnect() failed to pre-initialize receiver; start() will retry.", e);
             earlyReceiver = null;
@@ -346,11 +344,11 @@ public class Njams {
      * Best-effort receiver setup: resolves the receiver (from the pre-warmed {@code earlyReceiver} or newly
      * created), starts its connection, and, if the receiver reports send exceptions or implements
      * {@link SenderRecoveryListener}, registers it as a listener on the given sender group; {@link #stop()} (or
-     * {@link #stopReceiverAfterStartupFailure(Receiver)} on a startup failure) removes it again. The
+     * {@link #stopReceiverAfterStartupFailure(AbstractReceiver)} on a startup failure) removes it again. The
      * receiver's connection outcome never affects {@code start()} — a
      * construction or connection failure is logged and the SDK proceeds without a working receiver; only the
      * sender is critical to startup (see {@link #start()}). Connecting the receiver here never blocks: see
-     * {@link #connectReceiver(Receiver)}.
+     * {@link AbstractReceiver#beginConnect()}.
      * <p>
      * Only exceptions raised while constructing the receiver itself are caught and logged here. This method does
      * not obtain the sender (that is {@link #start()}'s responsibility, before calling this) so that a
@@ -377,46 +375,11 @@ public class Njams {
                 // cycle per outage), while dedicated per-instance receivers on a shared group each get their own.
                 activeSender.addSenderRecoveryListener((SenderRecoveryListener) receiver);
             }
-            connectReceiver(receiver);
+            receiver.beginConnect();
         } catch (Exception e) {
             LOG.warn("Failed to initialize the receiver; the SDK will operate without receiving server "
                 + "commands until this is resolved.", e);
             receiver = null;
-        }
-    }
-
-    /**
-     * Starts the given receiver's connection without blocking or otherwise affecting {@link #start()}'s outcome.
-     * An {@link AbstractReceiver} is simply told to {@link AbstractReceiver#beginConnect() begin connecting} in
-     * the background; that call is idempotent, so it correctly no-ops when {@code receiverToConnect} is the
-     * constructor's already-connecting {@code earlyReceiver}, or a shared receiver a currently active sibling
-     * {@link Njams} instance already connected, and correctly starts a fresh connection for a newly created one —
-     * in particular when the constructor's own pre-warm could not create a receiver and left
-     * {@code earlyReceiver} unset, so that {@link #startReceiver(NjamsSender)} had to build a replacement.
-     * <p>
-     * A plain {@link Receiver} from the SPI that does not extend {@link AbstractReceiver} has no such
-     * background-connect hook, so {@link Receiver#start()} is instead run on a dedicated daemon thread; any
-     * exception it throws is logged here and never propagated, so it can never affect {@link #start()} either.
-     *
-     * @param receiverToConnect the receiver to connect; {@code null} is a no-op.
-     */
-    private void connectReceiver(Receiver receiverToConnect) {
-        if (receiverToConnect == null) {
-            return;
-        }
-        if (receiverToConnect instanceof AbstractReceiver) {
-            ((AbstractReceiver) receiverToConnect).beginConnect();
-        } else {
-            Thread starter = new Thread(() -> {
-                try {
-                    receiverToConnect.start();
-                } catch (Exception e) {
-                    LOG.warn("Receiver {} failed to start.", receiverToConnect.getName(), e);
-                }
-            });
-            starter.setDaemon(true);
-            starter.setName("Receiver-Start-" + receiverToConnect.getName());
-            starter.start();
         }
     }
 
@@ -535,7 +498,7 @@ public class Njams {
      * {@link Njams} sharing the same receiver type builds a fresh instance instead of being handed this now-dead
      * one.
      * <p>
-     * For a non-{@code ShareableReceiver}, the shutdown flag is set <em>before</em> {@link Receiver#stop()} is
+     * For a non-{@code ShareableReceiver}, the shutdown flag is set <em>before</em> {@link AbstractReceiver#stop()} is
      * called: {@link AbstractReceiver#beginConnect()}'s background startup connect checks the flag right after
      * connecting and only releases itself if it is already set, so a connect that completes concurrently with
      * this shutdown must observe it. A {@code ShareableReceiver} cannot be signalled this early — only once
@@ -548,7 +511,7 @@ public class Njams {
      *
      * @param failedReceiver the receiver to stop; {@code null} is a no-op.
      */
-    private void stopReceiverAfterStartupFailure(Receiver failedReceiver) {
+    private void stopReceiverAfterStartupFailure(AbstractReceiver failedReceiver) {
         if (failedReceiver == null) {
             return;
         }
@@ -558,19 +521,17 @@ public class Njams {
                 reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
                     (ShareableReceiver<?>) failedReceiver, this);
             } else {
-                if (failedReceiver instanceof AbstractReceiver) {
-                    // Signal shutdown before tearing down: a startup connect racing in the background
-                    // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
-                    // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
-                    // backs an idempotent AtomicBoolean.
-                    ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
-                }
+                // Signal shutdown before tearing down: a startup connect racing in the background
+                // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
+                // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
+                // backs an idempotent AtomicBoolean.
+                failedReceiver.setShouldShutdown(true);
                 failedReceiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped && failedReceiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) failedReceiver).setShouldShutdown(true);
-                ((AbstractReceiver) failedReceiver).cancelReconnect();
+            if (reallyStopped) {
+                failedReceiver.setShouldShutdown(true);
+                failedReceiver.cancelReconnect();
             }
             if (reallyStopped && sender != null) {
                 // Same reasoning as in stop(): a shared group must not keep a dead receiver registered.
@@ -585,7 +546,7 @@ public class Njams {
      * Removes the given receiver from every sender-group listener set {@link #startReceiver(NjamsSender)} may have
      * registered it in. Must only be called with a non-{@code null} {@link #sender}.
      */
-    private void deregisterReceiverListeners(Receiver stoppedReceiver) {
+    private void deregisterReceiverListeners(AbstractReceiver stoppedReceiver) {
         if (stoppedReceiver instanceof SenderExceptionListener) {
             sender.removeSenderExceptionListener((SenderExceptionListener) stoppedReceiver);
         }
@@ -613,7 +574,7 @@ public class Njams {
      * <p>
      * The sender and receiver are signalled independently: closing the sender marks its own {@code
      * ConnectionCoordinator} as shutting down; separately, the receiver is signalled and stopped. For a
-     * non-{@code ShareableReceiver}, shutdown is signalled <em>before</em> {@link Receiver#stop()} is called, so
+     * non-{@code ShareableReceiver}, shutdown is signalled <em>before</em> {@link AbstractReceiver#stop()} is called, so
      * a startup connect racing in the background ({@link AbstractReceiver#beginConnect()}) observes the flag and
      * releases itself instead of leaking; for a {@code ShareableReceiver}, shutdown can only be signalled once
      * the receiver is really stopped — i.e. once the last {@code Njams} instance using it has stopped it (see
@@ -640,19 +601,17 @@ public class Njams {
                 reallyStopped = CommunicationFactory.removeNjamsFromSharedReceiver(
                     (ShareableReceiver<?>) receiver, this);
             } else {
-                if (receiver instanceof AbstractReceiver) {
-                    // Signal shutdown before tearing down: a startup connect racing in the background
-                    // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
-                    // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
-                    // backs an idempotent AtomicBoolean.
-                    ((AbstractReceiver) receiver).setShouldShutdown(true);
-                }
+                // Signal shutdown before tearing down: a startup connect racing in the background
+                // (AbstractReceiver#beginConnect()) only releases itself if this flag is already set once it
+                // finishes connecting. Setting it again below is harmless — ConnectionCoordinator.setShouldShutdown
+                // backs an idempotent AtomicBoolean.
+                receiver.setShouldShutdown(true);
                 receiver.stop();
                 reallyStopped = true;
             }
-            if (reallyStopped && receiver instanceof AbstractReceiver) {
-                ((AbstractReceiver) receiver).setShouldShutdown(true);
-                ((AbstractReceiver) receiver).cancelReconnect();
+            if (reallyStopped) {
+                receiver.setShouldShutdown(true);
+                receiver.cancelReconnect();
             }
             if (reallyStopped && sender != null) {
                 // A shared sender group outlives the instances using it: leaving a stopped receiver registered

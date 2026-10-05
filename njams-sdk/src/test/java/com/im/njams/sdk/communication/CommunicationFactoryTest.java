@@ -77,7 +77,7 @@ public class CommunicationFactoryTest {
         assertTrue(factory.getSender() instanceof TestSender);
         verify(sender).init(any());
 
-        Receiver receiver = mock(Receiver.class);
+        AbstractReceiver receiver = mock(AbstractReceiver.class);
         TestReceiver.setReceiverMock(receiver);
         assertTrue(factory.getReceiver(njams) instanceof TestReceiver);
         verify(receiver).init(any());
@@ -150,7 +150,7 @@ public class CommunicationFactoryTest {
         CommunicationFactory factory = new CommunicationFactory(settings);
         assertTrue(factory.getSender() instanceof TestSender);
 
-        Receiver receiver = mock(Receiver.class);
+        AbstractReceiver receiver = mock(AbstractReceiver.class);
         TestReceiver.setReceiverMock(receiver);
         assertTrue(factory.getReceiver(njams) instanceof TestReceiver);
     }

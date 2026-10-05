@@ -52,7 +52,6 @@ import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.InstructionListener;
 import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.communication.Receiver;
 import com.im.njams.sdk.communication.ReplayHandler;
 import com.im.njams.sdk.communication.ReplayRequest;
 import com.im.njams.sdk.communication.ReplayResponse;
@@ -188,8 +187,8 @@ public class NjamsTest {
         }
     }
 
-    private void invokeStopReceiverAfterStartupFailure(Receiver failedReceiver) throws Exception {
-        Method m = Njams.class.getDeclaredMethod("stopReceiverAfterStartupFailure", Receiver.class);
+    private void invokeStopReceiverAfterStartupFailure(AbstractReceiver failedReceiver) throws Exception {
+        Method m = Njams.class.getDeclaredMethod("stopReceiverAfterStartupFailure", AbstractReceiver.class);
         m.setAccessible(true);
         m.invoke(instance, failedReceiver);
     }
@@ -271,12 +270,9 @@ public class NjamsTest {
     public void testBeginConnectBeforeStartDoesNotBreakStart() {
         // The connection is pre-started at construction time (beginConnect()); start() must still complete
         // normally regardless — the receiver's own connect outcome no longer gates start() at all.
-        Receiver okReceiver = new Receiver() {
+        AbstractReceiver okReceiver = new AbstractReceiver() {
             @Override public String getName() { return "OkReceiver"; }
-            @Override public void init(ClientSettings settings) {}
-            @Override public void setNjams(Njams njams) {}
-            @Override public void onInstruction(Instruction i) {}
-            @Override public void start() {}
+            @Override public void connect() {}
             @Override public void stop() {}
         };
         TestReceiver.setReceiverMock(okReceiver);
@@ -293,26 +289,20 @@ public class NjamsTest {
     }
 
     /**
-     * Regression test (SDK-375 review finding #2): {@code connectReceiver(Receiver)}'s plain-{@code Receiver}
-     * branch (for a receiver that does not extend {@code AbstractReceiver}) runs {@code Receiver#start()} on a
-     * daemon thread and must swallow any exception it throws — it must never propagate to {@code start()}.
-     * {@code TestReceiver} implements {@code Receiver} directly (not {@code AbstractReceiver}), so it exercises
-     * exactly that branch.
+     * Regression test (SDK-375 review finding #2): an exception thrown by a receiver's {@code connect()} must
+     * never propagate to {@code start()}.
      */
     @Test
-    public void testReceiverStartThrowingOnPlainReceiverDoesNotBreakStart() {
-        Receiver throwingReceiver = new Receiver() {
+    public void testReceiverConnectThrowingDoesNotBreakStart() {
+        AbstractReceiver throwingReceiver = new AbstractReceiver() {
             @Override public String getName() { return "ThrowingReceiver"; }
-            @Override public void init(ClientSettings settings) {}
-            @Override public void setNjams(Njams njams) {}
-            @Override public void onInstruction(Instruction i) {}
-            @Override public void start() { throw new RuntimeException("boom"); }
+            @Override public void connect() { throw new RuntimeException("boom"); }
             @Override public void stop() {}
         };
         TestReceiver.setReceiverMock(throwingReceiver);
         try {
             boolean result = instance.start();
-            assertTrue("start() must succeed even though the plain Receiver's start() throws", result);
+            assertTrue("start() must succeed even though the receiver's connect() throws", result);
             assertTrue(instance.isStarted());
         } finally {
             if (instance.isStarted()) {

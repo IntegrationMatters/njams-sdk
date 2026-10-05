@@ -23,7 +23,7 @@ import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.CommunicationFactory;
-import com.im.njams.sdk.communication.Receiver;
+import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.ShareableReceiver;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -63,8 +63,8 @@ public class SharedReceiverSelectionSpecTest extends AbstractLifecycleSpecTest {
     public void everyClientGetsTheSameShareableReceiverInstance() {
         CommunicationFactory factory = new CommunicationFactory(settings(true));
 
-        Receiver first = factory.getReceiver(client("sharedSelectionA"));
-        Receiver second = factory.getReceiver(client("sharedSelectionB"));
+        AbstractReceiver first = factory.getReceiver(client("sharedSelectionA"));
+        AbstractReceiver second = factory.getReceiver(client("sharedSelectionB"));
 
         assertTrue("sharing must select the shareable receiver implementation",
             first instanceof SharedLifecycleTestReceiver);
@@ -90,8 +90,8 @@ public class SharedReceiverSelectionSpecTest extends AbstractLifecycleSpecTest {
     public void withoutSharingEachClientGetsItsOwnDedicatedReceiver() {
         CommunicationFactory factory = new CommunicationFactory(settings(false));
 
-        Receiver first = factory.getReceiver(client("dedicatedSelectionA"));
-        Receiver second = factory.getReceiver(client("dedicatedSelectionB"));
+        AbstractReceiver first = factory.getReceiver(client("dedicatedSelectionA"));
+        AbstractReceiver second = factory.getReceiver(client("dedicatedSelectionB"));
 
         // SharedLifecycleTestReceiver extends LifecycleTestReceiver, so the meaningful check is the interface.
         assertFalse("without sharing the shareable implementation must not be selected",

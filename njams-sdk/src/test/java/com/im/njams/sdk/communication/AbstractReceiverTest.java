@@ -443,61 +443,6 @@ public class AbstractReceiverTest {
             System.currentTimeMillis() - before < 2000L);
     }
 
-    //start tests
-
-    /**
-     * This method tests if the start method established a connection normally.
-     */
-    @Test
-    public void testStartWhileDisconnected() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        assertTrue(impl.isDisconnected());
-        impl.start();
-        assertTrue(impl.isConnected());
-    }
-
-    /**
-     * This method tests if the start method established a connection normally
-     * if the status is already connecting.
-     */
-    @Test
-    public void testStartWhileConnecting() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setConnectionStatus(ConnectionStatus.CONNECTING);
-        assertTrue(impl.isConnecting());
-        impl.start();
-        assertTrue(impl.isConnected());
-    }
-
-    /**
-     * This method tests if the start method established a connection normally
-     * if the status is already connected.
-     */
-    @Test
-    public void testStartWhileConnected() {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.setConnectionStatus(ConnectionStatus.CONNECTED);
-        assertTrue(impl.isConnected());
-        impl.start();
-        assertTrue(impl.isConnected());
-    }
-
-    /**
-     * This method tests if the start method restarts if an
-     * NjamsSdkRuntimeException is thrown.
-     *
-     * @throws java.lang.InterruptedException for thread
-     */
-    @Test
-    public void testStartWithException() throws InterruptedException {
-        AbstractReceiverImpl impl = new AbstractReceiverImpl();
-        impl.throwException = true;
-        assertTrue(impl.isDisconnected());
-        impl.start();
-        Thread.sleep(100);
-        assertTrue(impl.isConnected());
-    }
-
     @Test
     public void testBeginConnect_connectsInTheBackground() throws InterruptedException {
         SlowConnectReceiverImpl impl = new SlowConnectReceiverImpl(0, false);

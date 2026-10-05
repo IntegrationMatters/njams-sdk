@@ -28,12 +28,12 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 
 /**
- * Interface to be implemented by {@link Receiver}s that support receiving messages for multiple {@link Njams} instances.
+ * Interface to be implemented by {@link AbstractReceiver}s that support receiving messages for multiple {@link Njams} instances.
  *
  * @param <M> The raw message type that is received from the transport API
  * @author cwinkler
  */
-public interface ShareableReceiver<M> extends Receiver {
+public interface ShareableReceiver<M> {
 
     /**
      * Stops the given {@link Njams} instance from receiving messages from this receiver instance.
@@ -44,7 +44,11 @@ public interface ShareableReceiver<M> extends Receiver {
      */
     public boolean removeNjams(Njams njams);
 
-    @Override
+    /**
+     * Sets the {@link Njams} instance this receiver passes instructions to.
+     *
+     * @param njams The {@link Njams} instance.
+     */
     public void setNjams(Njams njams);
 
     /**
@@ -80,10 +84,10 @@ public interface ShareableReceiver<M> extends Receiver {
      * {@link SharedReceiverSupport#onInstruction(Object, Instruction, boolean)} for passing instructions to the
      * according {@link Njams} instance.
      *
+     * @param instruction not used
      * @throws UnsupportedOperationException always
      * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction)
      */
-    @Override
     public default void onInstruction(Instruction instruction) {
         throw new UnsupportedOperationException();
     }
