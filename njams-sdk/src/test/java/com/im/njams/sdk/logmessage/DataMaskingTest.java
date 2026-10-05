@@ -193,7 +193,7 @@ public class DataMaskingTest {
 
     @Test
     public void repeatedAddPatternsFromSettingsDoesNotDuplicate() {
-        Settings settings = new Settings();
+        ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "ssn", "\\d{3}-\\d{2}-\\d{4}");
         settings.put(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX + "iban", "IBAN\\d+");
 
