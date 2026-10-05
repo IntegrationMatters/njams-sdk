@@ -4,8 +4,6 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -88,9 +86,8 @@ public class RepeatedFlapIT {
             flapOnce(model);
         }
         Thread.sleep(1000);
-        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        int baselineThreadCount = threadBean.getThreadCount();
         Map<String, Integer> baselineGroups = threadGroups();
+        int baselineThreadCount = total(baselineGroups);
 
         for (int i = 0; i < 10; i++) {
             flapOnce(model);
@@ -101,7 +98,6 @@ public class RepeatedFlapIT {
         // The receiver's recovery cycle (started once per sender-group recovery) may still be closing a dead
         // connection; it is transient, so wait for it before counting. A thread that never ends still fails below.
         SdkThreads.awaitNone(Duration.ofSeconds(30), "Receiver-Recovery-Cycle-Thread");
-        int finalThreadCount = threadBean.getThreadCount();
 
         // Modes that drop never build a backlog, so nothing may grow. Mode 'none' holds the flapped jobs, and that
         // backlog can legitimately grow the sender pool up to its configured maximum: each extra sender is one
@@ -109,6 +105,7 @@ public class RepeatedFlapIT {
         // failure message). That growth is bounded by the pool size; anything beyond it is a leak.
         int allowedGrowth = 2 + (mode.holdsMessages() ? 2 * (MAX_SENDER_THREADS - 1) : 0);
         Map<String, Integer> finalGroups = threadGroups();
+        int finalThreadCount = total(finalGroups);
         assertTrue("Thread count grew from " + baselineThreadCount + " to " + finalThreadCount
             + " across 10 flap cycles (allowed +" + allowedGrowth + ") -- suspect a thread leak. Groups (name with "
             + "digits masked) that grew: " + growth(baselineGroups, finalGroups),
@@ -140,9 +137,21 @@ public class RepeatedFlapIT {
         background.join(10000);
     }
 
+    /** Threads owned by third-party libraries; their pooling is not under the SDK's control and not asserted. */
+    private static boolean isForeign(String threadName) {
+        return threadName.startsWith("OkHttp") || threadName.startsWith("ActiveMQ");
+    }
+
+    private static int total(Map<String, Integer> groups) {
+        return groups.values().stream().mapToInt(Integer::intValue).sum();
+    }
+
     private static Map<String, Integer> threadGroups() {
         Map<String, Integer> groups = new TreeMap<>();
         for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (isForeign(thread.getName())) {
+                continue;
+            }
             groups.merge(thread.getName().replaceAll("\\d+", "#"), 1, Integer::sum);
         }
         return groups;
