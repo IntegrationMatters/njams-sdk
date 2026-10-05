@@ -51,6 +51,42 @@ public final class WireMockJournal {
         return count;
     }
 
+    /** Counts journal entries matching the given method, URL path and the exact value of one request header. */
+    public static long countMatchingHeader(DockerEnvironment env, String method, String urlPath, String headerName,
+        String headerValue) throws IOException, InterruptedException {
+        long count = 0;
+        for (JsonNode entry : requests(env)) {
+            JsonNode request = entry.get("request");
+            if (!method.equals(request.get("method").asText()) || !urlPath.equals(request.get("url").asText())) {
+                continue;
+            }
+            JsonNode header = request.get("headers").get(headerName);
+            if (header != null && headerValue.equals(header.asText())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Polls {@link #countMatchingHeader} until it reaches at least {@code minimum} or {@code timeout} elapses,
+     * returning the last observed count.
+     */
+    public static long awaitCountHeaderAtLeast(DockerEnvironment env, String method, String urlPath,
+        String headerName, String headerValue, long minimum, Duration timeout)
+        throws IOException, InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        long count;
+        do {
+            count = countMatchingHeader(env, method, urlPath, headerName, headerValue);
+            if (count >= minimum) {
+                return count;
+            }
+            Thread.sleep(200);
+        } while (System.nanoTime() < deadline);
+        return count;
+    }
+
     /** Counts every journal entry, whatever its method, path or headers. */
     public static long countAll(DockerEnvironment env) throws IOException, InterruptedException {
         return requests(env).size();
