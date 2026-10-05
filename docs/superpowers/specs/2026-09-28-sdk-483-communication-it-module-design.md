@@ -3,8 +3,7 @@
 **Ticket:** SDK-483 — *Add Docker-based manual integration/resilience test module for communication transports*
 **Branch:** `SDK-375`
 **Status of this doc:** design agreed in brainstorming; pending user review, then an implementation plan
-(`writing-plans`). Extended 2026-10-05 with the receiver scenarios R1–R7 (§6.2); their implementation plan is
-still to be written.
+(`writing-plans`). Extended 2026-10-05 with the receiver scenarios R1–R7 (§6.2), implemented the same day.
 **Related tickets:** SDK-375 (*Revise sender lifecycle handling*), SDK-472 (*Single threaded sender reconnect*),
 SDK-476 (*Unify sender retry and discard-policy handling across transports*) — all `Relates` links; SDK-489
 (*Replace the `Receiver` SPI interface with `AbstractReceiver`*) motivated the receiver scenarios in §6.2; this module

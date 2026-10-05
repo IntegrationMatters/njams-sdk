@@ -34,7 +34,9 @@ The core idea: the SDK's behavior under connection problems is defined by the **
   `ToxiproxyControl`, `WireMockJournal`, `DiscardMode` (the three policies), `DiscardObserver` (counts discards
   per test through `com.im.njams.sdk.communication.CountingDiscardMonitor`, which lives in the SDK's package
   because the monitor's test seam is package-private), `Deliveries` / `DeliveryAssertions` (delivery accounting per
-  mode) and `QueueSaturationScenario` (shared base of the two queue-saturation ITs).
+  mode) and `QueueSaturationScenario` (shared base of the two queue-saturation ITs). Receiver ITs additionally use
+  `ReceiverSettings` (JMS/HTTP settings through the proxies), `JmsCommandClient` (publishes commands on the broker's
+  commands topic and awaits the reply), `WireMockStubs` (serves a Server-Sent-Events command stream) and `SdkThreads`.
 - **Accounting rule for the discard modes:** every driven job must either be delivered or be covered by a counted
   discard (`undelivered <= discards`); `none` must deliver everything and discard nothing.
 
@@ -64,7 +66,7 @@ written to `target/docker-it.properties`, which `DockerEnvironment` reads.
 
 | Container (alias) | Image | Purpose |
 |---|---|---|
-| `activemq` | `apache/activemq-classic:5.19.2` | The JMS broker (OpenWire `61616`). ITs drain `njams.event` directly to count what actually arrived; the web console's Jolokia endpoint (`8161`) exposes broker-side connection counts (used by `PoolBookkeepingIT`). Default broker config. |
+| `activemq` | `apache/activemq-classic:5.19.2` | The JMS broker (OpenWire `61616`). ITs drain `njams.event` directly to count what actually arrived; the web console's Jolokia endpoint (`8161`) exposes broker-side connection counts (used by `PoolBookkeepingIT`) and the consumer count of the commands topic `njams.commands` (used by the receiver ITs). Default broker config. |
 | `toxiproxy` | `ghcr.io/shopify/toxiproxy:2.12.0` | Fault injector. Proxy `jms` (`20000` → `activemq:61616`) and proxy `http` (`20001` → `wiremock:8080`); control API on `8474`. The SDK under test connects **through** the proxies; toxics (`timeout` = down, `latency` = slow) are added/removed per scenario and reset after every test. |
 | `wiremock` | `wiremock/wiremock:3.13.2` | Stand-in for the nJAMS Server HTTP ingest API: `HEAD`/`POST /api/processing/ingest/dataprovider`. Default stubs live in `src/test/resources/wiremock/mappings/` (`head-available.json`, `post-ok.json`); fault stubs (`413`, `429`, `503`, `HEAD 404`) are loaded on demand from `wiremock/on-demand/`. The request journal is the assertion source for HTTP. |
 
@@ -89,9 +91,8 @@ mvn -Pdocker-it verify -pl njams-sdk-communication-it -Dit.test=HttpRejectAndCon
 - First run pulls the three images. Containers are stopped again after the run.
 - Reports: `njams-sdk-communication-it/target/failsafe-reports/`.
 
-**What to expect (as of 2026-09-29):** 22 IT classes, 65 tests (parameterized runs counted individually), all green;
-about **6 minutes** wall-clock for the full suite on a developer workstation (sum of test time ≈ 5½ min plus
-container startup). The slowest classes are the two queue-saturation ITs (~45-50 s each), the fragmentation ITs
+**What to expect (as of 2026-10-05):** 33 IT classes, 76 tests (parameterized runs counted individually), all green
+in isolation; about **7 minutes** wall-clock for the full suite on a developer workstation. The slowest classes are the two queue-saturation ITs (~45-50 s each), the fragmentation ITs
 (~27 s each), `DegradedConnectIT` and `PoolBookkeepingIT` (~25 s each). Expect noisy SDK reconnect/discard warnings
 in the console — they are the behavior under test, not failures.
 
@@ -122,6 +123,22 @@ Scenarios marked "×3" in the test-class column run once per discard mode; the o
 | 9a | Application-level connection problem (`503`) | Classified as a *connection problem*, not congestion: a reconnect (`HEAD`) happens. **N:** delivered after recovery, no discard. **OCL / D:** delivered or counted as discarded (either is valid — the group may be reconnecting or a fresh sender may re-send while the stub recovers). | `http.HttpRejectAndCongestionIT#applicationLevel503IsTreatedAsConnectionProblemNotCongestion` (×3) | Pins the classification that `502`/`503`/`504` are connection problems, not congestion. |
 | 9b | Transport-level connection problem (Toxiproxy down in front of WireMock) | Same retire/reconnect path as 9a. **N:** delivered after recovery. **OCL / D:** ≥ 1 discard; the dropped job is POSTed at most 4 times. | `http.HttpConnectionProblemIT` (×3) | Warm-up job is delivered before the outage. |
 | 10 | Dispatch-queue saturation (1 sender thread, 2-slot queue, 8 jobs) with a **slow** (`latency` toxic) or **down** (`timeout` toxic) transport | **Slow:** N and OCL block the submitter and deliver everything, nothing discarded; D never blocks and drops what does not fit (counted). **Down:** N blocks until recovery and delivers everything; OCL and D never block and drop (counted). | `jms.QueueSaturationIT`, `http.HttpQueueSaturationIT` (each mode × slow/down = 6) | Common logic in `support.QueueSaturationScenario`. |
+
+### Receiver scenarios
+
+The receiver ITs run with discard policy `none` (delivery is not the subject). JMS commands are published straight
+onto the broker's commands topic; HTTP commands are served by a WireMock SSE stub and answered by the receiver with a
+reply `POST` that is observed in the WireMock journal.
+
+| # | Scenario / fault | Expected behavior | Test class(es) | Notes |
+|---|---|---|---|---|
+| R1 | Receiver connection lost at runtime, then restored | The receiver reconnects on its own and answers commands again. JMS: the consumer on the commands topic drops to 0 during the outage and is exactly 1 afterwards; HTTP: the subscribe `GET` count increases and a new reply `POST` arrives. | `jms.ReceiverReconnectIT`, `http.HttpReceiverReconnectIT#receiverResubscribesAfterConnectionLossAndAnswersAgain` | |
+| R2 | Startup with the target unreachable, `startup.failbehavior=reconnect` | `start()` returns `true`; the receiver connects in the background once the target is back and answers commands. | `jms.ReceiverStartupOutageIT`, `http.HttpReceiverReconnectIT#receiverConnectsInTheBackgroundOnceTheServerIsBack` | The receiver's connect starts in the `Njams` constructor, so the outage must exist before it. |
+| R3 | Command round trip | A command is handled and answered. | `jms.JmsCommandRoundTripIT`, `http.HttpReceiverCommandRoundTripIT` | JMS topic is non-durable: the client retries until the consumer is attached. |
+| R4 | `Njams.stop()` while the receiver is reconnecting | `stop()` returns in < 10 s; no `Receiver-*` thread survives; JMS: no consumer stays attached. | `jms.ReceiverShutdownDuringReconnectIT`, `http.HttpReceiverShutdownDuringReconnectIT` | |
+| R5 | Sender group recovered from an outage | The receiver ends up with exactly one connection (cycled, not duplicated) and keeps answering; no recovery-cycle thread is left. | `jms.ReceiverAfterSenderOutageIT`, `http.HttpReceiverReconnectIT#receiverResubscribesAfterConnectionLossAndAnswersAgain` | |
+| R6 | Several clients sharing one JMS receiver | One shared consumer; commands are routed by exact path (an ancestor path gets result code 99); stopping one instance keeps the receiver, the last stop releases the consumer; a restart builds a fresh receiver. | `jms.SharedReceiverIT` | |
+| R7 | Repeated start/stop (10 cycles) | No `Receiver-*` thread and no consumer on the commands topic left behind. | `jms.ReceiverStartStopLeakIT` | HTTP counterpart: the receiver-threads row below. |
 
 ### Resource / state regression checks
 

@@ -50,6 +50,9 @@ public class SharedReceiverIT {
 
     @Test(timeout = 240000)
     public void sharedReceiverRoutesCommandsAndReleasesTheConsumerWithTheLastInstance() throws Exception {
+        // the broker is shared by all ITs: start from an empty commands topic, not from what earlier tests left
+        assertEquals("stale consumers on the commands topic before the test", 0,
+            env.awaitCommandsTopicConsumerCount(0, Duration.ofSeconds(60)));
         a = client("A");
         b = client("B");
         assertTrue(a.start());
