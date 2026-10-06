@@ -13,7 +13,6 @@ pipeline {
     tools {
         jdk 'openJDK-11.0.20'
         maven 'Maven 3.8.5'
-        nodejs 'NodeJS 6.9.1'      // PATH is extended automatically by the tools block
     }
 
     stages {
