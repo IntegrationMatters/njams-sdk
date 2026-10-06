@@ -12,7 +12,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Deliberately narrow in scope: proves {@code Njams.stop()} returns cleanly (no hang, returns {@code true}) when
@@ -122,6 +124,25 @@ public class ReceiverShutdownSpecTest extends AbstractLifecycleSpecTest {
 
         LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
         assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        assertShutdownSignalledBeforeStop(receiver.callOrder());
+    }
+
+    /**
+     * The receiver is pre-warmed at construction. When {@code start()} then fails because the sender cannot even be
+     * constructed (here: an invalid thread-pool setting), that receiver must be shut down too instead of being left
+     * connecting or connected in the background.
+     */
+    @Test
+    public void startFailingOnSenderConstructionShutsTheReceiverDown() {
+        ClientSettings settings = LifecycleTestTransport.settings();
+        settings.put(NjamsSettings.PROPERTY_MIN_SENDER_THREADS, "0");
+        njams = new Njams(Path.of("test", "receiverShutdownSenderConstruction"), "1.0", "test", settings);
+
+        LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
+        assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        assertFalse("sender construction failure must fail start()", njams.start());
 
         assertShutdownSignalledBeforeStop(receiver.callOrder());
     }

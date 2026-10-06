@@ -432,6 +432,8 @@ public class Njams {
                 activeSender = sender();
             } catch (Exception e) {
                 LOG.error("SDK startup failed: could not obtain a sender. The SDK instance is inactive.", e);
+                stopReceiverAfterStartupFailure(earlyReceiver);
+                earlyReceiver = null;
                 releaseStartupRegistrations(configurationListener);
                 releasePrewarmedSender();
                 return StartupResult.FAIL;
