@@ -126,6 +126,46 @@ public class ReceiverShutdownSpecTest extends AbstractLifecycleSpecTest {
         assertShutdownSignalledBeforeStop(receiver.callOrder());
     }
 
+    /**
+     * A reconnect whose {@code connect()} cannot be interrupted (e.g. a JMS handshake) can complete after the
+     * receiver was already told to shut down and stopped. The connection it establishes then must be released
+     * instead of staying attached for the rest of the JVM's life. Reproduces the shutdown-vs-reconnect race by
+     * signalling shutdown and stopping the receiver while its reconnect is blocked inside {@code connect()}, and
+     * only then letting that {@code connect()} succeed.
+     */
+    @Test
+    public void aReconnectThatCompletesAfterShutdownReleasesItsConnection() throws Exception {
+        njams = new Njams(Path.of("test", "receiverShutdownRace"), "1.0", "test", LifecycleTestTransport.settings());
+        assertTrue(njams.start());
+        LifecycleTestReceiver receiver = LifecycleTestReceiver.lastCreated();
+        assertNotNull("Njams must have constructed a receiver reachable through the test registry", receiver);
+
+        LifecycleTestTransport.setReceiverMode(LifecycleTestTransport.ConnectMode.BLOCK);
+        CountDownLatch attempted = LifecycleTestTransport.receiverConnectAttemptedLatch();
+        receiver.forceDisconnect();
+        receiver.onException(new IllegalStateException("connection lost"));
+        assertTrue("receiver connect attempted and blocked in connect()", attempted.await(2, TimeUnit.SECONDS));
+
+        // what Njams.stop() does, minus the interrupt: a connect() that ignores interrupts is not cancelled by it
+        receiver.setShouldShutdown(true);
+        receiver.stop();
+        LifecycleTestTransport.releaseBlockedReceiverConnect();
+
+        // wait for the reconnect to finish; checking isConnected() alone could pass before connect() completed
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (reconnectThreadAlive() && System.nanoTime() < deadline) {
+            Thread.sleep(50);
+        }
+        assertFalse("the reconnect thread must have ended", reconnectThreadAlive());
+        assertFalse("a connection established after shutdown was requested must be released, call order was "
+            + receiver.callOrder(), receiver.isConnected());
+    }
+
+    private static boolean reconnectThreadAlive() {
+        return Thread.getAllStackTraces().keySet().stream()
+            .anyMatch(th -> th.getName().startsWith("Receiver-Sender-Reconnector-Thread"));
+    }
+
     private static void assertShutdownSignalledBeforeStop(List<String> callOrder) {
         int shutdownIndex = callOrder.indexOf("setShouldShutdown(true)");
         int stopIndex = callOrder.indexOf("stop()");

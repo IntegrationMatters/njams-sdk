@@ -238,21 +238,30 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
                 reconnect(e);
                 return;
             }
-            if (coordinator.shouldShutdown()) {
-                LOG.debug("Receiver {}: connection established after shutdown had already been requested; "
-                    + "releasing resources.", getName());
-                try {
-                    stop();
-                } catch (Exception e) {
-                    LOG.debug("Failed to clean up {} resources after shutdown", getName(), e);
-                }
-            } else {
-                LOG.debug("Receiver {}: connection established.", getName());
-            }
+            releaseIfShutdownRequested();
         });
         startupConnectThread.setDaemon(true);
         startupConnectThread.setName("Receiver-Startup-" + getName());
         startupConnectThread.start();
+    }
+
+    /**
+     * Called after a {@link #connect()} succeeded. A {@code connect()} that cannot be interrupted may complete after
+     * shutdown was requested and {@link #stop()} already ran, i.e. when nothing was left that would release the
+     * connection it just established; in that case the connection is released here.
+     */
+    private void releaseIfShutdownRequested() {
+        if (!coordinator.shouldShutdown()) {
+            LOG.debug("Receiver {}: connection established.", getName());
+            return;
+        }
+        LOG.debug("Receiver {}: connection established after shutdown had already been requested; "
+            + "releasing resources.", getName());
+        try {
+            stop();
+        } catch (Exception e) {
+            LOG.debug("Failed to clean up {} resources after shutdown", getName(), e);
+        }
     }
 
     /**
@@ -310,6 +319,7 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
                         LOG.info("Receiver reconnected. Handling server commands resumed.");
                         resetReconnectInterval();
                     }
+                    releaseIfShutdownRequested();
                 } catch (NjamsSdkRuntimeException e) {
                     try {
                         //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
