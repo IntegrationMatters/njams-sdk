@@ -1,7 +1,7 @@
 # SDK-375 — Working Agreement & Quality Plan (branch-local)
 
-> **Scope:** This document applies **only** to the `SDK-375` branch ("Revise sender lifecycle handling")
-> and any tickets created for or related to it. It *sharpens* — it does not replace — the general rules in
+> **Scope:** This document applies **only** to the `6.1-dev` branch (named `SDK-375` until 2026-10-06; "Revise
+> sender lifecycle handling") and any tickets created for or related to it. It *sharpens* — it does not replace — the general rules in
 > `CLAUDE.md` and the njams skills. Where this document and `CLAUDE.md` agree, `CLAUDE.md` wins; where this
 > document is stricter, the stricter rule applies for this branch.
 
@@ -22,8 +22,9 @@ is high-impact and hard to detect, so the bar for confidence on this branch is r
 
 ## 3. Branch facts
 
-- **Base branch:** `6.0-dev` (not `master`). Any "is the base ahead?" / merge check is done against
-  `origin/6.0-dev`. At session start (2026-07-02) the branch equalled `origin/6.0-dev`, so no merge was needed.
+- **Base branch:** `master` is the upstream that is merged into `6.1-dev` (originally `6.0-dev`, which is obsolete;
+  the branch was named `SDK-375` until it was renamed on 2026-10-06). Any "is the base ahead?" / merge check is done
+  against `origin/master`.
 - **Fix version** (for any ticket): version from root `pom.xml` with `-SNAPSHOT` stripped → `6.0.0`.
 
 ## 4. Ticket scope (SDK-375)
