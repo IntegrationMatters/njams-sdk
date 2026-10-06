@@ -63,6 +63,12 @@ public class DockerEnvironment extends ExternalResource {
             toxiproxy.createProxy("http", "0.0.0.0:20001", "wiremock:8080");
             proxiesCreated = true;
         }
+        // The broker is shared by all ITs and reaps connections cut through the proxy only after its inactivity
+        // timeout: start every test from an empty commands topic instead of inheriting a predecessor's consumers.
+        int stale = awaitCommandsTopicConsumerCount(0, Duration.ofSeconds(60));
+        if (stale != 0) {
+            throw new IllegalStateException("Commands topic still has " + stale + " consumer(s) from an earlier test");
+        }
     }
 
     @Override

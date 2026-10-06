@@ -33,6 +33,7 @@ public final class ReceiverSettings {
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         settings.put(NjamsSettings.PROPERTY_HTTP_BASE_URL, env.httpBaseUrlThroughProxy());
         settings.put(NjamsSettings.PROPERTY_HTTP_DATAPROVIDER_SUFFIX, "dataprovider");
+        env.disableMessageDiscarding(settings);
         return settings;
     }
 }

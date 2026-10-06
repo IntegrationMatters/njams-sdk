@@ -43,8 +43,8 @@ public class HttpReceiverShutdownDuringReconnectIT {
         assertTrue(njams.start());
         assertTrue("receiver never connected", WireMockJournal.awaitCountHeaderAtLeast(env, "POST",
             WireMockStubs.REPLY_PATH, "njams-reply-for", messageId, 1, Duration.ofSeconds(60)) >= 1);
-        env.toxiproxy().addToxic("http", TOXIC, "timeout", Map.of("timeout", 1));
-        Thread.sleep(1_000);
+        env.toxiproxy().addToxic("http", TOXIC, "reset_peer", Map.of("timeout", 0));
+        Thread.sleep(DockerEnvironment.OUTAGE_MS);
 
         long start = System.nanoTime();
         njams.stop();

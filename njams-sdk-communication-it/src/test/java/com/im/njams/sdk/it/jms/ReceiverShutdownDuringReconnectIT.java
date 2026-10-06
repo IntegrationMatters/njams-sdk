@@ -39,7 +39,9 @@ public class ReceiverShutdownDuringReconnectIT {
         assertTrue(njams.start());
         assertEquals(1, env.awaitCommandsTopicConsumerCount(1, Duration.ofSeconds(30)));
         env.toxiproxy().addToxic("jms", TOXIC, "timeout", Map.of("timeout", 1));
-        Thread.sleep(1_000);
+        assertEquals(0, env.awaitCommandsTopicConsumerCount(0, Duration.ofSeconds(30)));
+        assertTrue("the receiver never started reconnecting",
+            !SdkThreads.awaitAny(Duration.ofSeconds(60), "Receiver-Sender-Reconnector-Thread").isEmpty());
 
         long start = System.nanoTime();
         njams.stop();
