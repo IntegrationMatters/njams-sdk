@@ -35,7 +35,9 @@ under [Which settings can I use](#which-settings-can-i-use) (`since`/`changed`/`
 | Settings provider/factory mechanism (`SettingsProviderFactory`, `SettingsProvider` and its built-ins, `Settings`) | `ClientSettings`, `HierarchicalSettings`                                                          | See [Migrating from the deprecated provider/factory mechanism](#migrating-from-the-deprecated-providerfactory-mechanism) below for the full mapping.                             |
 | `SimpleProcessModelLayouter`                                                                   | `CommonBfsModelLayouter` (now the default — see the breaking changes above)                       | Does not correctly handle parallel branches, multiple start activities, or groups with more than one start activity.                                                              |
 | `JsonSerializerFactory` methods that expose Jackson types (`getFastMapper()`, `getDefaultMapper()`, `createDefaultMapper(...)`, `addSerializer(...)`, `getMapper(...)`, `createDefaultWriter()`, `createWriter(...)`) | `JsonUtils` for general JSON serialization/parsing needs                                          | Jackson is shaded in the packaged jar, so these Jackson-typed signatures are no longer usable by SDK consumers. Not marked for removal.                                            |
+| `Job.getRunningActivityByModelId(id)`                                                          | `job.activities().getByModelId(id)`                                                                | The activity added last for a model is normally the one still running, so filtering by running status is redundant. Marked `forRemoval = true`.                                   |
 | `Job.flush()` / `Job.timerFlush(...)`                                                          | *(none — no supported way to force an extra flush)*                                                | See [How does the SDK control sending messages to nJAMS Server](#how-does-the-sdk-control-sending-messages-to-njams-server) below. Marked `forRemoval = true`.                    |
+| `Job.getCompletedActivityByModelId(id)`                                                        | *(none — not reliable)*                                                                            | A completed activity is removed from the job once it has been sent, so whether this still finds one depends on flush timing. Keep your own reference if you need it afterward. Marked `forRemoval = true`. |
 
 ### New guarantees since 6.0.0
 
@@ -245,6 +247,16 @@ listing every available setting with its default value, is maintained alongside 
 Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base URL uses the `https` scheme; the separate
 `HTTPS` communication value is deprecated since 5.0.0.
 
+```properties
+# Minimum settings to get started
+njams.sdk.communication=HTTP
+njams.sdk.communication.http.base.url=http://localhost:8080/njams/
+njams.sdk.communication.http.dataprovider.suffix=sdk
+```
+
+`njams.sdk.communication.http.user`/`.password` are additionally required only if the nJAMS server enforces
+authentication (supported since nJAMS server 6.0.1).
+
 | Property                                                              | Default | Description                                                                                                                                                                             | Tags                                                                                                                                                                                                                                                                                 |
 |-----------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `njams.sdk.communication.http.base.url`                               | —       | Base URL of the nJAMS server (e.g. `http://localhost:8080/njams/`).                                                                                                                     | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.2.0</kbd>                                                                                                                                                                                              |
@@ -271,6 +283,18 @@ Set `njams.sdk.communication=HTTP`. HTTPS is used automatically when the base UR
 ### JMS
 
 Set `njams.sdk.communication=JMS`.
+
+```properties
+# Minimum settings to get started (standard JNDI lookup, e.g. ActiveMQ Classic)
+njams.sdk.communication=JMS
+njams.sdk.communication.jms.java.naming.factory.initial=org.apache.activemq.jndi.ActiveMQInitialContextFactory
+njams.sdk.communication.jms.java.naming.provider.url=tcp://localhost:61616
+njams.sdk.communication.jms.connectionFactory=QueueConnectionFactory
+njams.sdk.communication.jms.destination=njams
+```
+
+`njams.sdk.communication.jms.username`/`.password` (and JNDI `java.naming.security.principal`/`.credentials`) are
+additionally required only if the broker/JNDI provider enforces authentication.
 
 | Property                                                       | Default      | Description                                                                                                                                                                                                                         | Tags                                                                                    |
 |----------------------------------------------------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|

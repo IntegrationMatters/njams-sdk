@@ -718,17 +718,18 @@ public class Njams implements InstructionListener {
      * <ul>
      * <li>If it returns <code>true</code>, the instance is fully started and the client's startup can complete
      * normally.</li>
-     * <li>If it returns <code>false</code>, the connection could not be established in time. The instance stays
-     * inactive: the SDK does not try to reconnect by itself, and all further calls that require a started instance throw an
-     * {@link NjamsSdkRuntimeException}. The SDK has already released everything this call acquired, so no cleanup
-     * is required. The client should log the failure and withdraw completely, so that it does not interfere with
-     * the monitored runtime.</li>
+     * <li>If it returns <code>false</code>, either the connection could not be established in time, or the initial
+     * project message could not be sent. The instance stays inactive: the SDK does not try to reconnect by itself,
+     * and all further calls that require a started instance throw an {@link NjamsSdkRuntimeException}. The SDK has
+     * already released everything this call acquired, so no cleanup is required. The client should log the failure
+     * and withdraw completely, so that it does not interfere with the monitored runtime.</li>
      * </ul>
      * Calling this method again after it returned <code>false</code> is possible; it performs a new startup
-     * attempt.
+     * attempt. This can help after a connection failure, but usually not after a failure sending the project
+     * message, since that is typically caused by the environment of the running JVM.
      *
      * @return <code>true</code> if the instance has been started, <code>false</code> if the communication
-     * connection could not be established
+     * connection could not be established or the initial project message could not be sent
      */
     public boolean start() {
         if (!isStarted()) {
@@ -751,7 +752,17 @@ public class Njams implements InstructionListener {
             LogMessageFlushTask.start(this);
             CleanTracepointsTask.start(this);
             lifecycle.setStarted(true);
-            sendProjectMessage();
+            try {
+                sendProjectMessage();
+            } catch (Exception | Error e) {
+                // A failure here (e.g. a classloading Error from image embedding) is unrecoverable within
+                // this JVM run — no retry can help, so fail startup cleanly instead of leaving the
+                // sender/background tasks running.
+                LOG.error("The client SDK failed to initialize: could not send the initial project message. "
+                    + "The SDK instance is inactive.", e);
+                stop();
+                return false;
+            }
             LOG.info("SDK instance {} started (client-session={})", getClientPath(), metadata.getClientSessionId());
         }
         return isStarted();

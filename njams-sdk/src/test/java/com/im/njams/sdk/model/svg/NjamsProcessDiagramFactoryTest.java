@@ -210,6 +210,24 @@ public class NjamsProcessDiagramFactoryTest {
     }
 
     @Test
+    public void drawGroup_positionsGroupUsingVerticalStartOffsetNotHorizontal() throws Exception {
+        NjamsProcessDiagramContext context = createDrawableContext("cat");
+        context.setStartX(10);
+        context.setStartY(4);
+        NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);
+
+        GroupModel group = buildGroup("g1", "MyGroup", "loop", 0, 6, 200, 150);
+        factory.drawGroup(context, group);
+
+        Element header = findByTagAndAttr(context.getDoc(), "rect", "id", "g1_group_header");
+        Assert.assertNotNull("Expected group header rect", header);
+        double headerY = Double.parseDouble(header.getAttributeNS(null, "y"));
+        Assert.assertEquals(
+            "Group header y must use the vertical start offset (startY=4), not the horizontal one (startX=10)",
+            4 + 6, headerY, 0.01);
+    }
+
+    @Test
     public void drawGroup_labelTextIsFullGroupName() throws Exception {
         NjamsProcessDiagramContext context = createDrawableContext("cat");
         NjamsProcessDiagramFactory factory = new NjamsProcessDiagramFactory(true);

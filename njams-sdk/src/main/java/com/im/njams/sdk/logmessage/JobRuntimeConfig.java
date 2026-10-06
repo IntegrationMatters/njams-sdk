@@ -73,7 +73,7 @@ final class JobRuntimeConfig {
             LOG.debug("Set recording for {} to {} based on client settings {}",
                     processModel.getPath(), record, configuration.isRecording());
 
-            ProcessConfiguration process = configuration.getProcess(processModel.getPath().toString());
+            ProcessConfiguration process = configuration.getProcess(processModel.getPath());
             if (process != null) {
                 level = process.getLogLevel();
                 LOG.debug("Set LogLevel for {} to {}", processModel.getPath(), level);
@@ -126,7 +126,7 @@ final class JobRuntimeConfig {
         if (configuration == null) {
             return null;
         }
-        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath().toString());
+        ProcessConfiguration processConfig = configuration.getProcess(processModel.getPath());
         if (processConfig == null) {
             return null;
         }

@@ -37,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -55,6 +56,9 @@ public class NjamsMetadata {
     private static final Logger LOG = LoggerFactory.getLogger(NjamsMetadata.class);
 
     private static final String[] VERSION_FILES = { "njams.version", "msg.version", "client.version" };
+
+    /** Regex for the simple pattern {@code njams.*.debug.*} (literal dots, {@code *} matches any characters). */
+    private static final Pattern DEBUG_SETTING_KEY_PATTERN = Pattern.compile("njams\\..*\\.debug\\..*");
 
     private final String category;
     private final Path clientPath;
@@ -218,6 +222,10 @@ public class NjamsMetadata {
         LOG.info("***      Settings:");
 
         settings.printPropertiesWithoutPasswords(LOG);
+        if (settings.keySet().stream().anyMatch(DEBUG_SETTING_KEY_PATTERN.asMatchPredicate())) {
+            LOG.warn("***      Debug settings (njams.*.debug.*) are enabled. These are intended for "
+                + "troubleshooting only and must not be used in production.");
+        }
         LOG.info("************************************************************");
 
     }

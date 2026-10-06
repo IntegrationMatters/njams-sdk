@@ -73,6 +73,58 @@ public class LogMessageFlushTaskTest extends AbstractTest{
 
 
     /**
+     * The task is keyed by client path: starting the same instance again must not register it a second time, so
+     * the first stop removes it and a second stop finds nothing to flush.
+     */
+    @Test
+    public void startingSameInstanceAgainDoesNotRegisterItTwice() {
+        // njams.start() already registered the instance
+        LogMessageFlushTask.start(njams);
+        JobImpl job = createDefaultStartedJob();
+        createDefaultActivity(job).setActivityStatus(ActivityStatus.SUCCESS);
+
+        LogMessageFlushTask.stop(njams);
+        assertTrue(job.activities().getAll().isEmpty());
+
+        createDefaultActivity(job).setActivityStatus(ActivityStatus.SUCCESS);
+        LogMessageFlushTask.stop(njams);
+        // no entry left for the client path -> nothing is flushed
+        assertFalse(job.activities().getAll().isEmpty());
+    }
+
+    /**
+     * Instances with different client paths are registered independently; stopping one flushes only its own jobs.
+     */
+    @Test
+    public void stopFlushesOnlyTheJobsOfTheStoppedInstance() {
+        com.im.njams.sdk.Njams other = new com.im.njams.sdk.Njams(com.im.njams.sdk.Path.of("SDK4", "OTHER"),
+            CLIENTVERSION, CATEGORY, com.im.njams.sdk.communication.TestSender.getSettings());
+        try {
+            com.im.njams.sdk.model.ProcessModel otherProcess = other.model().create("PROCESSES");
+            otherProcess.createActivity(ACTIVITYMODELID, "Act", null);
+            other.start();
+
+            JobImpl job = createDefaultStartedJob();
+            createDefaultActivity(job).setActivityStatus(ActivityStatus.SUCCESS);
+            JobImpl otherJob = (JobImpl) otherProcess.createJob();
+            otherJob.start();
+            otherJob.activities().create(otherProcess.getActivity(ACTIVITYMODELID)).build()
+                .setActivityStatus(ActivityStatus.SUCCESS);
+
+            LogMessageFlushTask.stop(njams);
+            assertTrue(job.activities().getAll().isEmpty());
+            assertFalse(otherJob.activities().getAll().isEmpty());
+
+            LogMessageFlushTask.stop(other);
+            assertTrue(otherJob.activities().getAll().isEmpty());
+        } finally {
+            if (other.isStarted()) {
+                other.stop();
+            }
+        }
+    }
+
+    /**
      * This test isn't useful anymore, because njams needs to be started before
      * it can add jobs.
     @Test

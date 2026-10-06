@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="310" height="200">
+  <!-- group outer border -->
+  <rect x="20" y="20" width="240" height="155" fill="none" stroke="#888" stroke-width="1.5" rx="4" stroke-dasharray="5,3"/>
+  <!-- header band -->
+  <rect x="20" y="20" width="240" height="20" fill="#d8d8f0" stroke="#888" stroke-width="1" rx="4"/>
+  <text x="140" y="34" text-anchor="middle" font-size="10" fill="#444" font-family="sans-serif">header (GROUP_HEADER_HEIGHT = 20)</text>
+  <!-- horizontal margin zones (left and right) -->
+  <rect x="20"  y="40" width="60" height="135" fill="#ffe4e4" opacity="0.6"/>
+  <rect x="200" y="40" width="60" height="135" fill="#ffe4e4" opacity="0.6"/>
+  <!-- padding zones (left and right inner) -->
+  <rect x="80"  y="40" width="20" height="105" fill="#d4f4d4" opacity="0.7"/>
+  <rect x="180" y="40" width="20" height="105" fill="#d4f4d4" opacity="0.7"/>
+  <!-- top padding -->
+  <rect x="100" y="40" width="80" height="20" fill="#d4f4d4" opacity="0.7"/>
+  <!-- activity -->
+  <rect x="100" y="60" width="80" height="65" fill="white" stroke="#4a7adb" stroke-width="1.5" rx="4"/>
+  <text x="140" y="97" text-anchor="middle" font-size="12" font-family="monospace" fill="#222">child</text>
+  <!-- bottom padding -->
+  <rect x="100" y="125" width="80" height="20" fill="#d4f4d4" opacity="0.7"/>
+  <!-- bottom margin -->
+  <rect x="20"  y="145" width="240" height="10" fill="#fff0cc" opacity="0.8"/>
+  <!-- dimension annotations on the right -->
+  <text x="268" y="30"  font-size="9" fill="#888" font-family="sans-serif">↕ 20</text>
+  <text x="44"  y="116" text-anchor="middle" font-size="9" fill="#c00" font-family="sans-serif">←50→</text>
+  <text x="90"  y="95"  text-anchor="middle" font-size="9" fill="#060" font-family="sans-serif">←20→</text>
+  <text x="190" y="95"  text-anchor="middle" font-size="9" fill="#060" font-family="sans-serif">←20→</text>
+  <text x="220" y="116" text-anchor="middle" font-size="9" fill="#c00" font-family="sans-serif">←50→</text>
+  <text x="140" y="53"  text-anchor="middle" font-size="9" fill="#060" font-family="sans-serif">↕ 20</text>
+  <text x="140" y="138" text-anchor="middle" font-size="9" fill="#060" font-family="sans-serif">↕ 20</text>
+  <text x="140" y="153" text-anchor="middle" font-size="9" fill="#b80" font-family="sans-serif">↕ 10 (bottom margin)</text>
+  <!-- legend -->
+  <rect x="20"  y="172" width="10" height="8" fill="#ffe4e4" stroke="#ccc" stroke-width="0.5"/>
+  <text x="34"  y="180" font-size="9" fill="#555" font-family="sans-serif">GROUP_MARGIN_HORIZONTAL</text>
+  <rect x="160" y="172" width="10" height="8" fill="#d4f4d4" stroke="#ccc" stroke-width="0.5"/>
+  <text x="174" y="180" font-size="9" fill="#555" font-family="sans-serif">GROUP_PADDING</text>
+  <rect x="240" y="172" width="10" height="8" fill="#fff0cc" stroke="#ccc" stroke-width="0.5"/>
+  <text x="254" y="180" font-size="9" fill="#555" font-family="sans-serif">BOTTOM_MARGIN</text>
+</svg>
