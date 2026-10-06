@@ -79,20 +79,21 @@ pipeline {
             }
         }
 
-        // Single, self-documenting deploy gate. To change which branches publish
-        // to Nexus, edit only the `branch` conditions below. `when { branch }`
-        // matches the bare branch name, so it is not broken by an 'origin/' prefix.
+        // Single, self-documenting deploy gate. Only branches that own a SNAPSHOT version
+        // may publish to Nexus, so that a feature/bugfix branch (which still carries the
+        // version it was branched from) can never overwrite the SNAPSHOT of its version branch.
+        // To change which branches publish, edit only the `branch` pattern below.
+        // `when { branch }` matches the bare branch name, so it is not broken by an 'origin/'
+        // prefix; REGEXP is used because the default GLOB is too loose (a '*-dev' glob would
+        // also match a feature branch like 'foo-dev').
+        // Matched:     master, 5.0.X, 6.1.X (maintenance), 6.0-dev, 6.0.1-dev (development)
+        // Not matched: fix123, SDK-375, bug-SDK-415, PR-12
         // Only njams-sdk and the root POM are published; the sample modules are
         // skipped via maven.deploy.skip in their POMs.
         stage('Deploy to Nexus') {
             when {
-                anyOf {
-                    branch 'master'
-                    branch '6.0-dev'
-                    branch '4.0.X'
-                    branch '4.1.X'
-                    branch '4.2.X'
-                }
+                branch pattern: '^(master|[0-9]+\\.[0-9]+\\.X|[0-9]+\\.[0-9]+(\\.[0-9]+)?-dev)$',
+                       comparator: 'REGEXP'
             }
             steps {
                 // Reuse the artifacts already compiled and tested above: no `clean`

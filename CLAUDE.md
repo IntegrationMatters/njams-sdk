@@ -58,7 +58,7 @@ mvn clean install -DskipTests
 
 ## Project Structure
 
-Multi-module Maven project (`com.salesfive.njams`, version 6.0.1-SNAPSHOT):
+Multi-module Maven project (`com.salesfive.njams`, version 6.1.0-SNAPSHOT):
 - `njams-sdk/` — Core SDK library (primary development target)
 - `njams-sdk-sample-client/` — Usage examples demonstrating all SDK features (looser standards — see `.claude/rules/sample-modules.md`)
 - `njams-sdk-sample-app/` — Additional sample application (looser standards — see `.claude/rules/sample-modules.md`)
