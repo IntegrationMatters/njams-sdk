@@ -24,9 +24,13 @@
 package com.im.njams.sdk.communication.lifecycle;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
@@ -76,6 +80,24 @@ public class ReceiverLoggingSpecTest {
             .count();
         assertEquals("exactly one connection-lost warning", 1, lossWarnings);
         assertEquals("exactly one reconnected info", 1, restoreInfos);
+    }
+
+    @Test
+    public void theConnectionLostWarningCarriesTheCauseOnce() throws Exception {
+        FlakyReceiver receiver = new FlakyReceiver();
+        NjamsSdkRuntimeException cause = new NjamsSdkRuntimeException("the actual cause");
+        receiver.reconnect(cause);
+
+        List<LoggingEvent> lossWarnings = appender.events().stream()
+            .filter(e -> e.getLevel().equals(Level.WARN))
+            .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith("Receiver connection lost"))
+            .collect(Collectors.toList());
+        assertEquals(1, lossWarnings.size());
+        LoggingEvent warning = lossWarnings.get(0);
+        assertNotNull("the warning must carry the cause", warning.getThrowableInformation());
+        assertSame(cause, warning.getThrowableInformation().getThrowable());
+        assertFalse("the receiver name must not be part of the message",
+            warning.getRenderedMessage().contains(receiver.getName()));
     }
 
     private static class FlakyReceiver extends AbstractReceiver {

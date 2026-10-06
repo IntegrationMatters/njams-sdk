@@ -291,11 +291,8 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
             doReconnect = false;
         } else {
             coordinator.beginReconnect();
-            LOG.warn("Receiver connection lost. The client will not receive any commands from the server "
-                + "until reconnected.");
-            if (LOG.isDebugEnabled() && ex != null) {
-                LOG.debug("Receiver reconnect triggered by: {}", ex.toString());
-            }
+            LOG.warn("Receiver connection lost or not established. The client will not receive any commands from "
+                + "the server until connected.", ex);
         }
         if (got > 1) {
             //This is just for debugging.

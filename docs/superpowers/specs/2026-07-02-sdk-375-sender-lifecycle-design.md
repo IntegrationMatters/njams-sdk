@@ -131,8 +131,9 @@ Each side's coordinator is owned at the granularity that side is already shared 
 Because the receiver is never fatal to startup, there is no longer a meaningful distinction between "receiver
 failed its first connect" and "receiver lost its connection later" — both are handled identically:
 
-- On a receiver connection failure (first attempt or later): log once at **WARN** — *"Receiver connection lost.
-  The client will not receive any commands from the server until reconnected."* — then enter background
+- On a receiver connection failure (first attempt or later): log once at **WARN** — *"Receiver connection lost or
+  not established. The client will not receive any commands from the server until connected."* — with the
+  cause (and its stack trace) attached, once per outage — then enter background
   reconnect unconditionally (no setting governs this; see D1.6).
 - On the receiver reconnecting successfully: log once at **INFO** — *"Receiver reconnected. Handling server
   commands resumed."*

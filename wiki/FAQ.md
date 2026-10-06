@@ -490,8 +490,8 @@ outcome — whether at startup or later — never affects `start()`'s return val
 `njams.sdk.communication.startup.failbehavior` or any other setting: it always retries in the background
 unconditionally. This is intentional — if the receiver cannot connect, the client can still push monitoring data
 to nJAMS normally; it can only not receive commands from the server, which is a rare occurrence. On a receiver
-connection loss the SDK logs a warning (`Receiver connection lost. The client will not receive any commands from
-the server until reconnected.`) and an info once it reconnects (`Receiver reconnected. Handling server commands
+connection loss the SDK logs a warning (`Receiver connection lost or not established. The client will not receive any commands from
+the server until connected.`, including the cause once per outage) and an info once it reconnects (`Receiver reconnected. Handling server commands
 resumed.`).
 
 The receiver's connection is also re-verified when the *sender* group recovers from a connection outage. A
