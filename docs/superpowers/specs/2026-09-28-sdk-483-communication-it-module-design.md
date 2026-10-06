@@ -179,18 +179,16 @@ a sender outage and is pinned to `none` (the same reason as scenario 3: delivery
 
 | # | Scenario | Mechanism | Transport | Verifies |
 |---|---|---|---|---|
-| R1 | Receiver reconnects after connection loss | Toxiproxy `down` while the receiver is connected, then removed; a server command is sent afterwards | JMS + HTTP | The receiver reconnects on its own; the command sent after the recovery is handled and replied to. Exactly one consumer / event stream stays attached (JMS: consumer count via Jolokia) and at most one receiver reconnector thread is alive. The receiver logs one `connection lost` warning per outage |
+| R1 | Receiver reconnects after connection loss | Toxiproxy `down` while the receiver is connected, then removed; a server command is sent afterwards | JMS + HTTP | The receiver reconnects on its own; the command sent after the recovery is handled and replied to. Exactly one consumer / event stream stays attached (JMS: consumer count via Jolokia) and at most one receiver reconnector thread is alive. HTTP proves recovery (a command served only after the outage is answered), not which layer re-establishes the stream |
 | R2 | Receiver starts while the target is down | `startup.failbehavior=reconnect`, Toxiproxy `down` before `start()`, then removed | JMS + HTTP | `start()` returns `true`; the receiver connects in the background once the target is back, and a command sent afterwards is handled. The receiver's outcome never affects `start()` |
-| R3 | Command round trip (baseline) | A server command (e.g. `SEND_PROJECTMESSAGE`) is delivered while everything is healthy | JMS + HTTP | The command arrives at the client and its reply is delivered. JMS: publish on the command topic and read the reply topic; HTTP: stub an SSE event and check the reply `POST` in the WireMock journal |
+| R3 | Command round trip (baseline) | A server command (e.g. `SEND_PROJECTMESSAGE`) is delivered while everything is healthy | JMS + HTTP | The command arrives at the client and its reply is delivered. JMS: publish on the command topic (reply requested via a temporary queue) and read the reply; HTTP: stub an SSE event and check the reply `POST` in the WireMock journal |
 | R4 | `stop()` during a receiver reconnect | Toxiproxy `down` so that the receiver is reconnecting, then `Njams.stop()` | JMS + HTTP | `stop()` returns promptly, no `Receiver-*` thread survives, and the JMS consumer count drops to the baseline |
-| R5 | Receiver after a sender outage | Sender and receiver both behind the proxy; `down`, then removed | JMS + HTTP | After the sender group recovers, the receiver is cycled once and ends with exactly one connection (no leaked extra consumer / stream) and handles a command |
+| R5 | Receiver after a sender outage | Sender and receiver both behind the proxy; `down`, then removed | JMS | After the sender group recovers, the receiver ends with exactly one connection (no leaked extra consumer) and handles a command; the recovery-cycle thread ends. HTTP has no counterpart: its sender keeps no connection, so the group recovers only while jobs are driven. Whether the (transient) cycle ran is not asserted |
 | R6 | Shared JMS receiver | Several `Njams` instances with `shared` communications, started and stopped in different orders | JMS | Commands reach the addressed instance only; stopping an instance while siblings run leaves the receiver connected; the last `stop()` releases the consumer; a restart builds a fresh receiver |
 | R7 | JMS receiver leak across start/stop cycles | 10 start/stop cycles, as the existing HTTP leak check | JMS | No `Receiver-*` thread survives; the broker's consumer count returns to the baseline |
 
-**Open feasibility point (HTTP):** the HTTP receiver subscribes to a Server-Sent-Events stream. Whether the module's
-WireMock version can stub an SSE stream well enough for the HTTP variants of R1–R3 and R5 is not yet verified; it
-is checked at the start of implementation. If it cannot, the HTTP variants need a different approach (e.g. a small
-dedicated SSE stub), which is brought back to the user before it is built. The JMS variants do not depend on this.
+**HTTP feasibility (verified 2026-10-05):** WireMock 3.13.2 serves an SSE stream the receiver treats as connected
+(`chunkedDribbleDelay`, with the first event padded so it fits the first chunk). The HTTP variants of R1–R4 use it.
 
 ## 7. Stale-structure / leak regression checklist
 

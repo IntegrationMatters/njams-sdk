@@ -91,7 +91,7 @@ mvn -Pdocker-it verify -pl njams-sdk-communication-it -Dit.test=HttpRejectAndCon
 - First run pulls the three images. Containers are stopped again after the run.
 - Reports: `njams-sdk-communication-it/target/failsafe-reports/`.
 
-**What to expect (as of 2026-10-05):** 33 IT classes, 76 tests (parameterized runs counted individually), all green
+**What to expect (as of 2026-10-05):** 32 IT classes, 76 tests (parameterized runs counted individually), all green
 in isolation; about **7 minutes** wall-clock for the full suite on a developer workstation. The slowest classes are the two queue-saturation ITs (~45-50 s each), the fragmentation ITs
 (~27 s each), `DegradedConnectIT` and `PoolBookkeepingIT` (~25 s each). Expect noisy SDK reconnect/discard warnings
 in the console — they are the behavior under test, not failures.
@@ -135,8 +135,8 @@ reply `POST` that is observed in the WireMock journal.
 | R1 | Receiver connection lost at runtime, then restored | The receiver reconnects on its own and answers commands again. JMS: the consumer on the commands topic drops to 0 during the outage and is exactly 1 afterwards; HTTP: the subscribe `GET` count increases and a command with a *new* id, served only after the outage, is answered. | `jms.ReceiverReconnectIT`, `http.HttpReceiverReconnectIT#receiverResubscribesAfterConnectionLossAndAnswersAgain` | HTTP: the outage is a `reset_peer` toxic; whether the SSE client library or the SDK's own reconnect loop re-establishes the stream is not observable, so this proves recovery, not the layer. | |
 | R2 | Startup with the target unreachable, `startup.failbehavior=reconnect` | `start()` returns `true`; the receiver connects in the background once the target is back and answers commands. | `jms.ReceiverStartupOutageIT`, `http.HttpReceiverReconnectIT#receiverConnectsInTheBackgroundOnceTheServerIsBack` | The receiver's connect starts in the `Njams` constructor, so the outage must exist before it. |
 | R3 | Command round trip | A command is handled and answered. | `jms.JmsCommandRoundTripIT`, `http.HttpReceiverCommandRoundTripIT` | JMS topic is non-durable: the client retries until the consumer is attached. |
-| R4 | `Njams.stop()` while the receiver is reconnecting | `stop()` returns in < 10 s; no `Receiver-*` thread survives; JMS: no consumer stays attached. | `jms.ReceiverShutdownDuringReconnectIT`, `http.HttpReceiverShutdownDuringReconnectIT` | |
-| R5 | Sender group recovered from an outage | The receiver ends up with exactly one connection (cycled, not duplicated) and keeps answering; no recovery-cycle thread is left. | `jms.ReceiverAfterSenderOutageIT` | JMS only: the HTTP sender keeps no connection, so its group never recovers without driven jobs. |
+| R4 | `Njams.stop()` while the receiver is reconnecting | `stop()` returns in < 10 s; no `Receiver-*` thread survives; JMS: no consumer stays attached. | `jms.ReceiverShutdownDuringReconnectIT`, `http.HttpReceiverShutdownDuringReconnectIT` | JMS waits for the consumer drop and the reconnector thread; HTTP can only wait out the outage window. |
+| R5 | Sender group recovered from an outage | The receiver ends up with exactly one connection (cycled, not duplicated) and keeps answering; no recovery-cycle thread is left. | `jms.ReceiverAfterSenderOutageIT` | JMS only: the HTTP sender keeps no connection, so its group never recovers without driven jobs. The recovery cycle is transient, so the test asserts its end, not that it ran. |
 | R6 | Several clients sharing one JMS receiver | One shared consumer; commands are routed by exact path (an ancestor path gets result code 99); stopping one instance keeps the receiver, the last stop releases the consumer; a restart builds a fresh receiver. | `jms.SharedReceiverIT` | |
 | R7 | Repeated start/stop (10 cycles) | No `Receiver-*` thread and no consumer on the commands topic left behind. | `jms.ReceiverStartStopLeakIT` | HTTP counterpart: the receiver-threads row below. |
 

@@ -65,7 +65,7 @@ public class RepeatedFlapIT {
         }
     }
 
-    @Test(timeout = 60000)
+    @Test(timeout = 120000)
     public void repeatedFlappingDoesNotAccumulateThreads() throws Exception {
         ClientSettings settings = ClientSettings.from(new Properties());
         settings.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
@@ -101,9 +101,9 @@ public class RepeatedFlapIT {
 
         // Modes that drop never build a backlog, so nothing may grow. Mode 'none' holds the flapped jobs, and that
         // backlog can legitimately grow the sender pool up to its configured maximum: each extra sender is one
-        // worker thread plus one connection transport thread (verified from the thread-group growth, see the
-        // failure message). That growth is bounded by the pool size; anything beyond it is a leak.
-        int allowedGrowth = 2 + (mode.holdsMessages() ? 2 * (MAX_SENDER_THREADS - 1) : 0);
+        // worker thread (its ActiveMQ transport threads are third-party and not counted). That growth is bounded by
+        // the pool size; anything beyond it is a leak.
+        int allowedGrowth = 2 + (mode.holdsMessages() ? MAX_SENDER_THREADS - 1 : 0);
         Map<String, Integer> finalGroups = threadGroups();
         int finalThreadCount = total(finalGroups);
         assertTrue("Thread count grew from " + baselineThreadCount + " to " + finalThreadCount

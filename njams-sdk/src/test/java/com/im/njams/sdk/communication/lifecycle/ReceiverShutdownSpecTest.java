@@ -107,7 +107,7 @@ public class ReceiverShutdownSpecTest extends AbstractLifecycleSpecTest {
 
     /**
      * Same ordering guarantee as {@link #stopSignalsShutdownBeforeStoppingTheReceiver()}, but through the other
-     * entry point that tears down a non-shareable receiver: {@code Njams.stopReceiverAfterStartupFailure(Receiver)},
+     * entry point that tears down a non-shareable receiver: {@code Njams.stopReceiverAfterStartupFailure(AbstractReceiver)},
      * reached when the sender fails to connect under the default fail-fast startup policy while a receiver has
      * already been constructed.
      */

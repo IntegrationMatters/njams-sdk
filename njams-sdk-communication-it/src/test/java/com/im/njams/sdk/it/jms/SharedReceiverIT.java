@@ -73,7 +73,8 @@ public class SharedReceiverIT {
 
             // stopping one instance leaves the shared receiver connected for the other one
             a.stop();
-            assertEquals(1, env.awaitCommandsTopicConsumerCount(1, Duration.ofSeconds(30)));
+            Thread.sleep(3_000); // the count is already 1: give a wrongly released consumer time to show
+            assertEquals(1, env.commandsTopicConsumerCount());
             assertNotNull(client.awaitReply(Command.PING, path(b), null, Duration.ofSeconds(30)));
 
             // the last instance releases the consumer

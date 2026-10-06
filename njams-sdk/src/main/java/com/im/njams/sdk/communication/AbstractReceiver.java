@@ -388,8 +388,8 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
      */
     @Override
     public void onSenderGroupRecovered() {
-        // wasEverConnected() alone is not enough: it is set by beginConnect()/reconnect(), but not by a plain
-        // start(), so a receiver started directly would look like it had never connected.
+        // A receiver counts as having connected once its lifecycle flagged it (beginConnect()/reconnect()) or
+        // when it is connected right now.
         final boolean neverConnected = !coordinator.wasEverConnected() && !isConnected();
         if (coordinator.shouldShutdown() || neverConnected || isConnecting() || isReconnectInFlight()) {
             LOG.debug("Receiver {}: ignoring the sender group's recovery; this receiver's own connection "

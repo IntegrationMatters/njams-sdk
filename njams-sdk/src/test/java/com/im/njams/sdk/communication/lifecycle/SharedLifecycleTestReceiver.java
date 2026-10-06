@@ -24,7 +24,7 @@ public class SharedLifecycleTestReceiver extends LifecycleTestReceiver implement
      * Tracks every instance actually wired into service, so tests can assert eviction produced a genuinely fresh
      * instance. Registration happens in {@link #init(ClientSettings)} rather than the constructor: {@code
      * CommunicationFactory}'s SPI lookup (see {@code findReceiverType}) instantiates-and-discards throwaway
-     * instances of every registered {@code Receiver} class just to read their {@code getName()} — including this
+     * instances of every registered {@code AbstractReceiver} class just to read their {@code getName()} — including this
      * one, possibly several times per {@code getReceiver(Njams)} call, e.g. once per sharing {@code Njams}
      * instance even though only the first construction is actually wired up. Only the instance that is really put
      * into service ever has {@link #init(ClientSettings)} called on it (a reused, cached shared instance does

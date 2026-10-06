@@ -50,7 +50,7 @@ public class LifecycleTestReceiver extends AbstractReceiver implements SenderExc
      * <p>
      * Honors {@link LifecycleTestTransport#armReceiverConstructionFailOnce()}. The check lives here rather than
      * in the constructor because {@code CommunicationFactory}'s SPI lookup constructs-and-discards throwaway
-     * probe instances of every registered {@code Receiver} class just to read {@code getName()}/check {@code
+     * probe instances of every registered {@code AbstractReceiver} class just to read {@code getName()}/check {@code
      * instanceof} (see {@link SharedLifecycleTestReceiver}'s Javadoc for the full explanation) — a constructor
      * hook would be consumed by one of those probes instead of the real, selected instance. {@code init(...)} is
      * called only once, on the instance {@code CommunicationFactory.createReceiver} actually puts into service.
