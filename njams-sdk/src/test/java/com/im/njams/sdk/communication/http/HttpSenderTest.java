@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -151,6 +152,37 @@ public class HttpSenderTest {
         // connect legitimately calls newCall() twice. What this proves is that sender2's OWN client was used at
         // all -- before the fix this was zero, since sender2 silently inherited sender1's cached ConnectionTest.
         verify(sender2.client, atLeastOnce()).newCall(any(Request.class));
+    }
+
+    @Test
+    public void firstConnectSendsOneConnectivityRequestAndLaterConnectsOneEach() throws IOException {
+        HttpSender sender = initializedSender();
+        sender.client = mockClientReturning(response(sender, 200));
+
+        sender.connect();
+        // the probe that selects the connectivity-check variant doubles as the check itself: a second request
+        // right after it could reuse a keep-alive connection the server already closed
+        verify(sender.client, times(1)).newCall(any(Request.class));
+
+        sender.close();
+        sender.connect();
+        verify(sender.client, times(2)).newCall(any(Request.class));
+    }
+
+    @Test
+    public void connectSwitchesToTheLegacyCheckOnMethodNotAllowedWithOneRequestEach() throws IOException {
+        HttpSender sender = initializedSender();
+        OkHttpClient client = mock(OkHttpClient.class);
+        Call call = mock(Call.class);
+        when(client.newCall(any(Request.class))).thenReturn(call);
+        when(call.execute()).thenReturn(response(sender, 405), response(sender, 200));
+        sender.client = client;
+
+        sender.connect();
+
+        assertEquals("one HEAD that is answered 405, then one legacy GET", 2,
+            mockingDetails(client).getInvocations().stream().filter(i -> i.getMethod().getName().equals("newCall"))
+                .count());
     }
 
     @Test

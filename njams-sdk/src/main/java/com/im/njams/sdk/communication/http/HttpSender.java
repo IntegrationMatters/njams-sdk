@@ -219,9 +219,29 @@ public class HttpSender extends AbstractSender {
         }
     }
 
+    /**
+     * Checks that the target is reachable. This instance's first call also selects the connection test variant (a
+     * {@code 405} on {@code HEAD} selects the legacy one): that selecting request is itself the check, so a first
+     * connect needs no second request on the connection the probe has just used. Later calls run the cached test
+     * once. Only ever called from {@link #connect()}, which is {@code synchronized} per instance.
+     */
     private void testConnection() {
-        final ConnectionTest testCon = getConnectionTest();
-        final Response response = testCon.execute();
+        ConnectionTest testCon = connectionTest;
+        final Response response;
+        if (testCon == null) {
+            testCon = getConnectionTest(ConnectionTestMode.STANDARD);
+            Response probe = testCon.execute();
+            if (probe != null && probe.code() == METHOD_NOT_ALLOWED) {
+                // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
+                testCon = getConnectionTest(ConnectionTestMode.LEGACY);
+                LOG.info("Switched to legacy http connection test implementation.");
+                probe = testCon.execute();
+            }
+            connectionTest = testCon;
+            response = probe;
+        } else {
+            response = testCon.execute();
+        }
         if (response != null) {
             if (response.code() == OK || response.code() == NO_CONTENT) {
                 return;
@@ -238,24 +258,6 @@ public class HttpSender extends AbstractSender {
         }
         throw new IllegalStateException("No response from: " + testCon);
 
-    }
-
-    /**
-     * Lazily resolves and caches this instance's own connection test on first use. Only ever called from
-     * {@link #connect()}, which is itself {@code synchronized} per instance, so no further locking is needed here.
-     */
-    private ConnectionTest getConnectionTest() {
-        if (connectionTest == null) {
-            ConnectionTest testCon = getConnectionTest(ConnectionTestMode.STANDARD);
-            final Response response = testCon.execute();
-            if (response != null && response.code() == METHOD_NOT_ALLOWED) {
-                // 405 -> The server does not know about HEAD on that resource -> use legacy fallback
-                testCon = getConnectionTest(ConnectionTestMode.LEGACY);
-                LOG.info("Switched to legacy http connection test implementation.");
-            }
-            connectionTest = testCon;
-        }
-        return connectionTest;
     }
 
     private ConnectionTest getConnectionTest(ConnectionTestMode mode) {
