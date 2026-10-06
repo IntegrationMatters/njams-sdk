@@ -147,10 +147,9 @@ public class HttpSenderTest {
         sender2.client = mockClientReturning(response(sender2, 200));
         sender2.connect();
 
-        // atLeastOnce(), not an exact count: getConnectionTest() probes once itself (to detect a legacy-fallback
-        // 405) and testConnection() probes again on the same cached ConnectionTest, so a fresh instance's first
-        // connect legitimately calls newCall() twice. What this proves is that sender2's OWN client was used at
-        // all -- before the fix this was zero, since sender2 silently inherited sender1's cached ConnectionTest.
+        // What this proves is that sender2's OWN client was used at all -- before the fix this was zero, since
+        // sender2 silently inherited sender1's cached ConnectionTest. (The exact request count of a first connect
+        // is pinned by firstConnectSendsOneConnectivityRequestAndLaterConnectsOneEach.)
         verify(sender2.client, atLeastOnce()).newCall(any(Request.class));
     }
 
