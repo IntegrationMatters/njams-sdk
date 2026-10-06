@@ -8,7 +8,7 @@
 trigger receiver reconnect* — depends on this one, see §8), SDK-475 (*Kafka sender double-counts discards and
 disables producer retries under any discard policy* — documentation-only, see §8.2).
 **Companion docs:** `docs/superpowers/specs/2026-07-02-sdk-375-sender-lifecycle-design.md`,
-`docs/SDK-375-sender-lifecycle-analysis.md`, `docs/SDK-375-working-agreement.md`.
+`docs/SDK-375-sender-lifecycle-analysis.md`, `docs/SDK-375-working-agreement.md` (both since removed; see git history).
 
 ---
 

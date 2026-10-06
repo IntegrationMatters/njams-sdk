@@ -4,7 +4,8 @@
 **Branch:** `SDK-375` (based on `6.0-dev`)
 **Status of this doc:** revised after Parts 1-3 were implemented, reviewed, and merged → pending a Part 4
 implementation plan (`writing-plans`).
-**Companion docs:** `docs/SDK-375-sender-lifecycle-analysis.md` (evidence of current behavior),
+**Companion docs (removed after SDK-375 was resolved; recoverable from git history):**
+`docs/SDK-375-sender-lifecycle-analysis.md` (evidence of the pre-rework behavior),
 `docs/SDK-375-working-agreement.md` (branch rules, decisions, test strategy).
 
 ---
