@@ -23,10 +23,18 @@
  */
 package com.im.njams.sdk.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,11 +50,27 @@ import org.slf4j.LoggerFactory;
 public class ServiceLoaderSupport<S> implements Iterable<S> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ServiceLoaderSupport.class);
+    /**
+     * Hint to append to the message of an exception that is thrown because a lookup failed and that has been
+     * reported in detail (see {@link #describeAvailability(Function)}) to the log.
+     */
+    public static final String SEE_LOG_HINT = "See the log for the available and unavailable implementations.";
+    // safeguard against an underlying iterator that fails repeatedly without making any progress
+    private static final int MAX_CONSECUTIVE_FAILURES = 100;
+    private static final int MAX_CAUSE_DEPTH = 10;
+    private static final String NEW_LINE = System.lineSeparator();
     private final Class<S> serviceType;
     private final ServiceLoader<S> serviceLoader;
+    // descriptions of the implementations that could not be loaded; filled when they are first encountered
+    private final Set<String> unavailable = Collections.synchronizedSet(new LinkedHashSet<>());
 
-    private static class SaveIterator<S> implements Iterator<S> {
+    /**
+     * Iterates over all implementations that can be loaded. Implementations that cannot be loaded are skipped, but
+     * remembered in {@link ServiceLoaderSupport#unavailable}.
+     */
+    private class SaveIterator implements Iterator<S> {
         private final Iterator<S> it;
+        private S prefetched;
 
         private SaveIterator(final Iterator<S> originalIterator) {
             it = originalIterator;
@@ -54,21 +78,59 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
 
         @Override
         public boolean hasNext() {
-            return it.hasNext();
+            int failures = 0;
+            while (prefetched == null) {
+                try {
+                    if (!it.hasNext()) {
+                        return false;
+                    }
+                    prefetched = it.next();
+                } catch (final Throwable t) {
+                    // this can be class loading errors or actually ServiceConfigurationError
+                    // both hasNext() and next() can fail; the underlying iterator continues with the next entry
+                    LOG.debug("Failed to load next entry", t);
+                    addUnavailable(t);
+                    if (++failures >= MAX_CONSECUTIVE_FAILURES) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         @Override
         public S next() {
-            try {
-                return it.next();
-            } catch (final Throwable t) {
-                // this can be class loading errors or actually ServiceConfigurationError
-                LOG.debug("Failed to load next entry", t);
-
+            if (!hasNext()) {
+                throw new NoSuchElementException();
             }
-            return null;
+            final S next = prefetched;
+            prefetched = null;
+            return next;
         }
 
+    }
+
+    private void addUnavailable(final Throwable failure) {
+        String text = "Unidentified provider";
+        Throwable cause = failure;
+        if (failure instanceof ServiceConfigurationError) {
+            // the message is "<service type>: Provider <class> not found | could not be instantiated"
+            final String prefix = serviceType.getName() + ": ";
+            final String message = String.valueOf(failure.getMessage());
+            text = message.startsWith(prefix) ? message.substring(prefix.length()) : message;
+            cause = failure.getCause();
+        }
+        final Throwable root = rootCause(cause);
+        unavailable.add(root == null ? text : text + " - " + root.getClass().getSimpleName()
+            + (root.getMessage() == null ? "" : ": " + root.getMessage()));
+    }
+
+    private static Throwable rootCause(final Throwable throwable) {
+        Throwable root = throwable;
+        for (int i = 0; root != null && root.getCause() != null && i < MAX_CAUSE_DEPTH; i++) {
+            root = root.getCause();
+        }
+        return root;
     }
 
     /**
@@ -110,7 +172,7 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      */
     @Override
     public Iterator<S> iterator() {
-        return new SaveIterator<>(serviceLoader.iterator());
+        return new SaveIterator(serviceLoader.iterator());
     }
 
     /**
@@ -119,6 +181,43 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      */
     public Stream<S> stream() {
         return StreamSupport.stream(spliterator(), false).filter(Objects::nonNull);
+    }
+
+    /**
+     * Returns whether implementations have been encountered that could not be loaded. Implementations that cannot
+     * be loaded are skipped silently, so this only covers the part of the lookup that has been done so far.
+     * @return <code>true</code> if at least one implementation could not be loaded.
+     */
+    public boolean hasUnavailable() {
+        return !unavailable.isEmpty();
+    }
+
+    /**
+     * Describes which implementations are available (can be used) and which implementations have been found but
+     * could not be loaded, and why. The causes are given by their type and message only, without a stack trace.
+     * <br>
+     * Implementations that cannot be loaded are skipped silently when looking up. This description is intended for
+     * being logged when a lookup fails, so that it is visible whether the wanted implementation does not exist, or
+     * could not be loaded. Since failing implementations are encountered only when iterating, call this
+     * <em>after</em> the lookup that failed.
+     * @param nameOf Provides the name of an available implementation.
+     * @return A multi-line description.
+     */
+    public String describeAvailability(final Function<? super S, String> nameOf) {
+        final String available = stream().map(nameOf).filter(Objects::nonNull).sorted()
+            .collect(Collectors.joining(", ", "[", "]"));
+        final List<String> failed;
+        synchronized (unavailable) {
+            failed = new ArrayList<>(unavailable);
+        }
+        final StringBuilder description = new StringBuilder("Available: ").append(available).append(NEW_LINE);
+        if (failed.isEmpty()) {
+            description.append("Unavailable: none");
+        } else {
+            description.append("Unavailable (could not be loaded):");
+            failed.forEach(f -> description.append(NEW_LINE).append("  - ").append(f));
+        }
+        return description.toString();
     }
 
     /**

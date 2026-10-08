@@ -23,11 +23,9 @@
  */
 package com.im.njams.sdk.communication;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,25 +87,25 @@ public class CommunicationFactory {
                 requiredReceiverName = "HTTP";
             }
             final boolean shared = settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false);
-            Class<? extends AbstractReceiver> type = findReceiverType(requiredReceiverName, shared);
+            final ServiceLoaderSupport<AbstractReceiver> receivers = getReceiverLoader();
+            Class<? extends AbstractReceiver> type = findReceiverType(receivers, requiredReceiverName, shared);
             if (type != null) {
                 final AbstractReceiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
                 newInstance.setNjams(njams);
 
                 return newInstance;
             }
-            Collection<String> available = getReceiverLoader().stream().map(AbstractReceiver::getName).sorted()
-                    .collect(Collectors.toSet());
-            throw new IllegalStateException(
-                    "Unable to find receiver implementation for " + requiredReceiverName + ", available are: "
-                            + available);
+            final String error = "Unable to find receiver implementation for communication type '"
+                + requiredReceiverName + "' configured by setting " + NjamsSettings.PROPERTY_COMMUNICATION + ".";
+            LOG.error("{}{}{}", error, System.lineSeparator(), receivers.describeAvailability(AbstractReceiver::getName));
+            throw new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
         }
         throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
                 + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE + ") in settings properties");
     }
 
-    private Class<? extends AbstractReceiver> findReceiverType(String name, boolean wantsSharable) {
-        final ServiceLoaderSupport<AbstractReceiver> receivers = getReceiverLoader();
+    private Class<? extends AbstractReceiver> findReceiverType(ServiceLoaderSupport<AbstractReceiver> receivers,
+        String name, boolean wantsSharable) {
         AbstractReceiver found =
                 receivers.find(
                         r -> r.getName().equalsIgnoreCase(name) && wantsSharable == r instanceof ShareableReceiver);
@@ -245,11 +243,10 @@ public class CommunicationFactory {
                         "Unable to create new " + requiredSenderName + " instance", e);
             }
         }
-        final Collection<String> availableNames =
-                senders.getAll().stream().map(AbstractSender::getName).sorted().collect(Collectors.toSet());
-        throw new IllegalStateException(
-                "Unable to find sender implementation for " + requiredSenderName + ", available are: "
-                        + availableNames);
+        final String error = "Unable to find sender implementation for communication type '" + requiredSenderName
+            + "' configured by setting " + NjamsSettings.PROPERTY_COMMUNICATION + ".";
+        LOG.error("{}{}{}", error, System.lineSeparator(), senders.describeAvailability(AbstractSender::getName));
+        throw new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
     }
 
 }

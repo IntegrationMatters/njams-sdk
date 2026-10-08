@@ -90,10 +90,11 @@ public class ConfigurationProviderFactory {
             validate(configurationProvider);
             return configurationProvider;
         }
-        throw new IllegalArgumentException(
-            "Unable to find ConfigurationProvider implementation with name " + name + ", available are: "
-                + serviceLoader.stream().map(ConfigurationProvider::getName).sorted()
-                .collect(Collectors.toList()));
+        final String error = "Unable to find ConfigurationProvider implementation with name '" + name
+            + "' configured by setting " + CONFIGURATION_PROVIDER + ".";
+        LOG.error("{}{}{}", error, System.lineSeparator(),
+            serviceLoader.describeAvailability(ConfigurationProvider::getName));
+        throw new IllegalArgumentException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
     }
 
     private void validate(ConfigurationProvider cfg) {
