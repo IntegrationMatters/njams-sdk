@@ -26,6 +26,7 @@ package com.im.njams.sdk.configuration.provider;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogLevel;
 import com.faizsiegeln.njams.messageformat.v4.projectmessage.LogMode;
 import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ProcessConfiguration;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -33,7 +34,14 @@ import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * A base implementation for {@link ConfigurationProvider} that manages common default that are provided via
@@ -54,10 +62,12 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
     private boolean defaultRecording = true;
     private LogMode defaultLogMode = LogMode.COMPLETE;
     private LogLevel defaultLogLevel = LogLevel.INFO;
+    private Collection<Pattern> processExcludePatterns = Collections.emptyList();
 
     @Override
     public void configure(Properties properties, Njams njams) {
         this.njams = njams;
+        processExcludePatterns = compileProcessExcludePatterns(getSettings());
         if (properties.containsKey(DEFAULT_RECORDING_CONFIG)) {
             initRecording(properties.getProperty(DEFAULT_RECORDING_CONFIG));
         }
@@ -69,6 +79,24 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
         }
         LOG.debug("Initialized: defaultRecording{}, defaultLogMode={}, defaultLogLevel={}", defaultRecording,
             defaultLogMode, defaultLogLevel);
+    }
+
+    private static Collection<Pattern> compileProcessExcludePatterns(ClientSettings settings) {
+        if (settings == null) {
+            return Collections.emptyList();
+        }
+        final List<Pattern> patterns = new ArrayList<>();
+        for (final Entry<String, String> entry : settings) {
+            if (entry.getKey().startsWith(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX)
+                && StringUtils.isNotBlank(entry.getValue())) {
+                try {
+                    patterns.add(Pattern.compile(entry.getValue().trim()));
+                } catch (PatternSyntaxException e) {
+                    LOG.warn("Ignoring illegal process match pattern {}: {}", entry.getValue(), e.getMessage());
+                }
+            }
+        }
+        return Collections.unmodifiableList(patterns);
     }
 
     private void initRecording(String val) {
@@ -119,12 +147,21 @@ public abstract class AbstractConfigurationProvider implements ConfigurationProv
 
     /**
      * Returns the client settings of the associated {@link Njams} instance, or <code>null</code> if
-     * this provider was not configured with one. Used by {@link #loadConfiguration()} implementations
-     * to initialize the loaded configuration's process filter.
+     * this provider was not configured with one.
      * @return the client settings, or <code>null</code>.
      */
     protected ClientSettings getSettings() {
         return njams == null ? null : njams.getSettings();
+    }
+
+    /**
+     * Returns the process-exclude patterns compiled from the client settings once, when this provider was
+     * {@link #configure(Properties, Njams) configured}.
+     * @return the compiled process-exclude patterns, never <code>null</code>.
+     */
+    @Override
+    public Collection<Pattern> getProcessExcludePatterns() {
+        return processExcludePatterns;
     }
 
     protected boolean getDefaultRecording() {
