@@ -91,10 +91,10 @@ public interface JmsFactory extends AutoCloseable {
      */
     public static JmsFactory find(ClientSettings settings, boolean init) {
         String toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_JMSFACTORY);
-        JmsFactory found = find(toFind);
+        JmsFactory found = find(NjamsSettings.PROPERTY_JMS_JMSFACTORY, toFind);
         if (found == null) {
             toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY);
-            found = find(toFind);
+            found = find(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, toFind);
         }
         if (found == null) {
             found = new JndiJmsFactory();
@@ -106,7 +106,7 @@ public interface JmsFactory extends AutoCloseable {
         return found;
     }
 
-    private static JmsFactory find(final String toFind) {
+    private static JmsFactory find(final String settingKey, final String toFind) {
         if (StringUtils.isBlank(toFind)) {
             return null;
         }
@@ -117,6 +117,14 @@ public interface JmsFactory extends AutoCloseable {
         if (factory != null) {
             LOG.debug("Found JMS factory implementation {} for key {}", factory, toFind);
             return factory;
+        }
+        if (spiLoader.hasUnavailable()) {
+            // not finding a factory is normal when the value is a JNDI name; but it matters when the value is the
+            // name of an implementation that could not be loaded
+            LOG.warn("No JMS factory implementation found for '{}' (setting {}). This is expected if that value "
+                + "is not the name of an implementation, e.g., a JNDI name. Otherwise, the intended implementation "
+                + "could not be loaded.{}{}", toFind, settingKey,
+                System.lineSeparator(), spiLoader.describeAvailability(JmsFactory::getName));
         }
         return null;
     }

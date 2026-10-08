@@ -1,1 +1,2 @@
 com.im.njams.sdk.configuration.provider.NoInitFilterConfigurationProvider
+com.im.njams.sdk.configuration.provider.FailingConfigurationProvider
