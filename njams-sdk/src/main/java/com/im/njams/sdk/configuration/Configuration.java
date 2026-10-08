@@ -70,10 +70,11 @@ public class Configuration {
     private Collection<ProcessFilterEntry> processFilters = new ArrayList<>();
 
     /**
-     * Initializes the process filter, reading the settings-based exclude patterns directly from the
-     * given client settings. Intended to be called by the configuration loader once the
-     * configuration is fully populated. The settings are only used to build the filter; they are
-     * neither stored on this configuration nor serialized.
+     * Explicitly initializes the process filter, reading the settings-based exclude patterns directly from the
+     * given client settings instead of from the {@link ConfigurationProvider}. Usually not needed, since the
+     * filter is otherwise built lazily using
+     * {@link ConfigurationProvider#getProcessExcludePatterns()}. The settings are only used to build the filter;
+     * they are neither stored on this configuration nor serialized.
      * @param settings The client settings to read additional exclude patterns from, or
      * <code>null</code> for none.
      */
@@ -82,9 +83,9 @@ public class Configuration {
     }
 
     /**
-     * Returns the process filter, building it lazily on first access (without settings-based
-     * patterns) so that it reflects the fully-populated {@link #processFilters} list (e.g. after
-     * deserialization) even when {@link #initFilter(ClientSettings)} was not called.
+     * Returns the process filter, building it lazily on first access (with the exclude patterns provided by the
+     * {@link ConfigurationProvider}) so that it reflects the fully-populated {@link #processFilters} list
+     * (e.g. after deserialization) even when {@link #initFilter(ClientSettings)} was not called.
      */
     private ProcessFilter processFilter() {
         ProcessFilter filter = processFilter;
@@ -92,7 +93,8 @@ public class Configuration {
             synchronized (this) {
                 filter = processFilter;
                 if (filter == null) {
-                    filter = new ProcessFilter(this);
+                    filter = new ProcessFilter(this,
+                        configurationProvider == null ? null : configurationProvider.getProcessExcludePatterns());
                     processFilter = filter;
                 }
             }

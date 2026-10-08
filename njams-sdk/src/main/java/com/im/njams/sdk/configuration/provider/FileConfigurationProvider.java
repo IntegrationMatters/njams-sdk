@@ -127,7 +127,6 @@ public class FileConfigurationProvider extends AbstractConfigurationProvider {
             }
         }
         configuration.setConfigurationProvider(this);
-        configuration.initFilter(getSettings());
         if (LOG.isTraceEnabled()) {
             try {
                 LOG.trace("Loaded {} configuration.", objectMapper.writeValueAsString(configuration));

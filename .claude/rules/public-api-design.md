@@ -23,6 +23,16 @@ Not all `public` Java code in this project is public API, and the API that does 
 - When assessing a `breaking-change` label: judge Client Contract and SPI Contract changes against it as usual (a broken SPI contract counts, a purely internal `public` member doesn't). Wire Contract changes are judged separately, through `message-format-changes.md`'s human-confirmation + `SER`-ticket gate — don't try to resolve them with the breaking-change label instead.
 - Do not implement or change anything about the boundaries between these contracts without asking first.
 
+## SPI Implementations Are Unknown
+
+When implementing a feature or fix that affects a type created via SPI (the registered SPI types listed under "SPI Contract" above), always consider implementations the SDK does not know — custom providers, senders, receivers, factories written outside this repository. Do not only reason about the built-in implementations.
+
+**Prefer a solution that does not require an SPI implementation to follow a contract or requirement** — such as "must call X after loading", "must override Y to make the feature work", or "must populate Z". Such requirements cannot be enforced, and a custom implementation that misses one fails silently. Put the behavior where the SDK controls it instead: in the SDK-side caller, in the shared base class (e.g. `AbstractConfigurationProvider`), or in a `default` interface method with a sensible fallback. Adding a `default` interface method is non-breaking, but it still extends the SPI, so ask first (see "Do not implement or change anything about the boundaries between these contracts without asking first" above).
+
+Example (SDK-367): settings-based process-exclude patterns must reach every `Configuration`, whatever provider created it. Requiring each `ConfigurationProvider` to call `Configuration.initFilter(...)` was rejected. Instead, `AbstractConfigurationProvider` compiles the patterns once in `configure()`, and `Configuration` pulls them from its provider via a `default` method on the interface.
+
+If no solution without a requirement is feasible, document the requirement on the SPI interface's Javadoc and raise it with the user.
+
 ## Relocated (Shaded) Third-Party Dependencies
 
 The shaded SDK artifact relocates several third-party libraries into the `com.im.*` namespace at packaging time via the Maven Shade plugin (e.g. `com.fasterxml` → `com.im.fasterxml`, `net.sf.saxon` → `com.im.saxon`, and likewise Woodstox, jmespath, oshi, and others — see the `<relocations>` in the build).

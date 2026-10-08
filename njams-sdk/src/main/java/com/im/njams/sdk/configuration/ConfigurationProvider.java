@@ -23,9 +23,11 @@
  */
 package com.im.njams.sdk.configuration;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.configuration.provider.ConfigurationValidationResult;
@@ -101,5 +103,18 @@ public interface ConfigurationProvider {
      */
     public default ConfigurationValidationResult validate() {
         return ConfigurationValidationResult.SUCCESS;
+    }
+
+    /**
+     * Provides the pre-compiled regular expressions from the client settings (see
+     * {@value com.im.njams.sdk.NjamsSettings#PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX}) that exclude processes by
+     * their path. A {@link Configuration} created by this provider applies them in addition to its own process
+     * filters. Implementations that are not derived from
+     * {@link com.im.njams.sdk.configuration.provider.AbstractConfigurationProvider} should override this to
+     * make such exclusions effective.
+     * @return The compiled process-exclude patterns; empty by default.
+     */
+    public default Collection<Pattern> getProcessExcludePatterns() {
+        return Collections.emptyList();
     }
 }

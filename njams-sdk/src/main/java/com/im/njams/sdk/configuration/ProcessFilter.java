@@ -119,7 +119,7 @@ public class ProcessFilter {
                 } else if (filter.getMatcherType() == MatcherType.REGEX) {
                     final Pattern c = compilePattern(filter.getFilterValue());
                     if (c != null) {
-                        includePatterns.add(compilePattern(filter.getFilterValue()));
+                        includePatterns.add(c);
                         LOG.debug("Added include pattern: {}", filter.getFilterValue());
                     }
                 } else {
