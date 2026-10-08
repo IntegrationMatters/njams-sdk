@@ -10,7 +10,7 @@ import com.im.njams.sdk.communication.TestSender;
 import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.NoInitFilterConfigurationProvider;
-import com.im.njams.sdk.settings.Settings;
+import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Verifies that settings-based process exclude patterns are applied by {@link Njams#start()}, independent of
@@ -28,7 +28,7 @@ public class NjamsConfigurationExcludePatternTest {
     }
 
     private Njams startNjams(String provider) {
-        Settings settings = TestSender.getSettings();
+        ClientSettings settings = TestSender.getSettings();
         settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, provider);
         settings.put(NjamsSettings.PROPERTY_PROCESS_EXCLUDE_REGEX_PREFIX + "x", ">SDK4>TEST>excluded>.*");
         njams = new Njams(Path.of("SDK4", "TEST"), "TEST", "SDK4", settings);
