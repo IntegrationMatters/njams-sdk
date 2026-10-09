@@ -487,7 +487,7 @@ public class NjamsTest {
         Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
         njams.start();
 
-        assertEquals("*****", DataMasking.maskString("Hello"));
+        assertEquals("*****", njams.configuration().dataMasking().maskString("Hello"));
     }
 
     @Test
@@ -501,7 +501,7 @@ public class NjamsTest {
         Njams njams = new Njams(Path.of("TestPath"), "1.0.0", "SDK", settings);
         njams.start();
 
-        assertEquals("Hello", DataMasking.maskString("Hello"));
+        assertEquals("Hello", njams.configuration().dataMasking().maskString("Hello"));
     }
 
     @Test
@@ -520,7 +520,7 @@ public class NjamsTest {
         njams.configuration().get().setDataMasking(dataMaskingStrings);
         njams.start();
 
-        assertEquals("Hello", DataMasking.maskString("Hello"));
+        assertEquals("Hello", njams.configuration().dataMasking().maskString("Hello"));
     }
 
     @Test
@@ -534,7 +534,7 @@ public class NjamsTest {
 
         njams.start();
 
-        assertEquals("Hello", DataMasking.maskString("Hello"));
+        assertEquals("Hello", njams.configuration().dataMasking().maskString("Hello"));
     }
 
     @Test

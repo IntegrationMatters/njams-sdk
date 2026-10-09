@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.logmessage.ActivityStatus;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.PluginDataItem;
+import com.im.njams.sdk.DataMasker;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.DateTimeUtility;
@@ -139,6 +140,7 @@ public class JobImpl implements Job {
 
     private final JobErrorHandling errorHandling;
     private final JobSettings jobSettings;
+    private final DataMasker dataMasker;
     // access to truncation state is synchronized on the activities lock!
     private final JobTruncation truncation;
 
@@ -156,6 +158,7 @@ public class JobImpl implements Job {
         setStatusAndSeverity(JobStatus.CREATED);
         this.processModel = processModel;
         njams = processModel.getNjams();
+        dataMasker = njams.configuration().dataMasking();
         // must be set before the recorded attribute is added below: attributes already apply payload limits
         jobSettings = JobSettings.of(njams.getSettings());
         errorHandling = new JobErrorHandling(this, jobSettings);
@@ -649,6 +652,16 @@ public class JobImpl implements Job {
      */
     Njams getNjams() {
         return njams;
+    }
+
+    /**
+     * Masks the given value with the data masking of the client instance owning this job.
+     *
+     * @param value the value to mask
+     * @return the masked value
+     */
+    String mask(String value) {
+        return dataMasker.maskString(value);
     }
 
     @Override

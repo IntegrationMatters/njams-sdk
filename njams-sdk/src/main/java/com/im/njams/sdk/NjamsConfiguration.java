@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,12 +33,11 @@ import com.im.njams.sdk.configuration.Configuration;
 import com.im.njams.sdk.configuration.ConfigurationProvider;
 import com.im.njams.sdk.configuration.ConfigurationProviderFactory;
 import com.im.njams.sdk.configuration.provider.FileConfigurationProvider;
-import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Owns the server-driven runtime {@link Configuration} of an {@link Njams} client
- * (log mode, process exclusions, tracepoints) and its provider.
+ * (log mode, process exclusions, tracepoints) and its provider, and the client's {@link DataMasker}.
  * Obtain via {@code njams.configuration()}.
  */
 public class NjamsConfiguration {
@@ -46,6 +47,7 @@ public class NjamsConfiguration {
     private static final String DEFAULT_CACHE_PROVIDER = FileConfigurationProvider.NAME;
 
     private final ClientSettings settings;
+    private final DataMasker dataMasker = new DataMasker(true);
     private Configuration configuration;
 
     NjamsConfiguration(ClientSettings settings, Njams njams) {
@@ -60,6 +62,16 @@ public class NjamsConfiguration {
      */
     public Configuration get() {
         return configuration;
+    }
+
+    /**
+     * Returns the data masking of this client instance. It masks with the patterns from this instance's settings
+     * and configuration, applied on every start, and with patterns client code adds to it.
+     *
+     * @return the data masker of this instance, never <code>null</code>
+     */
+    public DataMasker dataMasking() {
+        return dataMasker;
     }
 
     /**
@@ -107,21 +119,21 @@ public class NjamsConfiguration {
     }
 
     /**
-     * Initialize the datamasking feature; called by Njams.start().
+     * Applies the masking patterns from the settings and the configuration; called by Njams.start().
      */
     void initializeDataMasking() {
-        boolean dataMaskingEnabled = settings.getBool(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, true);
-        if (dataMaskingEnabled) {
-            DataMasking.addPatterns(settings);
-        } else {
+        if (!settings.getBool(NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, true)) {
             LOG.info("DataMasking is disabled.");
+            dataMasker.clearConfiguredPatterns();
+            return;
         }
-        if (dataMaskingEnabled && !configuration.getDataMasking().isEmpty()) {
+        final List<String> fromConfiguration = configuration.getDataMasking();
+        if (!fromConfiguration.isEmpty()) {
             LOG.warn("DataMasking via the configuration is deprecated but will be used as well. Use settings " +
                     "with the properties \n{} = " +
                     "\"true\" \nand multiple \n{}<YOUR-REGEX-NAME> = <YOUR-REGEX> \nfor this.",
                 NjamsSettings.PROPERTY_DATA_MASKING_ENABLED, NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX);
-            DataMasking.addPatterns(configuration.getDataMasking());
         }
+        dataMasker.replaceConfiguredPatterns(settings, fromConfiguration);
     }
 }

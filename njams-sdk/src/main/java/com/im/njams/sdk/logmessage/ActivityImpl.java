@@ -252,7 +252,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (isTracing() || needsData) {
             final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
             final SerializerResult result = job.getNjams().serializers().serialize(input, sizeLimit);
-            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            serializedData = job.mask(result == null ? null : result.value());
             truncated = result != null && result.truncated();
         } else {
             serializedData = null;
@@ -323,7 +323,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
         if (isTracing() || needsData) {
             final int sizeLimit = needsData ? 0 : job.getSerializeSizeHint();
             final SerializerResult result = job.getNjams().serializers().serialize(output, sizeLimit);
-            serializedData = DataMasking.maskString(result == null ? null : result.value());
+            serializedData = job.mask(result == null ? null : result.value());
             truncated = result != null && result.truncated();
         } else {
             serializedData = null;
@@ -568,7 +568,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setInput(String input) {
-        super.setInput(DataMasking.maskString(job.limitPayload(input)));
+        super.setInput(job.mask(job.limitPayload(input)));
     }
 
     /**
@@ -578,7 +578,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      */
     @Override
     public void setOutput(String output) {
-        super.setOutput(DataMasking.maskString(job.limitPayload(output)));
+        super.setOutput(job.mask(job.limitPayload(output)));
     }
 
     /**
@@ -589,7 +589,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventMessage(String message) {
         setExecutionIfNotSet();
-        final String limited = DataMasking.maskString(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
+        final String limited = job.mask(limitLength("eventMessage", message, MAX_VALUE_LIMIT));
         super.setEventMessage(limited);
         if (StringUtils.isNotBlank(message)) {
             final int size = limited == null ? 0 : limited.length();
@@ -606,7 +606,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventCode(String code) {
         setExecutionIfNotSet();
-        final String limited = DataMasking.maskString(limitLength("eventCode", code, MAX_VALUE_LIMIT));
+        final String limited = job.mask(limitLength("eventCode", code, MAX_VALUE_LIMIT));
         super.setEventCode(limited);
         if (StringUtils.isNotBlank(code)) {
             final int size = limited == null ? 0 : limited.length();
@@ -625,7 +625,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setEventPayload(final String eventPayload) {
         setExecutionIfNotSet();
-        final String limited = DataMasking.maskString(job.limitPayload(eventPayload));
+        final String limited = job.mask(job.limitPayload(eventPayload));
         super.setEventPayload(limited);
         // checking for the original value here for setting flags correctly
         if (StringUtils.isNotBlank(eventPayload)) {
@@ -645,7 +645,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
     @Override
     public void setStackTrace(final String stackTrace) {
         setExecutionIfNotSet();
-        final String limited = DataMasking.maskString(job.limitPayload(stackTrace));
+        final String limited = job.mask(job.limitPayload(stackTrace));
         super.setStackTrace(limited);
         // checking for the original value here for setting flags correctly
         if (StringUtils.isNotBlank(stackTrace)) {
@@ -681,7 +681,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
      * @param serializerTruncated whether the serializer already truncated the value at the configured limit
      */
     private void storeStartData(String serialized, boolean serializerTruncated) {
-        final String masked = DataMasking.maskString(serialized);
+        final String masked = job.mask(serialized);
         if (masked != null && !job.claimStartData()) {
             LOG.warn("Start data was already set for job {}; ignoring this call (the first start data wins).",
                 job.getLogId());
@@ -732,7 +732,7 @@ public class ActivityImpl extends com.faizsiegeln.njams.messageformat.v4.logmess
             return;
         }
         String limitKey = limitLength("attributeName", key, 500);
-        String maskedValue = DataMasking.maskString(job.limitPayload(value));
+        String maskedValue = job.mask(job.limitPayload(value));
         synchronized (attributesLock) {
             job.attributes().addInternal(limitKey, maskedValue);
             super.addAttribute(limitKey, maskedValue);

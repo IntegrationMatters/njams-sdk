@@ -35,6 +35,8 @@ public class JobAttributesTest {
         job = mock(JobImpl.class);
         // payload limiting is the job's responsibility; here it is a pass-through
         when(job.limitPayload(anyString())).thenAnswer(inv -> inv.getArgument(0));
+        // the mocked job masks with the JVM-wide patterns these tests register
+        when(job.mask(any())).thenAnswer(inv -> DataMasking.maskString(inv.getArgument(0)));
         attributes = new JobAttributes(job);
     }
 

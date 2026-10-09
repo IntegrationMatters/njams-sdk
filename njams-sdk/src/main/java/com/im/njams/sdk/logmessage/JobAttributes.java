@@ -66,7 +66,7 @@ public class JobAttributes {
             return;
         }
         String limitKey = JobImpl.limitLength("attributeName", key, 500);
-        String maskedValue = DataMasking.maskString(jobImpl.limitPayload(value));
+        String maskedValue = jobImpl.mask(jobImpl.limitPayload(value));
         synchronized (attributes) {
             attributes.put(limitKey, maskedValue);
         }

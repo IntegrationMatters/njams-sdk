@@ -80,6 +80,8 @@ public class DataMaskingTest {
         // input/output truncation no longer applies a limit in these masking tests: pass values through
         doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).limitPayload(any());
         doAnswer(invocation -> invocation.getArgument(0, String.class)).when(JOB).applyLimit(any(), anyBoolean());
+        // the mocked job masks with the JVM-wide patterns these tests register
+        doAnswer(invocation -> DataMasking.maskString(invocation.getArgument(0, String.class))).when(JOB).mask(any());
         // ActivityImpl serializes input/output via the serializers facet, returning a SerializerResult
         doAnswer(invocation -> SERIALIZERS).when(NJAMS).serializers();
         doAnswer(invocation -> new SerializerResult((String) invocation.getArguments()[0], false))

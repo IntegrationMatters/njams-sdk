@@ -149,7 +149,7 @@ public class ExtractHandler {
                 LOG.debug("nJAMS: after execution - rule: {}", er.getRule());
             }
 
-            String maskedData = DataMasking.maskString(data);
+            String maskedData = job.mask(data);
             switch (er.getRuleType()) {
             case REGEXP:
                 doRegexp(job, activity, er, maskedData);
@@ -386,8 +386,8 @@ public class ExtractHandler {
         return null;
     }
 
-    private static void setAttributes(Job job, ActivityImpl activity, String setting, String uncheckedvalue) {
-        String value = DataMasking.maskString(uncheckedvalue);
+    private static void setAttributes(JobImpl job, ActivityImpl activity, String setting, String uncheckedvalue) {
+        String value = job.mask(uncheckedvalue);
         LOG.debug("nJAMS: setAttributes: {}={}", setting, value);
 
         switch (setting.toLowerCase()) {
