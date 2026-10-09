@@ -23,7 +23,10 @@
  */
 package com.im.njams.sdk.logmessage;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +38,7 @@ import org.mockito.Mockito;
 import com.im.njams.sdk.AbstractTest;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
+import com.im.njams.sdk.model.SubProcessActivityModel;
 
 /**
  *
@@ -66,6 +70,72 @@ public class GroupImplTest extends AbstractTest {
         assertFalse(childActivities.contains(child2));
         assertTrue(childActivities.contains(child3));
         assertFalse(childActivities.contains(child4));
+    }
+
+    @Test
+    public void createChildActivityReusesExistingSiblingInstance() {
+        JobImpl job = createDefaultStartedJob();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("reuseGroup")).build();
+        ActivityModel model = mockModel("reuseActivity");
+        ActivityImpl sibling = (ActivityImpl) job.activities().create(model).build();
+
+        ActivityImpl created = group.createChildActivity(model).getActivity();
+
+        assertSame(sibling, created);
+    }
+
+    @Test
+    public void newChildActivityNeverReusesExistingInstance() {
+        JobImpl job = createDefaultStartedJob();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("newGroup")).build();
+        ActivityModel model = mockModel("newActivity");
+        ActivityImpl sibling = (ActivityImpl) job.activities().create(model).build();
+
+        ActivityImpl created = group.newChildActivity(model).getActivity();
+
+        assertNotSame(sibling, created);
+        assertSame(group, created.getParent());
+        assertEquals(group.getInstanceId(), created.getParentInstanceId());
+        assertEquals(Long.valueOf(1L), created.getIteration());
+    }
+
+    @Test
+    public void newChildActivityUsesCurrentGroupIteration() {
+        JobImpl job = createDefaultStartedJob();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("iterGroup")).build();
+        group.iterate();
+
+        Activity child = group.newChildActivity(mockModel("iterActivity")).build();
+
+        assertEquals(Long.valueOf(2L), child.getIteration());
+        assertTrue(group.getChildActivities().contains(child));
+    }
+
+    @Test
+    public void newChildActivityDispatchesGroupModel() {
+        JobImpl job = createDefaultStartedJob();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("outerGroup")).build();
+
+        ActivityBuilder builder = group.newChildActivity(mockGroupModel("innerGroup"));
+
+        assertTrue(builder instanceof GroupBuilder);
+        assertSame(group, builder.getActivity().getParent());
+    }
+
+    @Test
+    public void newChildActivityDispatchesSubProcessModel() {
+        JobImpl job = createDefaultStartedJob();
+        GroupImpl group = (GroupImpl) job.activities().createGroup(mockGroupModel("spGroup")).build();
+        SubProcessActivityModel model = Mockito.mock(SubProcessActivityModel.class);
+        when(model.getId()).thenReturn("spChild");
+        when(model.getSubProcess()).thenReturn(process);
+
+        ActivityBuilder builder = group.newChildActivity(model);
+
+        assertTrue(builder instanceof SubProcessActivityBuilder);
+        SubProcessActivityImpl subProcess = (SubProcessActivityImpl) builder.getActivity();
+        assertSame(group, subProcess.getParent());
+        assertEquals(process.getPath().toString(), subProcess.getSubProcess().getSubProcessPath());
     }
 
     private GroupModel mockGroupModel(String modelId) {

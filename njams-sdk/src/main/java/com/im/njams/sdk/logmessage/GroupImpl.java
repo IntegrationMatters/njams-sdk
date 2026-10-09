@@ -50,13 +50,6 @@ public class GroupImpl extends ActivityImpl implements Group {
         setMaxIterations(1L);
     }
 
-    /**
-     * Creates a new Activity as child activity of the current activity. This
-     * makes the current activity to a group, if it is not already one.
-     *
-     * @param childActivityModel to step to
-     * @return the ActivityBuilder for the new Activity
-     */
     @Override
     public ActivityBuilder createChildActivity(ActivityModel childActivityModel) {
         if (childActivityModel instanceof GroupModel) {
@@ -130,12 +123,6 @@ public class GroupImpl extends ActivityImpl implements Group {
         return getMaxIterations();
     }
 
-    /**
-     * Creates a new Group as child group of the current group.
-     *
-     * @param childGroupModel to step to
-     * @return the GroupBuilder for the new Group
-     */
     @Override
     public GroupBuilder createChildGroup(GroupModel childGroupModel) {
         // check if a activity with the same modelId and the same iteration already exists.
@@ -152,13 +139,6 @@ public class GroupImpl extends ActivityImpl implements Group {
         return builder;
     }
 
-    /**
-     * Creates a new SubProcess as child activity of the current activity. This
-     * makes the current activity to a group, if it is not already one.
-     *
-     * @param childSubProcessModel to step to
-     * @return the SubProcessBuilder for the new Activity
-     */
     @Override
     public SubProcessActivityBuilder createChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         // check if a activity with the same modelId and the same iteration already exists.
@@ -190,6 +170,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         }
     }
 
+    @Override
     public ActivityBuilder newChildActivity(ActivityModel childActivityModel) {
         if (childActivityModel instanceof GroupModel) {
             return newChildGroup((GroupModel) childActivityModel);
@@ -197,15 +178,13 @@ public class GroupImpl extends ActivityImpl implements Group {
         if (childActivityModel instanceof SubProcessActivityModel) {
             return newChildSubProcess((SubProcessActivityModel) childActivityModel);
         }
-        final ActivityBuilder builder;
-        builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
+        final ActivityBuilder builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
         return builder;
     }
 
     private GroupBuilder newChildGroup(GroupModel childGroupModel) {
-        // check if a activity with the same modelId and the same iteration already exists.
         final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
         builder.setParent(this);
         builder.setIteration(getMaxIterations());
@@ -213,7 +192,6 @@ public class GroupImpl extends ActivityImpl implements Group {
     }
 
     private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
-        // check if a activity with the same modelId and the same iteration already exists.
         final SubProcessActivityBuilder builder =
             new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
         builder.setParent(this);
