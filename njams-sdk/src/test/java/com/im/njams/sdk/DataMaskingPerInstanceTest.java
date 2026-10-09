@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.TestSender;
+import com.im.njams.sdk.logmessage.ActivityImpl;
 import com.im.njams.sdk.logmessage.DataMasking;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -42,6 +43,15 @@ public class DataMaskingPerInstanceTest {
 
         assertEquals("******* secretB", recordAttribute(a, "secretA secretB"));
         assertEquals("secretA *******", recordAttribute(b, "secretA secretB"));
+    }
+
+    @Test
+    public void activityDataIsMaskedWithItsOwnInstancesPatterns() {
+        Njams a = start("ActA", settingsWithRegex("secretA"));
+        Njams b = start("ActB", settingsWithRegex("secretB"));
+
+        assertEquals("******* secretB", recordEventMessage(a, "secretA secretB"));
+        assertEquals("secretA *******", recordEventMessage(b, "secretA secretB"));
     }
 
     @Test
@@ -97,7 +107,7 @@ public class DataMaskingPerInstanceTest {
 
     private Njams newNjams(String name, ClientSettings settings) {
         Njams njams = new Njams(Path.of("SDK490", name), "1.0.0", "SDK", settings);
-        njams.model().create("PROCESS");
+        njams.model().create("PROCESS").createActivity("act", "Act", null);
         created.add(njams);
         return njams;
     }
@@ -106,6 +116,15 @@ public class DataMaskingPerInstanceTest {
         Job job = njams.model().get("PROCESS").createJob();
         job.attributes().add("key", value);
         return job.attributes().get("key");
+    }
+
+    private static String recordEventMessage(Njams njams, String message) {
+        Job job = njams.model().get("PROCESS").createJob();
+        job.start();
+        ActivityImpl activity = (ActivityImpl) job.activities()
+            .create(njams.model().get("PROCESS").getActivity("act")).build();
+        activity.setEventMessage(message);
+        return activity.getEventMessage();
     }
 
     private static ClientSettings settingsWithRegex(String regex) {

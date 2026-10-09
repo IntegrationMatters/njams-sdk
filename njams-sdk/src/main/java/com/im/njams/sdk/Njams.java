@@ -279,7 +279,7 @@ public class Njams {
 
     /**
      * Provides access to the server-driven runtime configuration of this client: log mode,
-     * process exclusions, and the underlying {@link Configuration}.
+     * process exclusions, data masking, and the underlying {@link Configuration}.
      *
      * @return the configuration facet of this client, never <code>null</code>
      */

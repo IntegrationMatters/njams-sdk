@@ -39,13 +39,16 @@ already uses the replacements listed under "Deprecations and replacements" in
   `com.im.njams.sdk.communication.AbstractReceiver` (was `...communication.Receiver`). `CommunicationFactory.getReceiver(...)`
   now returns `AbstractReceiver`.
 - Data masking is scoped to the `Njams` instance: patterns from an instance's settings and configuration mask only
-  that instance's data. With a single instance, nothing changes.
+  that instance's data. With a single instance, the SDK masks exactly as before. Code calling the deprecated static
+  `DataMasking.maskString(...)` or `DataMasking.getPatterns()` directly no longer gets the patterns from settings or
+  configuration there; use `njams.configuration().dataMasking()` instead.
 
 ### Deprecations in 6.1
 
 - The static, JVM-wide `DataMasking` API is deprecated for removal; use the instance's masker
   `njams.configuration().dataMasking()` (see [How to use data masking](#how-to-use-data-masking)). Patterns
-  registered through `DataMasking` still apply to every instance in the JVM until it is removed.
+  registered through `DataMasking` still apply to every instance in the JVM until it is removed; the SDK itself no
+  longer registers settings or configuration patterns there.
 
 ## What changed in 6.0
 

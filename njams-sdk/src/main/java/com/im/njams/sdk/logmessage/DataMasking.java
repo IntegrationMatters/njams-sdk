@@ -35,7 +35,9 @@ import com.im.njams.sdk.settings.ClientSettings;
  * @author pnientiedt
  * @deprecated Masking is scoped to the {@link com.im.njams.sdk.Njams} instance since 6.1.0: use the masker returned
  *             by {@code njams.configuration().dataMasking()} ({@link DataMasker}). Patterns registered here still
- *             apply to every instance in the JVM until this class is removed.
+ *             apply to every instance in the JVM until this class is removed. The SDK no longer registers the
+ *             patterns from settings or configuration here, so {@link #maskString(String)} and
+ *             {@link #getPatterns()} only cover patterns registered through this class.
  */
 @Deprecated(since = "6.1.0", forRemoval = true)
 public class DataMasking {

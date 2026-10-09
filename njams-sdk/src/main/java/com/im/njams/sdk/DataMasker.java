@@ -173,7 +173,9 @@ public class DataMasker {
             return;
         }
         synchronized (this) {
-            if (containsRegex(patterns, regex)) {
+            // a regex that is also configured is kept as client pattern: it must outlive its removal from the
+            // configuration; rebuild() applies it only once
+            if (containsRegex(clientPatterns, regex)) {
                 LOG.debug("Skipping masking pattern \"{}\": regex \"{}\" is already registered", nameOfPattern, regex);
                 return;
             }

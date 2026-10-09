@@ -121,6 +121,15 @@ public class DataMaskerTest {
     }
 
     @Test
+    public void clientPatternDuplicatingConfiguredOneSurvivesItsRemovalFromConfiguration() {
+        DataMasker masker = new DataMasker();
+        masker.replaceConfiguredPatterns(settingsWith("cfg", "secret"), Collections.emptyList());
+        masker.addPattern("secret");
+        masker.replaceConfiguredPatterns(ClientSettings.from(new Properties()), Collections.emptyList());
+        assertEquals("******", masker.maskString("secret"));
+    }
+
+    @Test
     public void removePatternsRemovesClientPatternsOnly() {
         DataMasker masker = new DataMasker();
         masker.replaceConfiguredPatterns(settingsWith("cfg", "configured"), Collections.emptyList());
