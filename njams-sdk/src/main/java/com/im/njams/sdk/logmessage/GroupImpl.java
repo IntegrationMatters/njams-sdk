@@ -81,8 +81,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         } else {
             builder = new ActivityBuilder(toActivity);
         }
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
+        builder.setParent(this).setIteration(getMaxIterations());
         return builder;
     }
 
@@ -134,8 +133,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         } else {
             builder = new GroupBuilder(toGroup);
         }
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
+        builder.setParent(this).setIteration(getMaxIterations());
         return builder;
     }
 
@@ -151,8 +149,7 @@ public class GroupImpl extends ActivityImpl implements Group {
         } else {
             builder = new SubProcessActivityBuilder(toSubProcess);
         }
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
+        builder.setParent(this).setIteration(getMaxIterations());
         if (childSubProcessModel.getSubProcess() != null) {
             builder.setSubProcess(childSubProcessModel.getSubProcess());
         }
@@ -178,24 +175,22 @@ public class GroupImpl extends ActivityImpl implements Group {
         if (childActivityModel instanceof SubProcessActivityModel) {
             return newChildSubProcess((SubProcessActivityModel) childActivityModel);
         }
-        final ActivityBuilder builder = new ActivityBuilder((JobImpl) getJob(), childActivityModel);
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
-        return builder;
+        return new ActivityBuilder((JobImpl) getJob(), childActivityModel)
+            .setParent(this)
+            .setIteration(getMaxIterations());
     }
 
     private GroupBuilder newChildGroup(GroupModel childGroupModel) {
-        final GroupBuilder builder = new GroupBuilder((JobImpl) getJob(), childGroupModel);
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
-        return builder;
+        return new GroupBuilder((JobImpl) getJob(), childGroupModel)
+            .setParent(this)
+            .setIteration(getMaxIterations());
     }
 
     private SubProcessActivityBuilder newChildSubProcess(SubProcessActivityModel childSubProcessModel) {
         final SubProcessActivityBuilder builder =
-            new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel);
-        builder.setParent(this);
-        builder.setIteration(getMaxIterations());
+            new SubProcessActivityBuilder((JobImpl) getJob(), childSubProcessModel)
+                .setParent(this)
+                .setIteration(getMaxIterations());
         if (childSubProcessModel.getSubProcess() != null) {
             builder.setSubProcess(childSubProcessModel.getSubProcess());
         }
