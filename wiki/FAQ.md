@@ -38,6 +38,14 @@ already uses the replacements listed under "Deprecations and replacements" in
   must extend `AbstractReceiver`, and its `META-INF/services` file must be named
   `com.im.njams.sdk.communication.AbstractReceiver` (was `...communication.Receiver`). `CommunicationFactory.getReceiver(...)`
   now returns `AbstractReceiver`.
+- Data masking is scoped to the `Njams` instance: patterns from an instance's settings and configuration mask only
+  that instance's data. With a single instance, nothing changes.
+
+### Deprecations in 6.1
+
+- The static, JVM-wide `DataMasking` API is deprecated for removal; use the instance's masker
+  `njams.configuration().dataMasking()` (see [How to use data masking](#how-to-use-data-masking)). Patterns
+  registered through `DataMasking` still apply to every instance in the JVM until it is removed.
 
 ## What changed in 6.0
 
@@ -649,12 +657,16 @@ initialized with a path that is unique across all connected clients.
 Data masking applies Java regex patterns (`java.util.regex.Pattern`) to activity payload fields before they are sent to
 the nJAMS server. Any substring matching a rule is replaced with asterisks.
 
-Masking rules can come from two sources:
+Masking applies per `Njams` instance: each instance masks with the rules from its own settings and configuration,
+plus the rules added to it from code. Rules of one instance never affect another instance in the same JVM.
+
+Masking rules can come from these sources:
 
 - **Settings properties** — rules defined via `njams.sdk.datamasking.regex.<name>` (see [Data Masking](#data-masking)
-  above) are static and active for the lifetime of the process.
+  above) apply to the instance whose settings define them.
 - **Dynamic configuration** — rules stored in `configuration.json` can be updated at runtime through the nJAMS server UI
   without restarting the client.
+- **Code** — rules added via `njams.configuration().dataMasking()` (see [Adding rules from code](#adding-rules-from-code)).
 
 Rules from settings take precedence over rules from the dynamic configuration.
 
@@ -692,6 +704,17 @@ Any activity field value containing a substring like `password=secret123` will h
 >   "recording": true
 > }
 > ```
+
+### Adding rules from code
+
+Rules can also be added to an instance from code, before or after it is started; they apply to that instance only and
+stay until removed with `removePatterns()`:
+
+```java
+njams.configuration().dataMasking().addPattern("maskIban", "IBAN: \\p{Alpha}{2}\\p{Digit}+");
+```
+
+`njams.sdk.datamasking.enabled=false` does not disable rules added from code.
 
 ### Which fields are masked
 

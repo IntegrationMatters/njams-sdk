@@ -205,6 +205,8 @@ public class Configuration {
     }
 
     /**
+     * Masking regexes of the owning {@link com.im.njams.sdk.Njams} instance; they are applied on each start.
+     *
      * @deprecated Should be provided by the {@link ClientSettings}
      * @return the dataMasking
      */
@@ -214,6 +216,8 @@ public class Configuration {
     }
 
     /**
+     * Sets the masking regexes of the owning {@link com.im.njams.sdk.Njams} instance; they are applied on each start.
+     *
      * @deprecated Should be provided by the {@link ClientSettings}
      *
      * @param dataMasking the dataMasking to set

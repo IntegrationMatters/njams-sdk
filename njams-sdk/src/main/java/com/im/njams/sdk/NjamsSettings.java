@@ -577,12 +577,14 @@ public class NjamsSettings {
     /**
      * When this setting is true (default) nJAMS enables dataMasking.
      * When false, DataMasking is disabled for the regexes defined in the properties AND in the config.json.
+     * Patterns that client code adds via {@code njams.configuration().dataMasking()} still apply.
      */
     public static final String PROPERTY_DATA_MASKING_ENABLED = "njams.sdk.datamasking.enabled";
 
     /**
      * You can define multiple datamasking regex key-value pairs. Always use the prefix
      * for the regexes that should be used for pattern matching to find data that you want to be masked.
+     * The regexes apply to the {@link Njams} instance whose settings define them.
      * <ul>
      *     <li>njams.sdk.datamasking.regex.NAME_FOR_REGEX_1=THE_REGEX_1
      *     <li>njams.sdk.datamasking.regex.NAME_FOR_REGEX_2=THE_REGEX_2
