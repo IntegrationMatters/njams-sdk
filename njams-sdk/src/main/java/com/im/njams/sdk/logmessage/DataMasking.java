@@ -23,102 +23,57 @@
  */
 package com.im.njams.sdk.logmessage;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
 
-import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.DataMasker;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.StringUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * DataMasking implementation.
- * <p>
- * The registered patterns are held JVM-wide and shared by all client instances. Registering a pattern whose regex is
- * already registered has no effect, so repeated or concurrent startups of client instances never accumulate duplicates.
- * All methods are thread-safe: patterns are typically registered once during startup, while masking may run
- * concurrently in other threads.
+ * JVM-wide data masking, shared by all client instances. Registering a pattern whose regex is already registered has
+ * no effect. All methods are thread-safe.
  *
  * @author pnientiedt
+ * @deprecated Masking is scoped to the {@link com.im.njams.sdk.Njams} instance since 6.1.0: use the masker returned
+ *             by {@code njams.configuration().dataMasking()} ({@link DataMasker}). Patterns registered here still
+ *             apply to every instance in the JVM until this class is removed.
  */
+@Deprecated(since = "6.1.0", forRemoval = true)
 public class DataMasking {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DataMasking.class);
-
-    // Written rarely (startup) but read for every masked value: copy-on-write gives lock-free reads.
-    private static final List<DataMaskingType> DATA_MASKING_TYPES = new CopyOnWriteArrayList<>();
-    private static final char MASK_CHAR = '*';
-    private static volatile char[] mask = new char[0];
+    private static final DataMasker JVM_WIDE = new DataMasker();
 
     /**
-     * Mask a string by patterns given to this class
+     * Mask a string by the JVM-wide patterns given to this class
      *
      * @param inString String to apply datamasking to
      * @return String with applied datamasking
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#maskString(String)}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static String maskString(final String inString) {
-        if (DATA_MASKING_TYPES.isEmpty() || StringUtils.isBlank(inString)) {
-            return inString;
-        }
-
-        final StringBuilder maskedString = new StringBuilder(inString);
-        for (DataMaskingType dataMaskingType : DATA_MASKING_TYPES) {
-            final Matcher m = dataMaskingType.getPattern().matcher(inString);
-            while (m.find()) {
-                maskedString.replace(m.start(), m.end(), getMask(m.end() - m.start()));
-            }
-            LOG.trace("\nApplied {}, new result={}", dataMaskingType, maskedString);
-        }
-        LOG.debug("Masked string: {}", maskedString);
-
-        return maskedString.toString();
-    }
-
-    /**
-     * Efficient way for getting the a string containing only the masking character.
-     * @param len The length of the string to return, respectively the number of masking characters.
-     * @return A string of the given length containing only the masking character.
-     */
-    private static String getMask(int len) {
-        char[] current = mask;
-        if (current.length < len) {
-            synchronized (DataMasking.class) {
-                current = mask;
-                if (current.length < len) {
-                    // extend by multiples of 100 chars
-                    final char[] newMask = new char[(len / 100 + 1) * 100];
-                    Arrays.fill(newMask, MASK_CHAR);
-                    // the field is volatile, so that concurrent executions only see the completely filled array
-                    mask = newMask;
-                    current = newMask;
-                }
-            }
-        }
-        return String.valueOf(current, 0, len);
+        return JVM_WIDE.maskString(inString);
     }
 
     /**
      * This method adds all patterns to the pattern list
      *
      * @param patterns the patterns to add
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#addPatterns(List)}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static void addPatterns(List<String> patterns) {
-        patterns.forEach(DataMasking::addPattern);
+        JVM_WIDE.addPatterns(patterns);
     }
 
     /**
      * This method adds a pattern to the pattern list.
      *
      * @param pattern the pattern to add
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#addPattern(String)}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static void addPattern(String pattern) {
-        addPattern(null, pattern);
+        JVM_WIDE.addPattern(pattern);
     }
 
     /**
@@ -127,25 +82,22 @@ public class DataMasking {
      * from the given settings and adds them to the data masking list.
      *
      * @param settings the settings to read masking patterns from
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#addPatterns(ClientSettings)}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static void addPatterns(ClientSettings settings) {
-        for (Map.Entry<String, String> entry : settings) {
-            if (entry.getKey().startsWith(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX)) {
-                addPattern(
-                    entry.getKey().substring(NjamsSettings.PROPERTY_DATA_MASKING_REGEX_PREFIX.length()),
-                    entry.getValue());
-            }
-        }
+        JVM_WIDE.addPatterns(settings);
     }
 
     /**
-     * Returns an unmodifiable, live view of the currently registered data masking patterns. Iterating it is safe
-     * while patterns are concurrently added or removed.
+     * Returns an immutable snapshot of the currently registered JVM-wide data masking patterns.
      *
      * @return the list of registered masking patterns
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#getPatterns()}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static List<DataMaskingType> getPatterns() {
-        return Collections.unmodifiableList(DATA_MASKING_TYPES);
+        return JVM_WIDE.getPatterns();
     }
 
     /**
@@ -157,46 +109,21 @@ public class DataMasking {
      *
      * @param nameOfPattern the name of the pattern
      * @param regexAsString the pattern to add
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#addPattern(String, String)}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static void addPattern(String nameOfPattern, String regexAsString) {
-        if (StringUtils.isBlank(regexAsString)) {
-            LOG.debug("Skipping empty regex for pattern \"{}\"", nameOfPattern);
-            return;
-        }
-        try {
-            // check-then-add and the index-based default name must be atomic
-            synchronized (DataMasking.class) {
-                if (isRegistered(regexAsString)) {
-                    LOG.debug("Skipping masking pattern \"{}\": regex \"{}\" is already registered", nameOfPattern,
-                        regexAsString);
-                    return;
-                }
-                String nameToAdd =
-                    nameOfPattern != null && !nameOfPattern.isEmpty() ? nameOfPattern : "" + DATA_MASKING_TYPES.size();
-                DataMaskingType dataMaskingTypeToAdd = new DataMaskingType(nameToAdd, regexAsString);
-                DATA_MASKING_TYPES.add(dataMaskingTypeToAdd);
-                LOG.info("Added masking pattern \"{}\" with regex: \"{}\"", dataMaskingTypeToAdd.getNameOfPattern(),
-                    dataMaskingTypeToAdd.getRegex());
-            }
-        } catch (Exception e) {
-            LOG.error("Could not add pattern {}", regexAsString, e);
-        }
-    }
-
-    private static boolean isRegistered(String regex) {
-        for (DataMaskingType type : DATA_MASKING_TYPES) {
-            if (type.getRegex().equals(regex)) {
-                return true;
-            }
-        }
-        return false;
+        JVM_WIDE.addPattern(nameOfPattern, regexAsString);
     }
 
     /**
-     * Removes all patterns
+     * Removes all JVM-wide patterns
+     *
+     * @deprecated See {@link DataMasking}; use {@link DataMasker#removePatterns()}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static void removePatterns() {
-        DATA_MASKING_TYPES.clear();
+        JVM_WIDE.removePatterns();
     }
 
 }
