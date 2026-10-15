@@ -35,14 +35,18 @@ import com.im.njams.sdk.settings.ClientSettings;
  * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR}. Internal SDK infrastructure — not public API.
  */
 enum StartupFailBehavior {
-    /** Initial connect failure fails startup: {@code Njams.start()} returns {@code false}, SDK inactive. */
+    /** Any startup failure fails startup: {@code Njams.start()} returns {@code false}, SDK inactive. */
     FAIL,
     /**
      * Behaves exactly like {@link #FAIL} within the SDK; only the outcome reported by {@code Njams.startup()}
      * differs, so that a client can tell the two apart.
      */
     EXIT,
-    /** Initial connect failure enters the background reconnect loop; {@code Njams.start()} returns {@code true}. */
+    /**
+     * Initial connect failure enters the background reconnect loop; {@code Njams.start()} returns {@code true}.
+     * Unlike {@link #FAIL} and {@link #EXIT}, this covers the initial connect attempt only: any other startup
+     * failure has nothing to retry and still fails startup.
+     */
     RECONNECT;
 
     /** Default when the setting is absent or unrecognised. */

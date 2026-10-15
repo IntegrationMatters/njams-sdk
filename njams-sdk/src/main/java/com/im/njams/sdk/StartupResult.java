@@ -35,15 +35,16 @@ package com.im.njams.sdk;
  */
 public enum StartupResult {
     /** The SDK instance started; the client continues its normal startup. */
-    SUCCESS,
+    CONTINUE,
     /**
      * Startup failed and the SDK instance is inactive. The client is expected to let the runtime continue without
      * it, i.e., to withdraw itself from the runtime as far as possible.
      */
     FAIL,
     /**
-     * Startup failed and the SDK instance is inactive; the configured startup fail-behavior is {@code exit}. The
-     * client is expected to terminate the runtime.
+     * Startup failed and the SDK instance is inactive, and the configured startup fail-behavior is {@code exit}.
+     * The client is expected to terminate the runtime. Reported for every way startup can fail, not only for an
+     * unreachable transport.
      */
     EXIT
 }

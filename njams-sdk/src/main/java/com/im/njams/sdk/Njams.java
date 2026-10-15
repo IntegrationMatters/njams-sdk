@@ -396,7 +396,7 @@ public class Njams {
      * @return true if successful
      */
     public boolean start() {
-        return startup() == StartupResult.SUCCESS;
+        return startup() == StartupResult.CONTINUE;
     }
 
     /**
@@ -404,11 +404,11 @@ public class Njams {
      * reports the outcome as a {@link StartupResult}, which is only needed by clients that want to differentiate
      * {@link StartupResult#FAIL} from {@link StartupResult#EXIT}:
      * <ul>
-     * <li>{@link StartupResult#SUCCESS}: the client continues its normal startup.</li>
+     * <li>{@link StartupResult#CONTINUE}: the client continues its normal startup.</li>
      * <li>{@link StartupResult#FAIL}: the runtime continues without the client, i.e., the client withdraws itself
      * from the runtime as far as possible.</li>
      * <li>{@link StartupResult#EXIT}: the client terminates the runtime. This is returned instead of
-     * {@code FAIL} if the transport could not be connected and
+     * {@code FAIL} for any startup failure if
      * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} is {@code exit}.</li>
      * </ul>
      * The SDK treats {@code FAIL} and {@code EXIT} identically: the instance stays inactive. Reacting differently
@@ -436,7 +436,7 @@ public class Njams {
                 earlyReceiver = null;
                 releaseStartupRegistrations(configurationListener);
                 releasePrewarmedSender();
-                return StartupResult.FAIL;
+                return startupFailure();
             }
             startReceiver(activeSender);
             if (activeSender != null) {
@@ -444,14 +444,14 @@ public class Njams {
                     NjamsSettings.PROPERTY_COMMUNICATION_CONNECT_TIMEOUT, DEFAULT_CONNECT_TIMEOUT_MS);
                 boolean reconnectOnFailure = NjamsSender.reconnectOnStartupFailure(settings);
                 if (!activeSender.startWithTimeout(timeoutMs, reconnectOnFailure)) {
-                    boolean exit = NjamsSender.exitOnStartupFailure(settings);
+                    final StartupResult result = startupFailure();
                     LOG.error("SDK startup failed: sender could not connect and startup fail-behavior is '{}'. "
-                        + "The SDK instance is inactive.", exit ? "exit" : "fail");
+                        + "The SDK instance is inactive.", result == StartupResult.EXIT ? "exit" : "fail");
                     stopReceiverAfterStartupFailure(receiver);
                     receiver = null;
                     releaseStartupRegistrations(configurationListener);
                     releasePrewarmedSender();
-                    return exit ? StartupResult.EXIT : StartupResult.FAIL;
+                    return result;
                 }
             }
             LogMessageFlushTask.start(this, activeSender);
@@ -466,11 +466,23 @@ public class Njams {
                 LOG.error("The client SDK failed to initialize: could not send the initial project message. "
                     + "The SDK instance is inactive.", e);
                 stop();
-                return StartupResult.FAIL;
+                return startupFailure();
             }
             LOG.info("SDK instance {} started (client-session={})", metadata.getClientPath(), metadata.getClientSessionId());
         }
-        return isStarted() ? StartupResult.SUCCESS : StartupResult.FAIL;
+        return isStarted() ? StartupResult.CONTINUE : startupFailure();
+    }
+
+    /**
+     * Maps a failed startup onto the outcome the configured
+     * {@link NjamsSettings#PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR} asks for. Applies to every way startup
+     * can fail, not only an unreachable transport, so a client that asked to be told to terminate is told so
+     * whatever made the startup fail.
+     *
+     * @return {@link StartupResult#EXIT} if the fail-behavior is {@code exit}, else {@link StartupResult#FAIL}.
+     */
+    private StartupResult startupFailure() {
+        return NjamsSender.exitOnStartupFailure(settings) ? StartupResult.EXIT : StartupResult.FAIL;
     }
 
     /**

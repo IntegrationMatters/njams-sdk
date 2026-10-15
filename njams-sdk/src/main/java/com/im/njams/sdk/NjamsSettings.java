@@ -144,13 +144,16 @@ public class NjamsSettings {
             "njams.sdk.communication.connect.timeout";
 
     /**
-     * Controls how {@code Njams.start()} reacts when the transport cannot be connected on the very first attempt.
+     * Controls how {@code Njams.start()} reacts when SDK startup fails.
      * Values: {@code fail} (default) — start() returns {@code false} and the SDK stays inactive; {@code exit} — the
      * SDK behaves exactly like with {@code fail}, but {@link com.im.njams.sdk.Njams#startup()} reports
      * {@link com.im.njams.sdk.StartupResult#EXIT} instead of {@link com.im.njams.sdk.StartupResult#FAIL}, which
-     * tells the client to terminate the runtime instead of only withdrawing from it; {@code reconnect} — start()
-     * returns {@code true} and the connection is retried in the background. Governs the whole shared-transport
-     * group.
+     * tells the client to terminate the runtime instead of only withdrawing from it; {@code reconnect} — if the
+     * initial connect attempt fails, start() returns {@code true} and the connection is retried in the background.
+     * Governs the whole shared-transport group.
+     * <p>
+     * {@code fail} and {@code exit} apply to every way startup can fail, not only an unreachable transport.
+     * {@code reconnect} applies to the initial connect attempt only; any other startup failure still fails startup.
      * <p>
      * Differentiating {@code fail} from {@code exit} has to be implemented by the client; otherwise both values are
      * treated fully equal. See the respective client's documentation for how it reacts.
