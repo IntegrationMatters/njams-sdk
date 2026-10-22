@@ -326,7 +326,10 @@ public class Njams {
         try {
             earlySender = sender();
         } catch (Exception e) {
-            LOG.warn("beginConnect() failed to pre-warm sender; start() will retry.", e);
+            // Debug on purpose, like the receiver's pre-warm below: this attempt is provisional, and startup()
+            // reports the same failure decisively moments later. A configuration error fails both attempts
+            // identically, so warning about a retry here would promise a recovery that cannot happen.
+            LOG.debug("beginConnect() failed to pre-warm sender; start() will retry.", e);
         }
         try {
             earlyReceiver = new CommunicationFactory(settings).getReceiver(this);

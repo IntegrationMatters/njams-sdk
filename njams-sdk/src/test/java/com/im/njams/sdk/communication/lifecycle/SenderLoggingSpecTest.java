@@ -1,6 +1,7 @@
 package com.im.njams.sdk.communication.lifecycle;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -134,6 +135,62 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
         s.awaitStartup(2000);
 
         assertEquals("a shutdown-induced failure is not a startup error", 0, countAtLevel(Level.ERROR));
+    }
+
+    @Test
+    public void aFailedPreWarmIsNotRunAgainByStartupAndIsReportedOnce() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
+
+        s.beginConnect();                                    // the Njams constructor's pre-warm
+        assertTrue("the pre-warm attempt must have run",
+            LifecycleTestTransport.awaitConnectAttempts(1, 5, TimeUnit.SECONDS));
+        assertFalse("startup cannot succeed against a failing transport", s.awaitStartup(5000));  // start()
+
+        assertEquals("the group's startup connect runs once, not once per caller", 1,
+            LifecycleTestTransport.senderConnectCount());
+        assertEquals("and the failure is reported once", 1, countAtLevel(Level.ERROR));
+    }
+
+    @Test
+    public void aFailedStartupUnderTheConfiguredReconnectPolicyIsNeverTerminal() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        // Policy from settings, reconnect-before-connected NOT armed: exactly the state the pre-warm runs in.
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.createWithReconnectPolicy();
+
+        s.beginConnect();
+        assertFalse(s.awaitStartup(5000));
+
+        assertEquals("a startup that will retry in the background is not a terminal error", 0,
+            countAtLevel(Level.ERROR));
+        assertEquals("reported once at warn", 1, countAtLevel(Level.WARN));
+    }
+
+    @Test
+    public void aCancelledStartupConnectIsNotReportedAsAConnectFailure() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.BLOCK);
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
+
+        s.beginConnect();
+        assertTrue(LifecycleTestTransport.awaitConnectAttempts(1, 5, TimeUnit.SECONDS));
+        s.cancelStartupConnect();                            // what a startup timeout does
+        assertFalse(s.awaitStartup(5000));
+
+        // The interrupt is an artifact of our own cancellation, not the reason the connect did not happen --
+        // whoever cancelled reports that, with the timeout in the message.
+        assertEquals("a cancelled connect is not a connect failure", 0, countAtLevel(Level.ERROR));
+        assertEquals("and not a warning either", 0, countAtLevel(Level.WARN));
+    }
+
+    @Test
+    public void anOutageDuringShutdownIsNotReported() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.beginShutdown();
+
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("broker gone"));
+
+        assertEquals("a failure during shutdown promises no reconnect, so it warns about none", 0,
+            countAtLevel(poolAppender, Level.WARN));
     }
 
     @Test

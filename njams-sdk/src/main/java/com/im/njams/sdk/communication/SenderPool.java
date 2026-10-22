@@ -351,7 +351,10 @@ public class SenderPool {
         }
         toDestroy.forEach(this::destroy);
         if (listeners != null) {
-            electReconnector(cause, listeners);
+            // A startup connect that failed on its own was already reported by the connector, with the real
+            // cause; `cause` here only says the startup timeout elapsed. Report only when the connector did not,
+            // which is the case when the connect was still running and cancelStartupConnect() just ended it.
+            electReconnector(cause, listeners, !connector.hasReportedStartupFailure());
         } else {
             // Already reconnecting (or connected): no new election, but still kick the connector, which is what
             // recovers a group whose reconnect thread was cancelled. No-op while one is running.
@@ -675,10 +678,18 @@ public class SenderPool {
      * loop and then notifies the listeners once for the outage.
      */
     private void electReconnector(Exception cause, List<SenderExceptionListener> listeners) {
+        electReconnector(cause, listeners, true);
+    }
+
+    private void electReconnector(Exception cause, List<SenderExceptionListener> listeners, boolean report) {
         // The single place every outage passes through exactly once - all callers reach it only after latching
         // `reconnecting` under the lock - so it is where the outage is reported. Reporting at the origins
         // instead would log per failing message under load, which is the flooding SDK-129/SDK-329 were about.
-        reportOutage(cause);
+        // The exception is a startup failure the connector has already reported at its own severity: see
+        // restartConnectInBackground(long).
+        if (report) {
+            reportOutage(cause);
+        }
         // Start the reconnect BEFORE notifying anyone. failGroup() has already latched reconnecting/failed, and
         // only onReconnected(...) clears them, so a listener throwing ahead of this call would brick the group for
         // good: every later acquire() would park forever or discard forever. Unlike the legacy per-sender path,
@@ -735,6 +746,12 @@ public class SenderPool {
      */
     private void reportOutage(Exception cause) {
         final String reason = cause == null ? "unknown" : SenderConnector.getExceptionWithCauses(cause);
+        if (coordinator.shouldShutdown()) {
+            // startReconnect(...) will refuse, so promising a reconnect here would be a lie. A send failing
+            // against a group that is being torn down is expected, not an outage.
+            LOG.debug("Sender {} failed while shutting down. Reason: {}", senderName, reason, cause);
+            return;
+        }
         if (coordinator.wasEverConnected()) {
             LOG.warn("Lost the connection of sender {} to nJAMS Server; reconnecting. Reason: {}",
                 senderName, reason, cause);

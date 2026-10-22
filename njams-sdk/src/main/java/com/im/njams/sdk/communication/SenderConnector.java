@@ -66,10 +66,23 @@ class SenderConnector {
     /** Guards startup/reconnect thread creation and the latch handoff below. */
     private final Object gate = new Object();
     private boolean connectInFlight = false;
+    /** Whether the group's one startup connect has been started at all; never cleared by its completion. */
+    private boolean startupAttempted = false;
     private CountDownLatch startupLatch = new CountDownLatch(0);
     private Thread startupThread;
     private Thread reconnectThread;
     private volatile Exception startupError;
+    /** Set while a startup connect is being cancelled, so its interrupt is not mistaken for a connect failure. */
+    private volatile boolean startupCancelled = false;
+    /** Whether the current startup attempt's failure has already been reported at warn or error. */
+    private volatile boolean startupFailureReported = false;
+    /**
+     * Whether the configured startup fail-behavior is {@code reconnect}, snapshot once at construction. It says a
+     * background reconnect will follow a failed startup connect even while
+     * {@link ConnectionCoordinator#shouldReconnect()} is still false, which it is throughout the constructor's
+     * pre-warm — so a failure that will be retried is never reported as terminal.
+     */
+    private final boolean reconnectOnStartupFailure;
 
     SenderConnector(CommunicationFactory factory, ConnectionCoordinator coordinator, SenderPool pool,
         ClientSettings settings) {
@@ -77,6 +90,7 @@ class SenderConnector {
         this.coordinator = coordinator;
         this.pool = pool;
         this.settings = settings;
+        reconnectOnStartupFailure = StartupFailBehavior.fromSettings(settings).reconnectOnStartupFailure();
     }
 
     /**
@@ -91,7 +105,10 @@ class SenderConnector {
                 return;
             }
             connectInFlight = true;
+            startupAttempted = true;
             startupError = null;
+            startupCancelled = false;
+            startupFailureReported = false;
             final CountDownLatch latch = new CountDownLatch(1);
             startupLatch = latch;
             try {
@@ -127,7 +144,13 @@ class SenderConnector {
         }
         final CountDownLatch latch;
         synchronized (gate) {
-            beginConnect();
+            // Only start a connect if the group has never attempted one. A startup connect that already ran and
+            // failed is the group's startup result, not a first draft of it: running a second one would connect
+            // twice against the same endpoint and report the same failure twice (SDK-494). Recovery from a failed
+            // startup is the caller's decision, taken in NjamsSender.startWithTimeout, not a silent retry here.
+            if (!startupAttempted) {
+                beginConnect();
+            }
             latch = startupLatch;
         }
         try {
@@ -286,6 +309,8 @@ class SenderConnector {
         synchronized (gate) {
             startup = startupThread;
         }
+        // Flagged before the interrupt, so the connect thread's catch cannot read it too early.
+        startupCancelled = true;
         if (startup != null) {
             startup.interrupt();
         }
@@ -351,11 +376,27 @@ class SenderConnector {
     private void reportStartupFailure(final String what, final Exception cause) {
         if (coordinator.shouldShutdown()) {
             LOG.debug("{} while shutting down. Reason: {}", what, getExceptionWithCauses(cause), cause);
-        } else if (coordinator.shouldReconnect()) {
+        } else if (startupCancelled) {
+            // The connect did not fail, it was cancelled -- the exception is the interrupt we sent ourselves, and
+            // naming it as the reason would be actively misleading. Whoever cancelled reports the real reason
+            // (the elapsed startup timeout), which is why hasReportedStartupFailure() stays false here.
+            LOG.debug("{} because the startup connect was cancelled. Reason: {}", what,
+                getExceptionWithCauses(cause), cause);
+        } else if (coordinator.shouldReconnect() || reconnectOnStartupFailure) {
+            startupFailureReported = true;
             LOG.warn("{}; retrying in the background. Reason: {}", what, getExceptionWithCauses(cause), cause);
         } else {
+            startupFailureReported = true;
             LOG.error("{}. Reason: {}", what, getExceptionWithCauses(cause), cause);
         }
+    }
+
+    /**
+     * @return whether the current startup attempt's failure has already been reported at warn or error, so the
+     *         caller that is about to act on it does not state the same failure a second time.
+     */
+    boolean hasReportedStartupFailure() {
+        return startupFailureReported;
     }
 
     /**

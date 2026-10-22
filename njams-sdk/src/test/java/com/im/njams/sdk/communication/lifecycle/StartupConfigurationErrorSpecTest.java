@@ -64,6 +64,20 @@ public class StartupConfigurationErrorSpecTest extends AbstractLifecycleSpecTest
             messageAtLevelContains(Level.ERROR, NjamsSettings.PROPERTY_COMMUNICATION));
     }
 
+    @Test
+    public void theFailedPreWarmDoesNotPromiseARetryThatCannotSucceed() {
+        ClientSettings settings = ClientSettings.from(new Properties());
+        settings.put(ConfigurationProviderFactory.CONFIGURATION_PROVIDER, "memory");
+
+        Njams njams = new Njams(Path.of("test"), "1.0", "test", settings);
+
+        assertEquals(StartupResult.FAIL, njams.startup());
+        // The constructor's pre-warm is provisional: startup() states the same failure decisively moments later,
+        // so the pre-warm must not add a second line -- least of all one announcing a retry that is bound to fail
+        // identically, which is the misleading shape SDK-494 was raised for.
+        assertEquals("the provisional pre-warm stays out of the log", 0, countAtLevel(Level.WARN));
+    }
+
     private long countAtLevel(Level level) {
         return appender.events().stream().filter(e -> e.getLevel().equals(level)).count();
     }

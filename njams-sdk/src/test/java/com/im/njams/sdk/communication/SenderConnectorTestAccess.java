@@ -3,6 +3,7 @@ package com.im.njams.sdk.communication;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.lifecycle.LifecycleTestTransport;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -49,8 +50,23 @@ public class SenderConnectorTestAccess {
         return create(true);
     }
 
-    private static SenderConnectorTestAccess create(boolean allowReconnectBeforeConnected) {
+    /**
+     * Creates a connector whose <em>settings</em> select the {@code reconnect} startup policy, without arming
+     * {@link ConnectionCoordinator#allowReconnectBeforeConnected()} up front. This is what production looks like
+     * while the constructor's pre-warm connect runs: the policy is known from the settings, but the flag is only
+     * set later, by {@code NjamsSender.startWithTimeout}.
+     */
+    public static SenderConnectorTestAccess createWithReconnectPolicy() {
         ClientSettings settings = LifecycleTestTransport.settings();
+        settings.put(NjamsSettings.PROPERTY_COMMUNICATION_STARTUP_FAILBEHAVIOR, "reconnect");
+        return create(settings, false);
+    }
+
+    private static SenderConnectorTestAccess create(boolean allowReconnectBeforeConnected) {
+        return create(LifecycleTestTransport.settings(), allowReconnectBeforeConnected);
+    }
+
+    private static SenderConnectorTestAccess create(ClientSettings settings, boolean allowReconnectBeforeConnected) {
         CommunicationFactory factory = new CommunicationFactory(settings);
         ConnectionCoordinator coordinator = new ConnectionCoordinator();
         if (allowReconnectBeforeConnected) {
@@ -77,6 +93,11 @@ public class SenderConnectorTestAccess {
 
     public void cancelReconnect() {
         connector.cancelReconnect();
+    }
+
+    /** Cancels the startup connect only, standing in for the fail-fast/timeout path's {@code cancelConnect()}. */
+    public void cancelStartupConnect() {
+        connector.cancelStartupConnect();
     }
 
     /** The group's connected state, replacing per-sender {@code isConnected()} assertions (see Appendix A.1). */
