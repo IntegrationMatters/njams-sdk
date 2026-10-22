@@ -117,8 +117,7 @@ public class NjamsSender {
      * This constructor initializes a NjamsSender. It saves the settings and gets the name for the executor
      * threads from the settings with the key: njams.sdk.communication (or its alternative
      * njams.sdk.communication.type). The configured communication type is validated here, so a missing or
-     * unknown transport is reported while the caller is still in a position to explain it, instead of surfacing
-     * later from a background connect.
+     * unknown transport is not left to surface later from a background connect.
      *
      * @param settings the setting where some settings will be taken from.
      * @throws IllegalStateException if no communication type is configured, or no sender implementation is

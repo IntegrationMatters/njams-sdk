@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -46,6 +47,25 @@ public class LifecycleTeardownQuiescenceSpecTest extends AbstractLifecycleSpecTe
      * under the {@code reconnect} policy and leave it running, and neither {@code SenderPoolTestAccess} nor
      * {@code LifecycleTestTransport} ever learns of the pool behind it.
      */
+    /** The receiver side of the same contract: its background threads must not outlive their test either. */
+    @Test
+    public void teardownLeavesNoSdkReceiverThreadBehind() throws Exception {
+        LifecycleTestReceiver receiver = new LifecycleTestReceiver();
+        receiver.beginConnect();
+        LifecycleTestTransport.setReceiverMode(LifecycleTestTransport.ConnectMode.BLOCK);
+        // Captured before triggering: onReceiverConnect() counts the current latch down and replaces it at once,
+        // so one fetched afterwards may be the fresh, uncounted one and would never fire.
+        CountDownLatch reconnectEnteredConnect = LifecycleTestTransport.receiverConnectAttemptedLatch();
+        receiver.onException(new IllegalStateException("lost"));
+        assertTrue("the receiver's reconnect must have entered connect()",
+            reconnectEnteredConnect.await(5, TimeUnit.SECONDS));
+
+        stopLifecycleSendersAndReceivers();
+
+        assertEquals("no SDK receiver thread may outlive the test that started it: "
+            + liveSdkReceiverThreadNames(), 0, liveSdkReceiverThreadNames().size());
+    }
+
     @Test
     public void teardownLeavesNoSdkSenderThreadBehindForAnUnstoppedNjams() throws Exception {
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);

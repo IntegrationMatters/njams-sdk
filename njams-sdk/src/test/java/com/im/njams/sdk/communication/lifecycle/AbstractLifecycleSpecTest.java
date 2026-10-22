@@ -2,6 +2,7 @@ package com.im.njams.sdk.communication.lifecycle;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.junit.After;
@@ -51,27 +52,23 @@ public abstract class AbstractLifecycleSpecTest {
         SenderConnectorTestAccess.shutdownAll();
         LifecycleTestTransport.shutdownAllSenders();
         LifecycleTestTransport.shutdownAllReceivers();
-        awaitNoSdkSenderThreads();
+        awaitNoSdkCommunicationThreads();
         CountingDiscardMonitor.restore();
         CountingThrottleMonitor.restore();
     }
 
     /**
-     * Waits until no SDK sender thread from this test is still running, interrupting any that linger.
-     * <p>
-     * Asking is not enough. The bridges above only reach groups the test created through them; a group owned by
-     * an {@link com.im.njams.sdk.Njams} the test never stopped is invisible to them, and its reconnect loop goes
-     * on retrying every second. The first attempt that succeeds — typically once the next test has reset the
-     * transport to SUCCEED — logs "Reconnected sender" into whichever appender that next test has attached to
-     * the shared {@code SenderConnector} category, which is what made this suite fail in different places on
-     * different runs. Only the SDK's own threads are touched; third-party pools are not this harness's business.
+     * Waits until no SDK sender or receiver thread from this test is still running, interrupting any that
+     * linger. Asking is not enough: the bridges above only reach what the test created through them, and a
+     * connect loop left running keeps retrying into the next test, where its logging and its connect attempts
+     * are counted against state no test established. Only the SDK's own threads are touched.
      */
-    private static void awaitNoSdkSenderThreads() {
+    private static void awaitNoSdkCommunicationThreads() {
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(QUIESCE_TIMEOUT_SECONDS);
-        List<Thread> lingering = liveSdkSenderThreads();
+        List<Thread> lingering = liveSdkThreads(AbstractLifecycleSpecTest::isCommunicationThread);
         while (!lingering.isEmpty() && System.nanoTime() < deadline) {
-            // Repeatedly: one interrupt is consumed by whatever connect() throws, so the loop would sleep on
-            // and carry straight into the next attempt. The one that lands in Thread.sleep ends the loop.
+            // Repeatedly: the first interrupt is consumed by whatever connect() throws, so the loop would carry
+            // on into the next attempt. The one that lands in Thread.sleep ends it.
             lingering.forEach(Thread::interrupt);
             try {
                 Thread.sleep(20);
@@ -79,19 +76,38 @@ public abstract class AbstractLifecycleSpecTest {
                 Thread.currentThread().interrupt();
                 return;
             }
-            lingering = liveSdkSenderThreads();
+            lingering = liveSdkThreads(AbstractLifecycleSpecTest::isCommunicationThread);
         }
     }
 
     /** @return the names of the SDK's own sender threads that are currently alive. */
     protected static List<String> liveSdkSenderThreadNames() {
-        return liveSdkSenderThreads().stream().map(Thread::getName).collect(Collectors.toList());
+        return liveSdkThreads(AbstractLifecycleSpecTest::isSenderThread).stream()
+            .map(Thread::getName).collect(Collectors.toList());
     }
 
-    private static List<Thread> liveSdkSenderThreads() {
+    /** @return the names of the SDK's own receiver threads that are currently alive. */
+    protected static List<String> liveSdkReceiverThreadNames() {
+        return liveSdkThreads(AbstractLifecycleSpecTest::isReceiverThread).stream()
+            .map(Thread::getName).collect(Collectors.toList());
+    }
+
+    private static List<Thread> liveSdkThreads(Predicate<Thread> matches) {
         return Thread.getAllStackTraces().keySet().stream()
             .filter(Thread::isAlive)
-            .filter(t -> t.getName().startsWith("Sender-Reconnector-") || t.getName().startsWith("Sender-Startup-"))
+            .filter(matches)
             .collect(Collectors.toList());
+    }
+
+    private static boolean isSenderThread(Thread t) {
+        return t.getName().startsWith("Sender-Reconnector-") || t.getName().startsWith("Sender-Startup-");
+    }
+
+    private static boolean isReceiverThread(Thread t) {
+        return t.getName().startsWith("Receiver-");
+    }
+
+    private static boolean isCommunicationThread(Thread t) {
+        return isSenderThread(t) || isReceiverThread(t);
     }
 }

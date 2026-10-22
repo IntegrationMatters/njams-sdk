@@ -77,10 +77,8 @@ class SenderConnector {
     /** Whether the current startup attempt's failure has already been reported at warn or error. */
     private volatile boolean startupFailureReported = false;
     /**
-     * Whether the configured startup fail-behavior is {@code reconnect}, snapshot once at construction. It says a
-     * background reconnect will follow a failed startup connect even while
-     * {@link ConnectionCoordinator#shouldReconnect()} is still false, which it is throughout the constructor's
-     * pre-warm — so a failure that will be retried is never reported as terminal.
+     * Whether a reconnect will follow a failed startup connect, from the settings. Needed next to
+     * {@link ConnectionCoordinator#shouldReconnect()}, which is still false during the constructor's pre-warm.
      */
     private final boolean reconnectOnStartupFailure;
 
@@ -121,8 +119,7 @@ class SenderConnector {
                 // connectInFlight itself in its finally block. Without this, connectInFlight would stay true
                 // forever and every future beginConnect()/awaitStartup() call on this connector would silently
                 // no-op for good.
-                // Reported at the same severity a failed connect would be, not at debug: runStartupConnect()
-                // never ran, so this is the only place the reason is ever stated.
+                // Not at debug: runStartupConnect() never ran, so nowhere else states the reason.
                 reportStartupFailure("Failed to start the sender's startup connect thread", e);
                 connectInFlight = false;
                 startupError = e;
@@ -144,10 +141,8 @@ class SenderConnector {
         }
         final CountDownLatch latch;
         synchronized (gate) {
-            // Only start a connect if the group has never attempted one. A startup connect that already ran and
-            // failed is the group's startup result, not a first draft of it: running a second one would connect
-            // twice against the same endpoint and report the same failure twice (SDK-494). Recovery from a failed
-            // startup is the caller's decision, taken in NjamsSender.startWithTimeout, not a silent retry here.
+            // An attempt that already ran is the group's startup result; a second one would connect twice and
+            // report the same failure twice. Recovery is NjamsSender.startWithTimeout's decision (SDK-494).
             if (!startupAttempted) {
                 beginConnect();
             }
@@ -166,16 +161,9 @@ class SenderConnector {
 
     /**
      * Runs the group's one startup connect and, if it fails, hands off to the reconnect loop where that is
-     * warranted.
-     * <p>
-     * The handoff is gated on {@link ConnectionCoordinator#shouldReconnect()}, which is deliberately still
-     * {@code false} while this runs from the constructor's pre-warm — even under the {@code reconnect} startup
-     * policy, whose flag is only set later, by {@code NjamsSender.startWithTimeout}. A pre-warm connect
-     * therefore never starts a reconnect loop. That is the point: the startup fail-behavior is the client's
-     * decision, and a loop started before the client has made it would have to be cancelled again under the
-     * default fail-fast policy. Recovery under the {@code reconnect} policy starts from
-     * {@code startWithTimeout} instead, at the cost of whatever time passes between constructing the client and
-     * starting it.
+     * warranted. The handoff is gated on {@link ConnectionCoordinator#shouldReconnect()}, so a pre-warm connect
+     * never starts one: the startup fail-behavior is the client's decision, taken in
+     * {@code NjamsSender.startWithTimeout}.
      */
     private void runStartupConnect() {
         AbstractSender sender = null;
@@ -250,9 +238,7 @@ class SenderConnector {
     }
 
     private void runReconnectLoop(Exception cause) {
-        // Debug, not info: the outage that got us here is already reported once, with its reason, by
-        // SenderPool.electReconnector -- the only path that starts a reconnect. Repeating it here would mean two
-        // lines per outage saying the same thing.
+        // Debug, not info: SenderPool.electReconnector -- the only path here -- already reported the outage.
         if (LOG.isDebugEnabled() && cause != null) {
             LOG.debug("Initialized reconnect, because of: {}", getExceptionWithCauses(cause));
         }
@@ -272,8 +258,7 @@ class SenderConnector {
                 return;
             } catch (Exception e) {
                 connectAttemptFailed = true;
-                // Routine while an outage lasts, and already reported once when it opened, so this stays at
-                // debug -- an outage of any length must not fill the log with one line per retry.
+                // Debug: an outage of any length must not fill the log with one line per retry.
                 LOG.debug("Reconnect attempt for sender {} failed; retrying.", pool.getSenderName(), e);
                 closeQuietly(sender);
                 try {
@@ -364,11 +349,8 @@ class SenderConnector {
     }
 
     /**
-     * Reports a failure that prevented the group from connecting at startup, at the severity its consequence
-     * warrants: {@code error} when it ends the startup, {@code warn} when the background reconnect loop is going
-     * to carry on from here, and {@code debug} when the group is shutting down anyway, where a failed connect is
-     * expected rather than a problem. The reason is put in the message itself, not left to be read out of the
-     * stack trace, which is attached as well.
+     * Reports a failed startup connect once, at the severity its consequence warrants, with the reason in the
+     * message and the failure attached.
      *
      * @param what the failure, as the start of the message; the reason is appended to it.
      * @param cause the failure to report.
@@ -377,9 +359,8 @@ class SenderConnector {
         if (coordinator.shouldShutdown()) {
             LOG.debug("{} while shutting down. Reason: {}", what, getExceptionWithCauses(cause), cause);
         } else if (startupCancelled) {
-            // The connect did not fail, it was cancelled -- the exception is the interrupt we sent ourselves, and
-            // naming it as the reason would be actively misleading. Whoever cancelled reports the real reason
-            // (the elapsed startup timeout), which is why hasReportedStartupFailure() stays false here.
+            // The exception is the interrupt we sent ourselves, so naming it as the reason would mislead.
+            // Whoever cancelled reports the real one, which is why hasReportedStartupFailure() stays false.
             LOG.debug("{} because the startup connect was cancelled. Reason: {}", what,
                 getExceptionWithCauses(cause), cause);
         } else if (coordinator.shouldReconnect() || reconnectOnStartupFailure) {
@@ -391,18 +372,13 @@ class SenderConnector {
         }
     }
 
-    /**
-     * @return whether the current startup attempt's failure has already been reported at warn or error, so the
-     *         caller that is about to act on it does not state the same failure a second time.
-     */
+    /** @return whether the current startup attempt's failure has already been reported at warn or error. */
     boolean hasReportedStartupFailure() {
         return startupFailureReported;
     }
 
     /**
-     * Renders a failure and its cause chain compactly, so the reason is readable from the message alone without
-     * digging into the stack trace. Shared with {@link SenderPool}, which reports the outages this connector then
-     * recovers from.
+     * Renders a failure and its cause chain compactly, for stating a reason without the stack trace.
      *
      * @param t the failure to render; may be {@code null}.
      * @return the failure and its causes, or an empty string for {@code null}.

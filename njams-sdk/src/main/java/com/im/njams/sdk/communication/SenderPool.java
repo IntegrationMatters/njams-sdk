@@ -170,10 +170,9 @@ public class SenderPool {
         this.coordinator = coordinator;
         // Read once at construction: acquire() applies this per message and must never touch the settings there.
         discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
-        // The configured communication type is what selects the sender implementation, so it is the group's name
-        // by definition. Read here rather than asking the factory for one, so naming a thread can neither create
-        // a sender nor fail. The fallback covers the settings-less constructors; a client that really has no
-        // communication type never gets this far, because NjamsSender validates it first.
+        // The configured type selects the sender implementation, so it is the group's name by definition. Read
+        // here so that naming a thread can neither create a sender nor fail. The fallback is for the
+        // settings-less constructors only; NjamsSender validates the setting before a client gets this far.
         final String configuredName = settings.getPropertyWithAlternativeKey(
             NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
         senderName = configuredName != null ? configuredName : UNNAMED_SENDER_GROUP;
@@ -351,9 +350,8 @@ public class SenderPool {
         }
         toDestroy.forEach(this::destroy);
         if (listeners != null) {
-            // A startup connect that failed on its own was already reported by the connector, with the real
-            // cause; `cause` here only says the startup timeout elapsed. Report only when the connector did not,
-            // which is the case when the connect was still running and cancelStartupConnect() just ended it.
+            // `cause` only says the startup timeout elapsed; a connect that failed on its own was already
+            // reported by the connector, with the real reason. Report only when it was not.
             electReconnector(cause, listeners, !connector.hasReportedStartupFailure());
         } else {
             // Already reconnecting (or connected): no new election, but still kick the connector, which is what
@@ -682,11 +680,9 @@ public class SenderPool {
     }
 
     private void electReconnector(Exception cause, List<SenderExceptionListener> listeners, boolean report) {
-        // The single place every outage passes through exactly once - all callers reach it only after latching
-        // `reconnecting` under the lock - so it is where the outage is reported. Reporting at the origins
-        // instead would log per failing message under load, which is the flooding SDK-129/SDK-329 were about.
-        // The exception is a startup failure the connector has already reported at its own severity: see
-        // restartConnectInBackground(long).
+        // Every outage passes here exactly once - all callers latch `reconnecting` under the lock first - so
+        // this is where it is reported. Reporting at the origins would log per failing message under load,
+        // which is the flooding SDK-129/SDK-329 were about.
         if (report) {
             reportOutage(cause);
         }
@@ -738,17 +734,14 @@ public class SenderPool {
 
     /**
      * Reports the outage that is about to put this group into reconnect, once, with the reason in the message
-     * and the failure attached for its stack trace. Whether the connection was ever established distinguishes a
-     * connection that was lost from one that never came up, which is the difference between "it broke" and
-     * "it was never reachable" for whoever reads the log.
+     * and the failure attached. A connection that was lost is distinguished from one that never came up.
      *
      * @param cause the failure that ended the group's connection; may be {@code null}.
      */
     private void reportOutage(Exception cause) {
         final String reason = cause == null ? "unknown" : SenderConnector.getExceptionWithCauses(cause);
         if (coordinator.shouldShutdown()) {
-            // startReconnect(...) will refuse, so promising a reconnect here would be a lie. A send failing
-            // against a group that is being torn down is expected, not an outage.
+            // startReconnect(...) will refuse, so promising a reconnect here would be a lie.
             LOG.debug("Sender {} failed while shutting down. Reason: {}", senderName, reason, cause);
             return;
         }
