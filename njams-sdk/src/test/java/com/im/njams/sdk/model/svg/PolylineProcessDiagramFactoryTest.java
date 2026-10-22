@@ -38,6 +38,17 @@ public class PolylineProcessDiagramFactoryTest {
         return new PolylineProcessDiagramFactory(njams).getProcessDiagram(model);
     }
 
+
+    /**
+     * Renders with explicitly placed coordinates instead of the layouter, for geometries the
+     * {@link CommonBfsModelLayouter} does not produce (loop-backs, near-misaligned rows).
+     */
+    private String renderWithoutLayout(ProcessModel model, Runnable placeCoordinates) {
+        placeCoordinates.run();
+        Njams njams = model.getNjams();
+        return new PolylineProcessDiagramFactory(njams).getProcessDiagram(model);
+    }
+
     private static Document parse(String svg) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setNamespaceAware(true);
@@ -163,6 +174,73 @@ public class PolylineProcessDiagramFactoryTest {
             }
         }
         return u1 <= u2;
+    }
+
+    @Test
+    public void aGroupAndAPlainActivityOnTheSameVisualBandShareARow() throws Exception {
+        // A -> G (group with child H) -> B, plus the A -> B bypass. The group's box is taller than a
+        // plain icon and its top is nudged off the plain activities', so identity-keyed rows put them in
+        // different rows and the bypass loses its detour; overlap bands keep them together.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "G");
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        h.setStarter(true);
+        model.createTransition("G", "B");
+        model.createTransition("A", "B").setName("skip");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(100);
+            g.setX(150);
+            g.setY(108);
+            g.setWidth(120);
+            g.setHeight(140);
+            b.setX(400);
+            b.setY(100);
+            h.setX(160);
+            h.setY(120);
+        }));
+
+        assertNoTransitionCrossesAnyGroupBox(doc);
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
+    public void aSingleActivityWithNoTransitionsStillRenders() throws Exception {
+        ProcessModel model = createProcess();
+        model.createActivity("A", "A", null).setStarter(true);
+
+        Document doc = parse(render(model));
+
+        Assert.assertFalse("a one-activity diagram must still produce activity geometry",
+            activityBoxes(doc).isEmpty());
+    }
+
+    @Test
+    public void aTransitionBetweenTwoActivitiesAtTheSamePositionStillRenders() throws Exception {
+        // Degenerate geometry: |dx| and |dy| are both 0, so neither dominance nor band construction has a
+        // direction to work from. It must still emit a polyline with a points attribute, not throw.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(0);
+            b.setY(0);
+        }));
+
+        Element poly = findTransitionPolyline(doc, transitionId(model, "A", "B"));
+        Assert.assertNotNull("a degenerate transition must still be rendered", poly);
+        Assert.assertFalse("its points attribute must not be empty", poly.getAttribute("points").isEmpty());
     }
 
     @Test

@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Process diagram factory that renders transitions as routed poly-lines instead of straight lines.
@@ -228,16 +227,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         if (transitions.isEmpty()) {
             return;
         }
-        TreeSet<Integer> xSet = new TreeSet<>();
-        TreeSet<Integer> ySet = new TreeSet<>();
-        for (TransitionModel t : transitions) {
-            xSet.add(t.getFromActivity().getX());
-            xSet.add(t.getToActivity().getX());
-            ySet.add(t.getFromActivity().getY());
-            ySet.add(t.getToActivity().getY());
-        }
-        List<Integer> sortedX = new ArrayList<>(xSet);
-        List<Integer> sortedY = new ArrayList<>(ySet);
+        Bands bands = Bands.of(siblings);
 
         Map<String, Integer> outDegree = new HashMap<>();
         Map<String, Integer> inDegree = new HashMap<>();
@@ -248,11 +238,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
         List<Edge> edges = new ArrayList<>();
         for (TransitionModel t : transitions) {
-            Edge e = classify(t, sortedX, sortedY, siblings);
+            Edge e = classify(t, bands, siblings);
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
             if (e.type == Type.ELBOW) {
-                assignElbowGutter(e, siblings, sortedY);
+                assignElbowGutter(e, siblings, bands);
             }
             edges.add(e);
         }
@@ -262,20 +252,21 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
-    private Edge classify(TransitionModel t, List<Integer> sortedX, List<Integer> sortedY,
-        List<ActivityModel> siblings) {
+    private Edge classify(TransitionModel t, Bands bands, List<ActivityModel> siblings) {
         Edge e = new Edge();
         e.transition = t;
         ActivityModel from = t.getFromActivity();
         ActivityModel to = t.getToActivity();
+        e.sourceBox = NodeBox.of(from);
+        e.targetBox = NodeBox.of(to);
         e.scx = from.getX() + DEFAULT_HALF_ACTIVITY_SIZE;
         e.scy = from.getY() + DEFAULT_HALF_ACTIVITY_SIZE;
         e.tcx = to.getX() + DEFAULT_HALF_ACTIVITY_SIZE;
         e.tcy = to.getY() + DEFAULT_HALF_ACTIVITY_SIZE;
-        int colS = sortedX.indexOf(from.getX());
-        int colT = sortedX.indexOf(to.getX());
-        int rowS = sortedY.indexOf(from.getY());
-        int rowT = sortedY.indexOf(to.getY());
+        int colS = bands.colIndexOf(e.sourceBox);
+        int colT = bands.colIndexOf(e.targetBox);
+        int rowS = bands.rowIndexOf(e.sourceBox);
+        int rowT = bands.rowIndexOf(e.targetBox);
         e.rowS = rowS;
         e.colS = colS;
         e.colT = colT;
@@ -288,18 +279,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.type = Type.BYPASS;
             // Channel below the row, kept clear both of the label text drawn beneath the icons and of
             // any sibling in this row that is taller than a plain activity (e.g. a group box).
-            e.laneBase = channelY(from.getY(), rowS, sortedY, siblings);
+            e.laneBase = channelY(rowS, bands);
             // Leave the source on its right and re-enter the target from the left, through the
-            // gutters between columns, so neither end crosses the label below an icon. The neighbor
-            // columns are found from the actual sibling activities (obstacle-aware), not from
-            // sortedX — sortedX is derived only from this container's transitions and is blind to an
-            // intermediate activity (e.g. a bypassed group) that has no transition surviving into this
-            // container's coordinate grid.
-            e.exitX = exitCorridorX(from.getX(), siblings);
-            ActivityModel prevSibling = prevColumn(to.getX(), siblings);
-            e.approachX = prevSibling != null
-                ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + to.getX()) / 2.0
-                : to.getX() - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            // gutters between columns, so neither end crosses the label below an icon. The neighbour
+            // columns come from the sibling bands, which cover every activity in the container; a
+            // transition-derived grid would be blind to an intermediate activity (e.g. a bypassed
+            // group) whose own edges never reach this container's routing.
+            e.exitX = exitCorridorX(e.sourceBox, bands);
+            e.approachX = approachCorridorX(e.targetBox, bands);
         } else {
             e.type = Type.ELBOW;
             // The gutter the vertical run uses depends on the fan role, decided in assignElbowGutter
@@ -308,91 +295,44 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         return e;
     }
 
-    /**
-     * The lowest y a bypass channel in this row may safely start from: the bottom edge of the tallest
-     * sibling activity whose top sits exactly at {@code rowY} — a plain activity's bottom by default,
-     * or a group's actual (dynamic) bottom edge when a group occupies that row.
-     */
-    private static double rowBottom(int rowY, List<ActivityModel> siblings) {
-        double bottom = rowY + DEFAULT_ACTIVITY_SIZE;
-        for (ActivityModel sibling : siblings) {
-            if (sibling.getY() == rowY) {
-                double siblingBottom = sibling.getY() + heightOf(sibling);
-                if (siblingBottom > bottom) {
-                    bottom = siblingBottom;
-                }
-            }
-        }
-        return bottom;
-    }
-
     private static int heightOf(ActivityModel activity) {
         return activity instanceof GroupModel ? ((GroupModel) activity).getHeight() : DEFAULT_ACTIVITY_SIZE;
-    }
-
-    /**
-     * The channel y a same-row detour (a BYPASS's mid-row run, or a fan-in ELBOW's obstacle detour,
-     * see {@link #assignElbowGutter}) may use below {@code rowY}: the midpoint of the gap to the next
-     * row, or clear of the label text under {@code rowY}'s icons, whichever is lower.
-     */
-    private static double channelY(int rowY, int rowIndex, List<Integer> sortedY, List<ActivityModel> siblings) {
-        double bottom = rowBottom(rowY, siblings);
-        double labelClear = rowY + DEFAULT_ACTIVITY_SIZE + LABEL_CLEARANCE;
-        double mid = rowIndex + 1 < sortedY.size()
-            ? (bottom + sortedY.get(rowIndex + 1)) / 2.0
-            : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
-        return Math.max(mid, labelClear);
-    }
-
-    /** The x just past {@code fromX}'s activity, before the next sibling column — see {@link #nextColumn}. */
-    private static double exitCorridorX(int fromX, List<ActivityModel> siblings) {
-        double srcRight = fromX + DEFAULT_ACTIVITY_SIZE;
-        ActivityModel nextSibling = nextColumn(fromX, siblings);
-        return nextSibling != null
-            ? (srcRight + nextSibling.getX()) / 2.0
-            : srcRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
-    }
-
-    /**
-     * The nearest sibling column strictly to the right of {@code fromX} — the obstacle-aware replacement
-     * for "the next entry in the transition-derived column list", which is blind to any intermediate
-     * activity (e.g. a bypassed group) that has no transition surviving into this container's coordinate
-     * grid. Returns {@code null} when {@code fromX} is the rightmost column.
-     */
-    private static ActivityModel nextColumn(int fromX, List<ActivityModel> siblings) {
-        ActivityModel next = null;
-        for (ActivityModel sibling : siblings) {
-            if (sibling.getX() > fromX && (next == null || sibling.getX() < next.getX())) {
-                next = sibling;
-            }
-        }
-        return next;
-    }
-
-    /** The nearest sibling column strictly to the left of {@code toX} — see {@link #nextColumn}. */
-    private static ActivityModel prevColumn(int toX, List<ActivityModel> siblings) {
-        ActivityModel prev = null;
-        for (ActivityModel sibling : siblings) {
-            if (sibling.getX() < toX && (prev == null || sibling.getX() > prev.getX())) {
-                prev = sibling;
-            }
-        }
-        return prev;
     }
 
     private static int widthOf(ActivityModel activity) {
         return activity instanceof GroupModel ? ((GroupModel) activity).getWidth() : DEFAULT_ACTIVITY_SIZE;
     }
 
-    /** The widest sibling occupying column {@code x} — mirrors {@link #rowBottom} maxing heights over a row. */
-    private static int widthAtColumn(int x, List<ActivityModel> siblings) {
-        int width = DEFAULT_ACTIVITY_SIZE;
-        for (ActivityModel sibling : siblings) {
-            if (sibling.getX() == x) {
-                width = Math.max(width, widthOf(sibling));
-            }
-        }
-        return width;
+    /**
+     * The channel y a same-row detour (a BYPASS's mid-row run, or a fan-in ELBOW's obstacle detour, see
+     * {@link #assignElbowGutter}) may use below the given row band: the midpoint of the gap to the next
+     * band, or clear of the label text under this band's icons, whichever is lower.
+     */
+    private static double channelY(int rowIndex, Bands bands) {
+        double bottom = bands.rowBottom(rowIndex);
+        double labelClear = bands.rowTop(rowIndex) + DEFAULT_ACTIVITY_SIZE + LABEL_CLEARANCE;
+        double mid = rowIndex + 1 < bands.rowCount()
+            ? (bottom + bands.rowTop(rowIndex + 1)) / 2.0
+            : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+        return Math.max(mid, labelClear);
+    }
+
+    /** The corridor x just right of the given node's column band, before the next one. */
+    private static double exitCorridorX(NodeBox node, Bands bands) {
+        int col = bands.colIndexOf(node);
+        double right = bands.colRight(col);
+        return col + 1 < bands.colCount()
+            ? (right + bands.colLeft(col + 1)) / 2.0
+            : right + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+    }
+
+    /** The corridor x just left of the given node's column band, after the previous one. */
+    private static double approachCorridorX(NodeBox node, Bands bands) {
+        int col = bands.colIndexOf(node);
+        double left = bands.colLeft(col);
+        return col > 0
+            ? (bands.colRight(col - 1) + left) / 2.0
+            : left - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
     }
 
     /**
@@ -416,35 +356,26 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * a fan-out exits on the source's right and runs in the gutter just right of the source column, so
      * each branch turns early. A pure fan-in instead runs along the (free) source row and bends in the
      * gutter just left of the target column, so a long join only turns towards the target at the end
-     * and does not cut back across intermediate nodes on the target's row. The gutter geometry is found
-     * from the actual sibling activities (obstacle-aware, see {@link #nextColumn}/{@link #prevColumn}),
-     * not from a transition-derived column list, so a group that is the sole occupant of its column is
-     * still cleared correctly. When a fan-in's long source-row run would itself pass over another
+     * and does not cut back across intermediate nodes on the target's row. The gutter geometry comes
+     * from the sibling column bands (see {@link Bands}), so a group that is the sole occupant of its
+     * column is still cleared correctly. When a fan-in's long source-row run would itself pass over another
      * sibling sitting in that row between the source and the gutter — a distant branch that happens to
      * land on the same row, see {@link #hasSiblingBetween} — the run is routed through the row's
      * below-row channel instead (like a {@link Type#BYPASS}) so it clears that sibling and its edges.
      */
-    private void assignElbowGutter(Edge e, List<ActivityModel> siblings, List<Integer> sortedY) {
+    private void assignElbowGutter(Edge e, List<ActivityModel> siblings, Bands bands) {
         if (e.targetFanIn && !e.sourceFanOut) {
-            double targetLeft = e.tcx - DEFAULT_HALF_ACTIVITY_SIZE;
-            ActivityModel prevSibling = prevColumn((int) targetLeft, siblings);
-            e.laneBase = prevSibling != null
-                ? (prevSibling.getX() + widthAtColumn(prevSibling.getX(), siblings) + targetLeft) / 2.0
-                : targetLeft - (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            e.laneBase = approachCorridorX(e.targetBox, bands);
             e.gutterCol = e.colT - 1;
             int fromX = (int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE);
             int fromY = (int) (e.scy - DEFAULT_HALF_ACTIVITY_SIZE);
             e.rowDetour = hasSiblingBetween(fromX, (int) e.laneBase, fromY, siblings);
             if (e.rowDetour) {
-                e.exitX = exitCorridorX(fromX, siblings);
-                e.channelBase = channelY(fromY, e.rowS, sortedY, siblings);
+                e.exitX = exitCorridorX(e.sourceBox, bands);
+                e.channelBase = channelY(e.rowS, bands);
             }
         } else {
-            double sourceRight = e.scx + DEFAULT_HALF_ACTIVITY_SIZE;
-            ActivityModel nextSibling = nextColumn((int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE), siblings);
-            e.laneBase = nextSibling != null
-                ? (sourceRight + nextSibling.getX()) / 2.0
-                : sourceRight + (DEFAULT_COLUMN_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+            e.laneBase = exitCorridorX(e.sourceBox, bands);
             e.gutterCol = e.colS;
         }
     }
@@ -781,6 +712,89 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
+    /**
+     * Rows and columns as overlap bands. Every node whose box overlaps another's on the perpendicular
+     * axis shares its band, so a group and the plain activities beside it form one row even though their
+     * boxes start at different coordinates. Bands cover every sibling in the container, including ones
+     * whose own edges never reach this routing.
+     */
+    private static final class Bands {
+        private final List<double[]> rows;
+        private final List<double[]> columns;
+
+        private Bands(List<double[]> rows, List<double[]> columns) {
+            this.rows = rows;
+            this.columns = columns;
+        }
+
+        static Bands of(List<ActivityModel> siblings) {
+            List<double[]> vertical = new ArrayList<>();
+            List<double[]> horizontal = new ArrayList<>();
+            for (ActivityModel sibling : siblings) {
+                NodeBox box = NodeBox.of(sibling);
+                vertical.add(new double[] {box.top, box.bottom});
+                horizontal.add(new double[] {box.left, box.right});
+            }
+            return new Bands(merge(vertical), merge(horizontal));
+        }
+
+        /** Merges overlapping spans in ascending order; spans that only touch stay separate. */
+        private static List<double[]> merge(List<double[]> spans) {
+            spans.sort(Comparator.comparingDouble(span -> span[0]));
+            List<double[]> merged = new ArrayList<>();
+            for (double[] span : spans) {
+                double[] last = merged.isEmpty() ? null : merged.get(merged.size() - 1);
+                if (last != null && span[0] < last[1]) {
+                    last[1] = Math.max(last[1], span[1]);
+                } else {
+                    merged.add(new double[] {span[0], span[1]});
+                }
+            }
+            return merged;
+        }
+
+        int rowIndexOf(NodeBox node) {
+            return indexOf(rows, node.top, node.bottom);
+        }
+
+        int colIndexOf(NodeBox node) {
+            return indexOf(columns, node.left, node.right);
+        }
+
+        private static int indexOf(List<double[]> bands, double start, double end) {
+            for (int i = 0; i < bands.size(); i++) {
+                if (start < bands.get(i)[1] && bands.get(i)[0] < end) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        int rowCount() {
+            return rows.size();
+        }
+
+        double rowTop(int index) {
+            return rows.get(index)[0];
+        }
+
+        double rowBottom(int index) {
+            return rows.get(index)[1];
+        }
+
+        int colCount() {
+            return columns.size();
+        }
+
+        double colLeft(int index) {
+            return columns.get(index)[0];
+        }
+
+        double colRight(int index) {
+            return columns.get(index)[1];
+        }
+    }
+
     private enum Type {
         STRAIGHT, BYPASS, ELBOW
     }
@@ -789,6 +803,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     private static final class Edge {
         private TransitionModel transition;
         private Type type;
+        private NodeBox sourceBox;
+        private NodeBox targetBox;
         private double scx;
         private double scy;
         private double tcx;
