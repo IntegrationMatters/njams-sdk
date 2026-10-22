@@ -100,12 +100,13 @@ class SenderConnector {
                 startupThread.setName("Sender-Startup-" + pool.getSenderName());
                 startupThread.start();
             } catch (RuntimeException e) {
-                // Preparing/starting the thread failed (e.g. pool.getSenderName() threw) before runStartupConnect()
-                // ever got a chance to run and reset connectInFlight itself in its finally block. Without this,
-                // connectInFlight would stay true forever and every future beginConnect()/awaitStartup() call on
-                // this connector would silently no-op for good.
-                LOG.warn("Failed to start the sender group's startup connect thread; the group remains "
-                    + "disconnected. A later call will retry.", e);
+                // Starting the thread failed before runStartupConnect() ever got a chance to run and reset
+                // connectInFlight itself in its finally block. Without this, connectInFlight would stay true
+                // forever and every future beginConnect()/awaitStartup() call on this connector would silently
+                // no-op for good.
+                // Reported at the same severity a failed connect would be, not at debug: runStartupConnect()
+                // never ran, so this is the only place the reason is ever stated.
+                reportStartupFailure("Failed to start the sender's startup connect thread", e);
                 connectInFlight = false;
                 startupError = e;
                 latch.countDown();
@@ -140,6 +141,19 @@ class SenderConnector {
         return coordinator.isGroupConnected() && startupError == null;
     }
 
+    /**
+     * Runs the group's one startup connect and, if it fails, hands off to the reconnect loop where that is
+     * warranted.
+     * <p>
+     * The handoff is gated on {@link ConnectionCoordinator#shouldReconnect()}, which is deliberately still
+     * {@code false} while this runs from the constructor's pre-warm — even under the {@code reconnect} startup
+     * policy, whose flag is only set later, by {@code NjamsSender.startWithTimeout}. A pre-warm connect
+     * therefore never starts a reconnect loop. That is the point: the startup fail-behavior is the client's
+     * decision, and a loop started before the client has made it would have to be cancelled again under the
+     * default fail-fast policy. Recovery under the {@code reconnect} policy starts from
+     * {@code startWithTimeout} instead, at the cost of whatever time passes between constructing the client and
+     * starting it.
+     */
     private void runStartupConnect() {
         AbstractSender sender = null;
         Exception failure = null;
@@ -154,7 +168,7 @@ class SenderConnector {
         } catch (Exception e) {
             startupError = e;
             failure = e;
-            LOG.debug("Startup connect failed.", e);
+            reportStartupFailure("Could not connect the sender to nJAMS Server", e);
         } finally {
             closeQuietly(sender);
             synchronized (gate) {
@@ -203,11 +217,12 @@ class SenderConnector {
             reconnectThread.setName("Sender-Reconnector-" + pool.getSenderName());
             reconnectThread.start();
         } catch (RuntimeException e) {
-            // Mirrors beginConnect()'s guard: if preparing/starting the thread fails (e.g. pool.getSenderName()
-            // throws) before it can run and pick the group back up, there is no dangling flag to reset here —
-            // isReconnectInFlight() already reads false for a never-started thread — but log it so the failure
-            // is visible instead of the group just silently staying disconnected until the next trigger.
-            LOG.warn("Failed to start the sender group's reconnect thread; a later trigger will retry.", e);
+            // Mirrors beginConnect()'s guard: if starting the thread fails before it can run and pick the group
+            // back up, there is no dangling flag to reset here — isReconnectInFlight() already reads false for a
+            // never-started thread — but report it, so the failure is visible instead of the group just silently
+            // staying disconnected. No retry is promised: nothing retries on its own from here, recovery depends
+            // on something else failing against the group later.
+            LOG.warn("Failed to start the sender's reconnect thread. Reason: {}", getExceptionWithCauses(e), e);
         }
     }
 
@@ -314,6 +329,26 @@ class SenderConnector {
             sender.close();
         } catch (Exception e) {
             LOG.debug("Failed to close a sender after an unsuccessful connect.", e);
+        }
+    }
+
+    /**
+     * Reports a failure that prevented the group from connecting at startup, at the severity its consequence
+     * warrants: {@code error} when it ends the startup, {@code warn} when the background reconnect loop is going
+     * to carry on from here, and {@code debug} when the group is shutting down anyway, where a failed connect is
+     * expected rather than a problem. The reason is put in the message itself, not left to be read out of the
+     * stack trace, which is attached as well.
+     *
+     * @param what the failure, as the start of the message; the reason is appended to it.
+     * @param cause the failure to report.
+     */
+    private void reportStartupFailure(final String what, final Exception cause) {
+        if (coordinator.shouldShutdown()) {
+            LOG.debug("{} while shutting down. Reason: {}", what, getExceptionWithCauses(cause), cause);
+        } else if (coordinator.shouldReconnect()) {
+            LOG.warn("{}; retrying in the background. Reason: {}", what, getExceptionWithCauses(cause), cause);
+        } else {
+            LOG.error("{}. Reason: {}", what, getExceptionWithCauses(cause), cause);
         }
     }
 

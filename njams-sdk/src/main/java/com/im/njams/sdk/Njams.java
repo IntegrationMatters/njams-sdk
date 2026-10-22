@@ -332,7 +332,9 @@ public class Njams {
             earlyReceiver = new CommunicationFactory(settings).getReceiver(this);
             earlyReceiver.beginConnect();
         } catch (Exception e) {
-            LOG.warn("beginConnect() failed to pre-initialize receiver; start() will retry.", e);
+            // Debug on purpose: this attempt is provisional. startReceiver() runs the decisive one moments
+            // later and reports its outcome at warn, so reporting here too would say the same thing twice.
+            LOG.debug("beginConnect() failed to pre-initialize receiver; start() will retry.", e);
             earlyReceiver = null;
         }
         if (earlySender != null) {

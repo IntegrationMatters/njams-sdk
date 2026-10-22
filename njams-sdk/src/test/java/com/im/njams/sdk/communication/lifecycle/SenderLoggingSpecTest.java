@@ -94,6 +94,41 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
         assertEquals("routine retries must never log at error level", 0, countAtLevel(Level.ERROR));
     }
 
+    @Test
+    public void failedStartupUnderFailFastLogsOnceAtError() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
+        s.beginConnect();
+        s.awaitStartup(5000);
+
+        assertEquals("startup failure reported exactly once at error", 1, countAtLevel(Level.ERROR));
+        assertEquals("and never additionally at warn", 0, countAtLevel(Level.WARN));
+        assertTrue("the cause belongs in the message text",
+            messageAtLevelContains(Level.ERROR, "LIFECYCLE_TEST"));
+    }
+
+    @Test
+    public void failedStartupUnderReconnectPolicyLogsOnceAtWarn() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.createWithReconnectBeforeConnected();
+        s.beginConnect();
+        s.awaitStartup(5000);
+
+        assertEquals("a recoverable startup failure is not an error", 0, countAtLevel(Level.ERROR));
+        assertEquals("reported once at warn", 1, countAtLevel(Level.WARN));
+    }
+
+    @Test
+    public void startupFailureDuringShutdownIsNotReportedAsTerminal() throws Exception {
+        LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
+        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
+        s.setShouldShutdown(true);
+        s.beginConnect();
+        s.awaitStartup(2000);
+
+        assertEquals("a shutdown-induced failure is not a startup error", 0, countAtLevel(Level.ERROR));
+    }
+
     /**
      * Polls until the "Reconnected sender" success log has actually been captured. Polling on the group's
      * connected state instead would race the reconnect loop: the coordinator is marked connected a few
@@ -109,14 +144,36 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
     }
 
     private long countMessagesStartingWith(Level level, String prefix) {
-        return appender.events().stream()
+        return countMessagesStartingWith(appender, level, prefix);
+    }
+
+    private long countAtLevel(Level level) {
+        return countAtLevel(appender, level);
+    }
+
+    private boolean messageAtLevelContains(Level level, String text) {
+        return messageAtLevelContains(appender, level, text);
+    }
+
+    private static long countMessagesStartingWith(CapturingAppender from, Level level, String prefix) {
+        return from.events().stream()
             .filter(e -> e.getLevel().equals(level))
             .filter(e -> String.valueOf(e.getRenderedMessage()).startsWith(prefix))
             .count();
     }
 
-    private long countAtLevel(Level level) {
-        return appender.events().stream().filter(e -> e.getLevel().equals(level)).count();
+    private static long countAtLevel(CapturingAppender from, Level level) {
+        return from.events().stream().filter(e -> e.getLevel().equals(level)).count();
+    }
+
+    /**
+     * Asserts on the rendered message only, never on the attached throwable: the point of the contract under
+     * test is that the reason is readable without digging into a stack trace.
+     */
+    private static boolean messageAtLevelContains(CapturingAppender from, Level level, String text) {
+        return from.events().stream()
+            .filter(e -> e.getLevel().equals(level))
+            .anyMatch(e -> String.valueOf(e.getRenderedMessage()).contains(text));
     }
 
     /** Minimal in-memory log4j appender that captures every event for later assertions. */
