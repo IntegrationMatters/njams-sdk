@@ -177,6 +177,61 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aFanInRunIsDetouredAroundASiblingWhoseRowIsOnlyNearlyTheSame() throws Exception {
+        // S1 and S2 join into T, so S1's branch runs the length of its own row before bending into the
+        // gutter left of T. O sits in that row, seven pixels off S1's exact y: an exact-y sibling scan
+        // does not see it and the run crosses it; a segment-versus-box test does, and detours.
+        ProcessModel model = createProcess();
+        ActivityModel s1 = model.createActivity("S1", "S1", null);
+        ActivityModel s2 = model.createActivity("S2", "S2", null);
+        ActivityModel o = model.createActivity("O", "O", null);
+        ActivityModel t = model.createActivity("T", "T", null);
+        s1.setStarter(true);
+        model.createTransition("S1", "T");
+        model.createTransition("S2", "T");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            s1.setX(0);
+            s1.setY(0);
+            o.setX(200);
+            o.setY(7);
+            s2.setX(0);
+            s2.setY(150);
+            t.setX(600);
+            t.setY(150);
+        }));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
+    public void aBypassIsRoutedEvenWhenTheTargetIsOffsetVertically() throws Exception {
+        // The reported shape: X -> A -> Y with X -> Y skipping A. Y is nudged a few pixels down, which is
+        // enough for identity-keyed rows to drop the detour and draw a direct line straight through A.
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("A", "Y");
+        model.createTransition("X", "Y").setName("skip");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            x.setX(0);
+            x.setY(0);
+            a.setX(150);
+            a.setY(0);
+            y.setX(300);
+            y.setY(7);
+        }));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
     public void aGroupAndAPlainActivityOnTheSameVisualBandShareARow() throws Exception {
         // A -> G (group with child H) -> B, plus the A -> B bypass. The group's box is taller than a
         // plain icon and its top is nudged off the plain activities', so identity-keyed rows put them in

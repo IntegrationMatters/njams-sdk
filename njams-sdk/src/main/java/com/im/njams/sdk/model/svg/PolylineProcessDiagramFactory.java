@@ -78,6 +78,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /** Height below the icon centre at which a bypass enters its target, keeping clear of the label. */
     private static final int TARGET_ENTRY_OFFSET = 12;
 
+    /** Clearance kept around every obstacle box, so a route that would graze one still counts as blocked. */
+    private static final int CLEARANCE_MARGIN = 1;
+
     /** Horizontal gap kept between a side-anchored label and the icon it is anchored to. */
     private static final int LABEL_GAP = 4;
 
@@ -228,6 +231,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             return;
         }
         Bands bands = Bands.of(siblings);
+        Obstacles obstacles = Obstacles.of(siblings);
 
         Map<String, Integer> outDegree = new HashMap<>();
         Map<String, Integer> inDegree = new HashMap<>();
@@ -238,11 +242,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
         List<Edge> edges = new ArrayList<>();
         for (TransitionModel t : transitions) {
-            Edge e = classify(t, bands, siblings);
+            Edge e = classify(t, bands, obstacles);
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
             if (e.type == Type.ELBOW) {
-                assignElbowGutter(e, siblings, bands);
+                assignElbowGutter(e, obstacles, bands);
             }
             edges.add(e);
         }
@@ -252,7 +256,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
-    private Edge classify(TransitionModel t, Bands bands, List<ActivityModel> siblings) {
+    private Edge classify(TransitionModel t, Bands bands, Obstacles obstacles) {
         Edge e = new Edge();
         e.transition = t;
         ActivityModel from = t.getFromActivity();
@@ -271,8 +275,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         e.colS = colS;
         e.colT = colT;
 
-        boolean obstacleBetween = rowS == rowT && colT > colS
-            && hasSiblingBetween(from.getX(), to.getX(), from.getY(), siblings);
+        boolean obstacleBetween =
+            obstacles.blocks(List.of(new Point(e.scx, e.scy), new Point(e.tcx, e.tcy)), from, to);
         if (colS == colT || colT < colS || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
             e.type = Type.STRAIGHT;
         } else if (rowS == rowT) {
@@ -336,22 +340,6 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     /**
-     * Whether some sibling sits strictly between {@code fromX} and {@code toX} on {@code rowY}. Used to
-     * detect an obstacle (e.g. a bypassed group) that has no transition of its own surviving into this
-     * container's transition-derived coordinate grid, and so would otherwise be invisible to the
-     * STRAIGHT/BYPASS classification above; and, in {@link #assignElbowGutter}, to detect a sibling
-     * that a fan-in elbow's source-row exit run would otherwise cross.
-     */
-    private static boolean hasSiblingBetween(int fromX, int toX, int rowY, List<ActivityModel> siblings) {
-        for (ActivityModel sibling : siblings) {
-            if (sibling.getY() == rowY && sibling.getX() > fromX && sibling.getX() < toX) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Places an elbow's vertical run in the right gutter once its fan role is known. A plain elbow or
      * a fan-out exits on the source's right and runs in the gutter just right of the source column, so
      * each branch turns early. A pure fan-in instead runs along the (free) source row and bends in the
@@ -360,16 +348,16 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * from the sibling column bands (see {@link Bands}), so a group that is the sole occupant of its
      * column is still cleared correctly. When a fan-in's long source-row run would itself pass over another
      * sibling sitting in that row between the source and the gutter — a distant branch that happens to
-     * land on the same row, see {@link #hasSiblingBetween} — the run is routed through the row's
+     * land on the same row, see {@link Obstacles} — the run is routed through the row's
      * below-row channel instead (like a {@link Type#BYPASS}) so it clears that sibling and its edges.
      */
-    private void assignElbowGutter(Edge e, List<ActivityModel> siblings, Bands bands) {
+    private void assignElbowGutter(Edge e, Obstacles obstacles, Bands bands) {
         if (e.targetFanIn && !e.sourceFanOut) {
             e.laneBase = approachCorridorX(e.targetBox, bands);
             e.gutterCol = e.colT - 1;
-            int fromX = (int) (e.scx - DEFAULT_HALF_ACTIVITY_SIZE);
-            int fromY = (int) (e.scy - DEFAULT_HALF_ACTIVITY_SIZE);
-            e.rowDetour = hasSiblingBetween(fromX, (int) e.laneBase, fromY, siblings);
+            e.rowDetour = obstacles.blocks(
+                List.of(new Point(e.scx, e.scy), new Point(e.laneBase, e.scy)),
+                e.transition.getFromActivity(), e.transition.getToActivity());
             if (e.rowDetour) {
                 e.exitX = exitCorridorX(e.sourceBox, bands);
                 e.channelBase = channelY(e.rowS, bands);
@@ -709,6 +697,70 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
         boolean overlapsHorizontally(NodeBox other) {
             return left < other.right && other.left < right;
+        }
+    }
+
+    /**
+     * The boxes a route must keep clear of, and the test for whether a candidate route hits one. Every
+     * sibling in the container counts, including ones whose own edges never reach this routing; an edge's
+     * own endpoints are excluded, since a route is expected to start and end at them.
+     */
+    private static final class Obstacles {
+        private final List<ActivityModel> nodes;
+        private final List<double[]> extents;
+
+        private Obstacles(List<ActivityModel> nodes, List<double[]> extents) {
+            this.nodes = nodes;
+            this.extents = extents;
+        }
+
+        static Obstacles of(List<ActivityModel> siblings) {
+            List<ActivityModel> nodes = new ArrayList<>(siblings);
+            List<double[]> extents = new ArrayList<>(siblings.size());
+            for (ActivityModel sibling : nodes) {
+                double[] extent = NodeBox.of(sibling).obstacleExtent();
+                extents.add(new double[] {extent[0] - CLEARANCE_MARGIN, extent[1] - CLEARANCE_MARGIN,
+                    extent[2] + CLEARANCE_MARGIN, extent[3] + CLEARANCE_MARGIN});
+            }
+            return new Obstacles(nodes, extents);
+        }
+
+        boolean blocks(List<Point> waypoints, ActivityModel source, ActivityModel target) {
+            for (int i = 0; i < nodes.size(); i++) {
+                ActivityModel node = nodes.get(i);
+                if (node == source || node == target) {
+                    continue;
+                }
+                for (int w = 0; w + 1 < waypoints.size(); w++) {
+                    if (segmentIntersectsRect(waypoints.get(w), waypoints.get(w + 1), extents.get(i))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /** Liang-Barsky clip: whether the segment has any point inside {left, top, right, bottom}. */
+        private static boolean segmentIntersectsRect(Point from, Point to, double[] rect) {
+            double dx = to.getX() - from.getX();
+            double dy = to.getY() - from.getY();
+            double[] edge = {-dx, dx, -dy, dy};
+            double[] distance = {from.getX() - rect[0], rect[2] - from.getX(),
+                from.getY() - rect[1], rect[3] - from.getY()};
+            double enter = 0;
+            double leave = 1;
+            for (int i = 0; i < 4; i++) {
+                if (edge[i] == 0) {
+                    if (distance[i] < 0) {
+                        return false;
+                    }
+                } else if (edge[i] < 0) {
+                    enter = Math.max(enter, distance[i] / edge[i]);
+                } else {
+                    leave = Math.min(leave, distance[i] / edge[i]);
+                }
+            }
+            return enter <= leave;
         }
     }
 
