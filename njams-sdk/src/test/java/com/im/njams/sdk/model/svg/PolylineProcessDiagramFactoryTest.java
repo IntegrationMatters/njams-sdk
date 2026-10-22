@@ -56,6 +56,14 @@ public class PolylineProcessDiagramFactoryTest {
             .parse(new ByteArrayInputStream(svg.getBytes(StandardCharsets.UTF_8)));
     }
 
+
+    /** The drawable area of the document: the root svg element's own extent. */
+    private static double[] canvasBox(Document doc) {
+        Element svg = doc.getDocumentElement();
+        return new double[] {0, 0, Double.parseDouble(svg.getAttribute("width")),
+            Double.parseDouble(svg.getAttribute("height"))};
+    }
+
     /** Bounding boxes of all plain activities (50px images), in SVG coordinates. */
     private static List<double[]> activityBoxes(Document doc) {
         List<double[]> boxes = new ArrayList<>();
@@ -227,6 +235,38 @@ public class PolylineProcessDiagramFactoryTest {
             }
         }
         return u1 <= u2;
+    }
+
+    @Test
+    public void routedWaypointsStayInsideTheCanvas() throws Exception {
+        // The loop-back arc sits above every activity, and the top row is placed at the very top of the
+        // model, so a canvas sized from the activities and their labels alone clips the arc away.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+        model.createTransition("B", "C");
+        model.createTransition("C", "A").setName("retry");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(150);
+            b.setY(0);
+            c.setX(300);
+            c.setY(0);
+        }));
+
+        double[] canvas = canvasBox(doc);
+        for (Element poly : transitionPolylines(doc)) {
+            for (double[] point : points(poly)) {
+                Assert.assertTrue("waypoint " + point[0] + "," + point[1] + " falls outside the canvas",
+                    point[0] >= canvas[0] && point[1] >= canvas[1]
+                        && point[0] <= canvas[2] && point[1] <= canvas[3]);
+            }
+        }
     }
 
     @Test

@@ -192,11 +192,31 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
             bounds.add(new double[] {left, route.labelY - DEFAULT_TEXT_SIZE * DEFAULT_MAX_LABEL_LINES,
                 right, route.labelY + DEFAULT_TEXT_SIZE});
+            bounds.add(extentOf(route));
         }
         return bounds;
     }
 
     // --- routing -----------------------------------------------------------------------------------
+
+    /**
+     * The area one routed path occupies. A corridor above or below the activities, or an arrow meeting a
+     * node from underneath its label, can reach past the activities themselves, and the canvas has to
+     * grow with it rather than clip it.
+     */
+    private static double[] extentOf(Route route) {
+        double left = Math.min(route.start.getX(), route.end.getX());
+        double top = Math.min(route.start.getY(), route.end.getY());
+        double right = Math.max(route.start.getX(), route.end.getX());
+        double bottom = Math.max(route.start.getY(), route.end.getY());
+        for (Point point : route.waypoints) {
+            left = Math.min(left, point.getX());
+            top = Math.min(top, point.getY());
+            right = Math.max(right, point.getX());
+            bottom = Math.max(bottom, point.getY());
+        }
+        return new double[] {left, top, right, bottom};
+    }
 
     private Map<String, Route> buildPlan(ProcessModel processModel) {
         Map<String, Route> routes = new HashMap<>();
