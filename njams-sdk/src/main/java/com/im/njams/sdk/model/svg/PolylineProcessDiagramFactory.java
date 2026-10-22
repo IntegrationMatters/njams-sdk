@@ -29,6 +29,8 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.GroupModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.model.TransitionModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -62,6 +64,14 @@ import java.util.Set;
  * rendering.
  */
 public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PolylineProcessDiagramFactory.class);
+
+    /** How far an edge may be pushed out of the way before its last candidate is drawn regardless. */
+    private static final int MAX_ESCALATION_LEVEL = 2;
+
+    /** Bound on the re-check loop, so a set of edges that keep displacing each other still terminates. */
+    private static final int MAX_ESCALATION_ROUNDS = 4;
 
     /** Lateral distance between two edges sharing the same gutter or channel. */
     private static final int LANE_GAP = 14;
@@ -248,14 +258,114 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             edges.add(e);
         }
         alignFanShapes(edges);
+        assignGutters(edges, obstacles, bands);
+        assignLanes(edges);
+
+        Map<Edge, Route> built = buildRoutes(edges);
+        for (int round = 0; round < MAX_ESCALATION_ROUNDS; round++) {
+            List<Edge> blocked = blockedEdges(edges, built, obstacles);
+            if (blocked.isEmpty() || !escalateFans(blocked, edges, obstacles, bands)) {
+                break;
+            }
+            assignLanes(edges);
+            built = buildRoutes(edges);
+        }
+        for (Edge e : blockedEdges(edges, built, obstacles)) {
+            LOG.debug("No clear route found for transition {}; drawing it over an activity box.",
+                e.transition.getId());
+        }
+        for (Map.Entry<Edge, Route> entry : built.entrySet()) {
+            routes.put(entry.getKey().transition.getId(), entry.getValue());
+        }
+    }
+
+    private Map<Edge, Route> buildRoutes(List<Edge> edges) {
+        Map<Edge, Route> built = new LinkedHashMap<>();
         for (Edge e : edges) {
-            if (e.type == Type.ELBOW && !e.verticalApproach) {
-                assignElbowGutter(e, obstacles, bands);
+            built.put(e, buildRoute(e));
+        }
+        return built;
+    }
+
+    /** The edges whose routed path, lanes and stagger included, still runs over a node it must clear. */
+    private static List<Edge> blockedEdges(List<Edge> edges, Map<Edge, Route> built, Obstacles obstacles) {
+        List<Edge> blocked = new ArrayList<>();
+        for (Edge e : edges) {
+            if (obstacles.blocks(built.get(e).waypoints, e.transition.getFromActivity(),
+                e.transition.getToActivity())) {
+                blocked.add(e);
             }
         }
-        assignLanes(edges);
+        return blocked;
+    }
+
+    /**
+     * Pushes every blocked edge one candidate further out, together with the rest of its fan so the fan
+     * keeps one shape. Returns whether anything moved — when nothing can be raised any more, the caller
+     * stops and draws what it has.
+     */
+    private boolean escalateFans(List<Edge> blocked, List<Edge> edges, Obstacles obstacles, Bands bands) {
+        boolean moved = false;
+        for (Edge e : blocked) {
+            int target = e.level + 1;
+            for (Edge member : fanOf(e, edges)) {
+                while (member.level < target && escalate(member, bands)) {
+                    moved = true;
+                }
+            }
+        }
+        if (moved) {
+            alignFanShapes(edges);
+            assignGutters(edges, obstacles, bands);
+        }
+        return moved;
+    }
+
+    /** The edge itself plus every edge sharing its fan-out source or its fan-in target. */
+    private static List<Edge> fanOf(Edge e, List<Edge> edges) {
+        List<Edge> fan = new ArrayList<>();
+        String sourceId = e.transition.getFromActivity().getId();
+        String targetId = e.transition.getToActivity().getId();
+        for (Edge other : edges) {
+            if (other == e
+                || (e.sourceFanOut && sourceId.equals(other.transition.getFromActivity().getId()))
+                || (e.targetFanIn && targetId.equals(other.transition.getToActivity().getId()))) {
+                fan.add(other);
+            }
+        }
+        return fan;
+    }
+
+    /**
+     * Moves one edge to its next candidate: a straight edge takes the routed shape, a routed one moves
+     * its corridor into the next band gap. Returns false once the edge has run out of candidates.
+     */
+    private boolean escalate(Edge e, Bands bands) {
+        if (e.level >= MAX_ESCALATION_LEVEL) {
+            return false;
+        }
+        e.level++;
+        if (e.type == Type.STRAIGHT) {
+            shapeAsRouted(e, bands);
+        } else if (e.type == Type.BYPASS || e.verticalApproach) {
+            e.laneBase = channelBelowBand(e.rowS + e.level, bands);
+        } else if (!e.rowDetour) {
+            e.rowDetour = true;
+            e.exitX = exitCorridorX(e.sourceBox, bands);
+            e.channelBase = channelY(e.rowS, bands);
+        } else {
+            e.channelBase = channelBelowBand(e.rowS + e.level, bands);
+        }
+        return true;
+    }
+
+    /** Assigns a gutter to every elbow that still needs one, leaving the ones already placed alone. */
+    private void assignGutters(List<Edge> edges, Obstacles obstacles, Bands bands) {
         for (Edge e : edges) {
-            routes.put(e.transition.getId(), buildRoute(e));
+            if (e.type == Type.ELBOW && !e.verticalApproach && !e.gutterAssigned) {
+                assignElbowGutter(e, obstacles, bands);
+                e.gutterAssigned = true;
+            }
         }
     }
 
@@ -278,15 +388,28 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         e.colS = colS;
         e.colT = colT;
 
+        e.rowT = rowT;
         boolean obstacleBetween =
             obstacles.blocks(List.of(new Point(e.scx, e.scy), new Point(e.tcx, e.tcy)), from, to);
         if (colS == colT || colT < colS || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
             e.type = Type.STRAIGHT;
-        } else if (rowS == rowT) {
+        } else {
+            shapeAsRouted(e, bands);
+        }
+        return e;
+    }
+
+    /**
+     * Gives an edge the routed shape for its row relationship: a same-row bypass through the row's
+     * channel, or a cross-row elbow. This is candidate level 1 — what an edge takes when the direct
+     * segment between the two nodes is not clear.
+     */
+    private void shapeAsRouted(Edge e, Bands bands) {
+        if (e.rowS == e.rowT) {
             e.type = Type.BYPASS;
             // Channel below the row, kept clear both of the label text drawn beneath the icons and of
             // any sibling in this row that is taller than a plain activity (e.g. a group box).
-            e.laneBase = channelY(rowS, bands);
+            e.laneBase = channelY(e.rowS, bands);
             // Leave the source on its right and re-enter the target from the left, through the
             // gutters between columns, so neither end crosses the label below an icon. The neighbour
             // columns come from the sibling bands, which cover every activity in the container; a
@@ -301,12 +424,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // approaches keep the side-entering shape until backward edges get their own channel.
             e.verticalApproach = Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx) && e.tcy > e.scy;
             if (e.verticalApproach) {
-                e.laneBase = channelY(rowS, bands);
+                e.laneBase = channelY(e.rowS, bands);
             }
             // Otherwise the gutter the vertical run uses depends on the fan role, decided in
             // assignElbowGutter once the fan-out / fan-in flags are known.
         }
-        return e;
     }
 
     private static int heightOf(ActivityModel activity) {
@@ -329,6 +451,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             ? (bottom + bands.rowTop(rowIndex + 1)) / 2.0
             : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
         return Math.max(mid, labelClear);
+    }
+
+    /** The channel below the given band, or progressively further below the diagram's last band. */
+    private static double channelBelowBand(int bandIndex, Bands bands) {
+        if (bandIndex < bands.rowCount()) {
+            return channelY(bandIndex, bands);
+        }
+        return channelY(bands.rowCount() - 1, bands)
+            + (bandIndex - bands.rowCount() + 1) * (double) DEFAULT_ROW_SPACING;
     }
 
     /** The corridor x just right of the given node's column band, before the next one. */
@@ -1003,6 +1134,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private boolean targetFanIn;
         private boolean rowDetour;
         private boolean verticalApproach;
+        private boolean gutterAssigned;
+        private int rowT;
+        private int level;
         private Side exitSide;
         private Side entrySide;
         private double channelBase;

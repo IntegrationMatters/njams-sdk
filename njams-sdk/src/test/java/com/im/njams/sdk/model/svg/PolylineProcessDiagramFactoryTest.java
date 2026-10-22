@@ -195,6 +195,92 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void allBranchesOfAFanTakeTheSameShapeFamily() throws Exception {
+        // One branch would be clear as a straight line while its siblings need an elbow. If they are
+        // allowed to differ, the lane-nesting non-crossing argument no longer covers the mixed group.
+        ProcessModel model = createProcess();
+        ActivityModel s = model.createActivity("S", "S", null);
+        model.createActivity("P", "P", null);
+        model.createActivity("Q", "Q", null);
+        model.createActivity("R", "R", null);
+        s.setStarter(true);
+        model.createTransition("S", "P");
+        model.createTransition("S", "Q");
+        model.createTransition("S", "R");
+
+        Document doc = parse(render(model));
+
+        assertNoTransitionsCrossEachOther(doc);
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
+    public void anEdgeThatNoCandidateCanClearStillEmitsAPolyline() throws Exception {
+        // Source and target boxes overlap on both axes, so every candidate intersects an obstacle. The
+        // escalation loop must terminate and emit its last candidate rather than spin.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        a.setStarter(true);
+        model.createTransition("A", "C");
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(10);
+            b.setY(10);
+            c.setX(20);
+            c.setY(20);
+        }));
+
+        Element poly = findTransitionPolyline(doc, transitionId(model, "A", "C"));
+        Assert.assertNotNull("a blocked edge must still be emitted", poly);
+        Assert.assertFalse("its points attribute must not be empty", poly.getAttribute("points").isEmpty());
+    }
+
+    @Test
+    public void aRunDisplacedOntoALowerActivityByItsLaneIsEscalated() throws Exception {
+        // Three bypasses share the row's channel, so the third runs two lane widths below the first.
+        // That offset is applied after the shape is chosen: the shape is clear at the channel base and
+        // only the displaced copy crosses Z, which a check made before laning cannot see.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel d = model.createActivity("D", "D", null);
+        ActivityModel e = model.createActivity("E", "E", null);
+        ActivityModel z = model.createActivity("Z", "Z", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+        model.createTransition("B", "C");
+        model.createTransition("C", "D");
+        model.createTransition("D", "E");
+        model.createTransition("A", "C").setName("skip1");
+        model.createTransition("B", "D").setName("skip2");
+        model.createTransition("C", "E").setName("skip3");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(150);
+            b.setY(0);
+            c.setX(300);
+            c.setY(0);
+            d.setX(450);
+            d.setY(0);
+            e.setX(600);
+            e.setY(0);
+            z.setX(520);
+            z.setY(100);
+        }));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
     public void aVerticallyDominantEdgeEntersTheTargetFromTheTop() throws Exception {
         // B sits far below A and barely to its side, so the approach is vertical. Routing it as a
         // side-entering elbow would swing the arrow around into B's left flank.
