@@ -82,6 +82,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /** Horizontal gap kept between a side-anchored label and the icon it is anchored to. */
     private static final int LABEL_GAP = 4;
 
+    /**
+     * Height of the strip below an activity icon that its label text occupies: the label's baseline sits
+     * one text line below the icon, plus descender room.
+     */
+    static final int LABEL_BAND_HEIGHT = DEFAULT_TEXT_SIZE + DEFAULT_TEXT_SIZE / 2;
+
     private final boolean suppressIdLabels;
 
     /** Per-diagram routing result, keyed by transition id; set for the duration of one render. */
@@ -728,6 +734,51 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             return new Point(center.getX(), center.getY());
         }
         return new Point(center.getX() + vx / mag * radius, center.getY() + vy / mag * radius);
+    }
+
+    /**
+     * The rectangle an activity occupies, plus the area a route must keep clear of it. A plain activity is
+     * a fixed-size icon with a label band below it; a group is its own, layouter-assigned box.
+     */
+    private static final class NodeBox {
+        private final double left;
+        private final double top;
+        private final double right;
+        private final double bottom;
+        private final double centerX;
+        private final double centerY;
+        private final boolean group;
+
+        private NodeBox(double left, double top, double width, double height, boolean group) {
+            this.left = left;
+            this.top = top;
+            right = left + width;
+            bottom = top + height;
+            centerX = left + width / 2.0;
+            centerY = top + height / 2.0;
+            this.group = group;
+        }
+
+        static NodeBox of(ActivityModel activity) {
+            return new NodeBox(activity.getX(), activity.getY(), widthOf(activity), heightOf(activity),
+                activity instanceof GroupModel);
+        }
+
+        /**
+         * The extent a route must not cross: the box itself, extended downwards over the label band for a
+         * plain activity. A group draws its own label inside its box, so its extent is the box.
+         */
+        double[] obstacleExtent() {
+            return new double[] {left, top, right, group ? bottom : bottom + LABEL_BAND_HEIGHT};
+        }
+
+        boolean overlapsVertically(NodeBox other) {
+            return top < other.bottom && other.top < bottom;
+        }
+
+        boolean overlapsHorizontally(NodeBox other) {
+            return left < other.right && other.left < right;
+        }
     }
 
     private enum Type {

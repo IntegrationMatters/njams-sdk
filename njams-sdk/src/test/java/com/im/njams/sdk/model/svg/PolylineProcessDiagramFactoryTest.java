@@ -165,12 +165,19 @@ public class PolylineProcessDiagramFactoryTest {
         return u1 <= u2;
     }
 
+    @Test
+    public void labelBandHeightIsDerivedFromTheTextSize() {
+        // The band is the strip below the icon that drawActivity writes the name into: one text line plus
+        // descender room. 22 is what the suite has always assumed; this pins the derivation, not the number.
+        Assert.assertEquals(22, PolylineProcessDiagramFactory.LABEL_BAND_HEIGHT);
+    }
+
     /** Label bands: the strip directly below each activity icon where its label text is drawn. */
     private static List<double[]> labelBands(Document doc) {
         List<double[]> bands = new ArrayList<>();
         for (double[] box : activityBoxes(doc)) {
-            // box = [left, top, right, bottom]; label sits below the icon, ~22px tall.
-            bands.add(new double[] {box[0], box[3], box[2], box[3] + 22});
+            // box = [left, top, right, bottom]; the label sits in the band directly below the icon.
+            bands.add(new double[] {box[0], box[3], box[2], box[3] + PolylineProcessDiagramFactory.LABEL_BAND_HEIGHT});
         }
         return bands;
     }
