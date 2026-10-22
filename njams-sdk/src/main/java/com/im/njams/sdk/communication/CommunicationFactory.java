@@ -219,29 +219,67 @@ public class CommunicationFactory {
      * @return new initialized Sender
      */
     public AbstractSender getSender() {
+        final String requiredSenderName = requireSenderName();
+        final AbstractSender sender = findSenderImplementation(requiredSenderName);
+        try {
+            // create a new instance
+            LOG.debug("Create sender {}", sender.getName());
+            AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
+            if (newInstance instanceof ClasspathValidator) {
+                ((ClasspathValidator) newInstance).validate();
+            }
+
+            newInstance.init(settings);
+            return newInstance;
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Unable to create new " + requiredSenderName + " instance", e);
+        }
+    }
+
+    /**
+     * Checks that a sender can be created from the current settings, without creating one: the communication
+     * type must be configured, and an implementation registered for it must exist. Callers use this to surface a
+     * configuration problem where it can be reported usefully, rather than letting it appear later, out of
+     * context, at the point where a sender happens to be needed first.
+     *
+     * @throws IllegalStateException if the communication type is not configured, or no sender implementation is
+     *         registered for it.
+     */
+    public void validateSenderConfiguration() {
+        findSenderImplementation(requireSenderName());
+    }
+
+    /**
+     * @return the configured communication type.
+     * @throws IllegalStateException if neither {@value NjamsSettings#PROPERTY_COMMUNICATION} nor its alternative
+     *         {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE} is set.
+     */
+    private String requireSenderName() {
         final String requiredSenderName = settings.getPropertyWithAlternativeKey(
                 NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
         if (requiredSenderName == null) {
             throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
-                    + " in settings properties");
+                    + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE
+                    + ") in settings properties");
         }
+        return requiredSenderName;
+    }
+
+    /**
+     * Looks up the registered sender for the given communication type. The returned instance is the one the
+     * service loader created for the lookup itself; it is never configured and must not be handed out -
+     * {@link #getSender()} creates and initializes the sender that is actually used.
+     *
+     * @param requiredSenderName the configured communication type.
+     * @return the registered sender implementation for that type, never {@code null}.
+     * @throws IllegalStateException if no implementation is registered for that type.
+     */
+    private AbstractSender findSenderImplementation(final String requiredSenderName) {
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
         final AbstractSender sender = senders.find(s -> s.getName().equalsIgnoreCase(requiredSenderName));
         if (sender != null) {
-            try {
-                // create a new instance
-                LOG.debug("Create sender {}", sender.getName());
-                AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
-                if (newInstance instanceof ClasspathValidator) {
-                    ((ClasspathValidator) newInstance).validate();
-                }
-
-                newInstance.init(settings);
-                return newInstance;
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "Unable to create new " + requiredSenderName + " instance", e);
-            }
+            return sender;
         }
         final String error = "Unable to find sender implementation for communication type '" + requiredSenderName
             + "' configured by setting " + NjamsSettings.PROPERTY_COMMUNICATION + ".";

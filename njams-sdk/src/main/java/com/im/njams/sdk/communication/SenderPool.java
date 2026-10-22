@@ -72,10 +72,14 @@ import com.im.njams.sdk.settings.ClientSettings;
 public class SenderPool {
     private static final Logger LOG = LoggerFactory.getLogger(SenderPool.class);
 
+    /** Group name used when no communication type is configured, which only happens in settings-less tests. */
+    private static final String UNNAMED_SENDER_GROUP = "unknown";
+
     private final CommunicationFactory factory;
     private final ConnectionCoordinator coordinator;
     private final SenderConnector connector;
     private final DiscardPolicy discardPolicy;
+    private final String senderName;
 
     /**
      * Guards every mutation of the sets and flags below, and is the monitor blocked {@link #acquire()} callers
@@ -166,6 +170,13 @@ public class SenderPool {
         this.coordinator = coordinator;
         // Read once at construction: acquire() applies this per message and must never touch the settings there.
         discardPolicy = DiscardPolicy.byValue(settings.getProperty(NjamsSettings.PROPERTY_DISCARD_POLICY));
+        // The configured communication type is what selects the sender implementation, so it is the group's name
+        // by definition. Read here rather than asking the factory for one, so naming a thread can neither create
+        // a sender nor fail. The fallback covers the settings-less constructors; a client that really has no
+        // communication type never gets this far, because NjamsSender validates it first.
+        final String configuredName = settings.getPropertyWithAlternativeKey(
+            NjamsSettings.PROPERTY_COMMUNICATION, NjamsSettings.PROPERTY_COMMUNICATION_TYPE);
+        senderName = configuredName != null ? configuredName : UNNAMED_SENDER_GROUP;
         connector = new SenderConnector(factory, coordinator, this, settings);
     }
 
@@ -703,12 +714,11 @@ public class SenderPool {
     }
 
     /**
-     * Derives a display name for this pool's sender group from the factory by creating (and discarding) one
-     * throwaway instance. Used by {@link SenderConnector} for its thread names; not the pool's real
-     * sender-creation path.
+     * @return the configured communication type, naming this pool's sender group. Used by
+     *         {@link SenderConnector} for its thread names.
      */
     String getSenderName() {
-        return factory.getSender().getName();
+        return senderName;
     }
 
     /**

@@ -29,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -178,6 +179,39 @@ public class CommunicationFactoryTest {
             factory.getReceiver(njams);
             fail("IllegalStateException expected");
         } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void validateSenderConfigurationAcceptsAConfiguredTransportWithoutInitialisingIt() {
+        AbstractSender sender = mock(AbstractSender.class);
+        TestSender.setSenderMock(sender);
+
+        new CommunicationFactory(createSettings(TestSender.NAME)).validateSenderConfiguration();
+
+        verify(sender, never()).init(any());
+    }
+
+    @Test
+    public void validateSenderConfigurationNamesBothSettingKeysWhenUnconfigured() {
+        CommunicationFactory factory = new CommunicationFactory(ClientSettings.from(new Properties()));
+        try {
+            factory.validateSenderConfiguration();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains(NjamsSettings.PROPERTY_COMMUNICATION));
+            assertTrue(e.getMessage().contains(NjamsSettings.PROPERTY_COMMUNICATION_TYPE));
+        }
+    }
+
+    @Test
+    public void validateSenderConfigurationRejectsAnUnknownCommunicationType() {
+        CommunicationFactory factory = new CommunicationFactory(createSettings("NOPE"));
+        try {
+            factory.validateSenderConfiguration();
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("NOPE"));
         }
     }
 
