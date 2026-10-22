@@ -40,10 +40,21 @@ Per-edge rules:
 - **Adjacent activities on the same row** → a straight segment (unchanged).
 - **Stepless bypass** (a same-row edge that skips a column) → the edge leaves the source on its right, drops into a
   channel placed **below the label band**, runs across beneath the intermediate activities, and enters the target
-  **from the side** — never vertically from below, which would cross the target's label.
+  from the side.
 - **Row-changing edges** (fan-out / convergence) → an orthogonal elbow through the column gutter, so each branch travels
-  in its own lane.
-- Edges that share a gutter or channel are given distinct **lanes** so parallel runs never coincide.
+  in its own lane. When the approach is more vertical than horizontal, the edge instead leaves the source downwards,
+  crosses in the row channel and comes down onto the target's top edge.
+- **Backward edges** (an edge running right to left, against the flow) → the edge leaves the source upwards, runs back
+  in a channel **above** the row, and comes down onto the target's top edge. Inside a group the channel stays within
+  the group's content area.
+- An edge arriving from below ends at the **lower edge of the target's label band**, so the arrow never runs through
+  the label.
+- Edges that share a gutter or channel are given distinct **lanes** so parallel runs never coincide. All branches of
+  one fan take the same shape, so their lanes nest instead of crossing.
+- Rows and columns are **overlap bands**, not exact coordinates: a group and the activities beside it count as one row
+  even though their boxes start at different heights.
+- A chosen route is checked against the actual activity boxes **after** lanes are applied, and moved into the next
+  corridor if the displaced run would still cross something.
 
 ## Examples
 
@@ -79,7 +90,7 @@ Existing label wrapping/truncation and the server-compatibility label-suppressio
 
 ## Limitations
 
-- Designed for acyclic process graphs, like the default layouter. Feedback loops, self-loops and multiple independent
-  start activities are not specially handled.
-- Transitions whose endpoints are not plain activities of the same container (for example an edge touching a group
-  border) fall back to straight-line drawing.
+- Self-loops and multiple independent start activities are not specially handled.
+- Transitions between two different containers fall back to straight-line drawing. Edges touching a group border are
+  routed like any other edge, meeting the group on its box edge.
+- In a group too tight for the arc above its first row, the loop-back arrow can still reach over the group's header.
