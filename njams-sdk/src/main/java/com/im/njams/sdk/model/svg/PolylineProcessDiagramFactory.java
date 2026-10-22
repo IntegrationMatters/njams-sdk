@@ -245,10 +245,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             Edge e = classify(t, bands, obstacles);
             e.sourceFanOut = outDegree.getOrDefault(t.getFromActivity().getId(), 0) > 1;
             e.targetFanIn = inDegree.getOrDefault(t.getToActivity().getId(), 0) > 1;
-            if (e.type == Type.ELBOW) {
+            edges.add(e);
+        }
+        alignFanShapes(edges);
+        for (Edge e : edges) {
+            if (e.type == Type.ELBOW && !e.verticalApproach) {
                 assignElbowGutter(e, obstacles, bands);
             }
-            edges.add(e);
         }
         assignLanes(edges);
         for (Edge e : edges) {
@@ -293,8 +296,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.approachX = approachCorridorX(e.targetBox, bands);
         } else {
             e.type = Type.ELBOW;
-            // The gutter the vertical run uses depends on the fan role, decided in assignElbowGutter
-            // once the fan-out / fan-in flags are known.
+            // An approach that is more vertical than horizontal leaves the source downwards and comes
+            // down onto the target, so it uses the row channel rather than a column gutter. Upward
+            // approaches keep the side-entering shape until backward edges get their own channel.
+            e.verticalApproach = Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx) && e.tcy > e.scy;
+            if (e.verticalApproach) {
+                e.laneBase = channelY(rowS, bands);
+            }
+            // Otherwise the gutter the vertical run uses depends on the fan role, decided in
+            // assignElbowGutter once the fan-out / fan-in flags are known.
         }
         return e;
     }
@@ -340,6 +350,37 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     /**
+     * Makes every branch of a fan take the same route shape. The channel shape and the gutter shape nest
+     * their lanes independently, so a fan split between the two has branches crossing each other; only a
+     * fan that approaches vertically throughout keeps the channel shape.
+     */
+    private static void alignFanShapes(List<Edge> edges) {
+        Map<String, List<Edge>> fans = new LinkedHashMap<>();
+        for (Edge e : edges) {
+            if (e.sourceFanOut) {
+                fans.computeIfAbsent("out:" + e.transition.getFromActivity().getId(),
+                    k -> new ArrayList<>()).add(e);
+            }
+            if (e.targetFanIn) {
+                fans.computeIfAbsent("in:" + e.transition.getToActivity().getId(),
+                    k -> new ArrayList<>()).add(e);
+            }
+        }
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (List<Edge> fan : fans.values()) {
+                if (fan.stream().anyMatch(e -> !e.verticalApproach)) {
+                    for (Edge e : fan) {
+                        changed |= e.verticalApproach;
+                        e.verticalApproach = false;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Places an elbow's vertical run in the right gutter once its fan role is known. A plain elbow or
      * a fan-out exits on the source's right and runs in the gutter just right of the source column, so
      * each branch turns early. A pure fan-in instead runs along the (free) source row and bends in the
@@ -375,13 +416,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         Map<Integer, List<Edge>> rowDetourByRow = new LinkedHashMap<>();
         Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
-            if (e.type == Type.BYPASS) {
+            if (e.type == Type.BYPASS || e.verticalApproach) {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
+            }
+            if (e.type == Type.BYPASS) {
                 // A bypass approaches its target through the gutter just left of the target column —
                 // the same reference gutter a fan-in elbow to the same target uses (see
                 // assignElbowGutter). Claim it so that group's lanes start one further out below.
                 gutterColumnsClaimedByBypass.add(e.colT - 1);
-            } else if (e.type == Type.ELBOW) {
+            } else if (e.type == Type.ELBOW && !e.verticalApproach) {
                 elbowByGutter.computeIfAbsent(e.gutterCol, k -> new ArrayList<>()).add(e);
                 if (e.rowDetour) {
                     rowDetourByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
@@ -481,6 +524,19 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
             case ELBOW: {
+                if (e.verticalApproach) {
+                    double cy = e.laneBase + e.lane * LANE_GAP;
+                    e.exitSide = Side.BOTTOM;
+                    e.entrySide = Side.TOP;
+                    wp.add(new Point(e.scx, e.scy));
+                    wp.add(new Point(e.scx, cy));
+                    wp.add(new Point(e.tcx, cy));
+                    wp.add(new Point(e.tcx, e.tcy));
+                    labelX = (e.scx + e.tcx) / 2.0;
+                    labelY = cy + DEFAULT_TEXT_SIZE;
+                    labelWidth = Math.abs(e.tcx - e.scx);
+                    break;
+                }
                 double gx = e.laneBase + e.lane * LANE_GAP;
                 // Stagger exit/entry y at the node so sibling branches do not share a collinear
                 // horizontal segment — which would hide a server-coloured (green) executed transition
@@ -531,6 +587,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
             default: {
+                if (Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx)) {
+                    // A straight edge whose approach is vertical leaves and arrives on the horizontal
+                    // edges, so it clears the label band instead of ending inside it.
+                    e.exitSide = exitSide(e.sourceBox, e.targetBox);
+                    e.entrySide = entrySide(e.sourceBox, e.targetBox);
+                }
                 wp.add(new Point(e.scx, e.scy));
                 wp.add(new Point(e.tcx, e.tcy));
                 labelX = (e.scx + e.tcx) / 2.0;
@@ -562,7 +624,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
         }
-        return new Route(wp, labelX, labelY, labelWidth, labelAnchor);
+        Point start = e.exitSide == null
+            ? radiusPoint(wp.get(1), wp.get(0), DEFAULT_ACTIVITY_RADIUS)
+            : attachmentPoint(e.sourceBox, e.exitSide, 0);
+        Point end = e.entrySide == null
+            ? radiusPoint(wp.get(wp.size() - 2), wp.get(wp.size() - 1),
+                DEFAULT_ACTIVITY_RADIUS + (double) DEFAULT_MARKER_SIZE)
+            : attachmentPoint(e.targetBox, e.entrySide, DEFAULT_MARKER_SIZE);
+        return new Route(wp, start, end, labelX, labelY, labelWidth, labelAnchor);
     }
 
     // --- drawing -----------------------------------------------------------------------------------
@@ -571,16 +640,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         String markerId = createArrowMarker(context, t);
 
         List<Point> wp = route.waypoints;
-        Point start = radiusPoint(wp.get(1), wp.get(0), DEFAULT_ACTIVITY_RADIUS);
-        Point end = radiusPoint(wp.get(wp.size() - 2), wp.get(wp.size() - 1),
-            DEFAULT_ACTIVITY_RADIUS + (double) DEFAULT_MARKER_SIZE);
 
         StringBuilder points = new StringBuilder();
-        appendPoint(points, context, start);
+        appendPoint(points, context, route.start);
         for (int i = 1; i < wp.size() - 1; i++) {
             appendPoint(points, context, wp.get(i));
         }
-        appendPoint(points, context, end);
+        appendPoint(points, context, route.end);
 
         Element polyline = context.getDoc().createElementNS(context.getSvgNS(), "polyline");
         polyline.setAttributeNS(null, "markerId", markerId);
@@ -642,6 +708,64 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
     private static void appendPoint(StringBuilder sb, NjamsProcessDiagramContext context, Point p) {
         sb.append(context.getStartX() + p.getX()).append(',').append(context.getStartY() + p.getY()).append(' ');
+    }
+
+    /**
+     * The side of the source an edge leaves by: the dominant direction of the approach, so a mostly
+     * vertical edge leaves top or bottom rather than swinging out sideways.
+     */
+    private static Side exitSide(NodeBox source, NodeBox target) {
+        double dx = target.centerX - source.centerX;
+        double dy = target.centerY - source.centerY;
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return dx >= 0 ? Side.RIGHT : Side.LEFT;
+        }
+        return dy >= 0 ? Side.BOTTOM : Side.TOP;
+    }
+
+    /** The side of the target an edge arrives at: the one facing {@link #exitSide}. */
+    private static Side entrySide(NodeBox source, NodeBox target) {
+        switch (exitSide(source, target)) {
+            case RIGHT:
+                return Side.LEFT;
+            case LEFT:
+                return Side.RIGHT;
+            case BOTTOM:
+                return Side.TOP;
+            default:
+                return Side.BOTTOM;
+        }
+    }
+
+    /**
+     * Where an edge meets a node on the given side, pulled back by {@code clearance} (the arrow head's
+     * length at the arriving end, nothing at the leaving end). A plain activity is met on its icon
+     * radius, except from below, where the label band under the icon has to stay clear; a group is met
+     * on its box edge.
+     */
+    private static Point attachmentPoint(NodeBox node, Side side, double clearance) {
+        if (node.group) {
+            switch (side) {
+                case LEFT:
+                    return new Point(node.left - clearance, node.centerY);
+                case RIGHT:
+                    return new Point(node.right + clearance, node.centerY);
+                case TOP:
+                    return new Point(node.centerX, node.top - clearance);
+                default:
+                    return new Point(node.centerX, node.bottom + clearance);
+            }
+        }
+        switch (side) {
+            case LEFT:
+                return new Point(node.centerX - DEFAULT_ACTIVITY_RADIUS - clearance, node.centerY);
+            case RIGHT:
+                return new Point(node.centerX + DEFAULT_ACTIVITY_RADIUS + clearance, node.centerY);
+            case TOP:
+                return new Point(node.centerX, node.centerY - DEFAULT_ACTIVITY_RADIUS - clearance);
+            default:
+                return new Point(node.centerX, node.bottom + LABEL_BAND_HEIGHT + clearance);
+        }
     }
 
     /** Point at distance {@code radius} from {@code center} towards {@code towards}. */
@@ -851,6 +975,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         STRAIGHT, BYPASS, ELBOW
     }
 
+    /** The side of a node a route meets it on. */
+    private enum Side {
+        LEFT, RIGHT, TOP, BOTTOM
+    }
+
     /** Working state for one edge while routing a container. */
     private static final class Edge {
         private TransitionModel transition;
@@ -873,20 +1002,32 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private boolean sourceFanOut;
         private boolean targetFanIn;
         private boolean rowDetour;
+        private boolean verticalApproach;
+        private Side exitSide;
+        private Side entrySide;
         private double channelBase;
         private int channelLane;
     }
 
-    /** Routed path (model coordinates) plus the chosen label anchor. */
+    /**
+     * Routed path (model coordinates) plus the chosen label anchor. The waypoints run between the two
+     * node centres; {@code start} and {@code end} are where the drawn line actually begins and ends,
+     * clear of the icons and their labels.
+     */
     private static final class Route {
         private final List<Point> waypoints;
+        private final Point start;
+        private final Point end;
         private final double labelX;
         private final double labelY;
         private final double labelWidth;
         private final String labelAnchor;
 
-        Route(List<Point> waypoints, double labelX, double labelY, double labelWidth, String labelAnchor) {
+        Route(List<Point> waypoints, Point start, Point end, double labelX, double labelY,
+            double labelWidth, String labelAnchor) {
             this.waypoints = waypoints;
+            this.start = start;
+            this.end = end;
             this.labelX = labelX;
             this.labelY = labelY;
             this.labelWidth = labelWidth;

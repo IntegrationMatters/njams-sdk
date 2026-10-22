@@ -76,6 +76,24 @@ public class PolylineProcessDiagramFactoryTest {
         return boxes;
     }
 
+
+    /** Bounding box of one activity's icon, by model id, in SVG coordinates. */
+    private static double[] activityBoxFor(Document doc, ProcessModel model, String activityId) {
+        String modelId = model.getActivity(activityId).getId();
+        NodeList images = doc.getElementsByTagNameNS(SVG_NS, "image");
+        for (int i = 0; i < images.getLength(); i++) {
+            Element e = (Element) images.item(i);
+            if (!modelId.equals(e.getAttribute("modelId")) || !"true".equals(e.getAttribute("activity"))) {
+                continue;
+            }
+            double x = Double.parseDouble(e.getAttribute("x"));
+            double y = Double.parseDouble(e.getAttribute("y"));
+            return new double[] {x, y, x + Double.parseDouble(e.getAttribute("width")),
+                y + Double.parseDouble(e.getAttribute("height"))};
+        }
+        throw new AssertionError("no activity image for " + activityId);
+    }
+
     /** Bounding boxes of group containers (header + child area combined), in SVG coordinates. */
     private static List<double[]> groupBoxes(Document doc) {
         List<double[]> boxes = new ArrayList<>();
@@ -174,6 +192,55 @@ public class PolylineProcessDiagramFactoryTest {
             }
         }
         return u1 <= u2;
+    }
+
+    @Test
+    public void aVerticallyDominantEdgeEntersTheTargetFromTheTop() throws Exception {
+        // B sits far below A and barely to its side, so the approach is vertical. Routing it as a
+        // side-entering elbow would swing the arrow around into B's left flank.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(60);
+            b.setY(400);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        double[] last = pts.get(pts.size() - 1);
+        double[] targetBox = activityBoxFor(doc, model, "B");
+        Assert.assertTrue("the arrow must come down onto B's top edge, not around into its left flank",
+            last[1] <= targetBox[1] + 1);
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
+    public void anEdgeArrivingFromBelowEndsAtTheLabelBandsLowerEdgeAndDoesNotEnterIt() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(300);
+            b.setX(0);
+            b.setY(0);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        double[] last = pts.get(pts.size() - 1);
+        double[] targetBox = activityBoxFor(doc, model, "B");
+        Assert.assertTrue("the arrow must stop at or below the label band's lower edge",
+            last[1] >= targetBox[3] + PolylineProcessDiagramFactory.LABEL_BAND_HEIGHT - 1);
+        assertNoTransitionCrossesAnyLabelBand(doc);
     }
 
     @Test
