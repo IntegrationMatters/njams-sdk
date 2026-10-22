@@ -675,6 +675,10 @@ public class SenderPool {
      * loop and then notifies the listeners once for the outage.
      */
     private void electReconnector(Exception cause, List<SenderExceptionListener> listeners) {
+        // The single place every outage passes through exactly once - all callers reach it only after latching
+        // `reconnecting` under the lock - so it is where the outage is reported. Reporting at the origins
+        // instead would log per failing message under load, which is the flooding SDK-129/SDK-329 were about.
+        reportOutage(cause);
         // Start the reconnect BEFORE notifying anyone. failGroup() has already latched reconnecting/failed, and
         // only onReconnected(...) clears them, so a listener throwing ahead of this call would brick the group for
         // good: every later acquire() would park forever or discard forever. Unlike the legacy per-sender path,
@@ -719,6 +723,25 @@ public class SenderPool {
      */
     String getSenderName() {
         return senderName;
+    }
+
+    /**
+     * Reports the outage that is about to put this group into reconnect, once, with the reason in the message
+     * and the failure attached for its stack trace. Whether the connection was ever established distinguishes a
+     * connection that was lost from one that never came up, which is the difference between "it broke" and
+     * "it was never reachable" for whoever reads the log.
+     *
+     * @param cause the failure that ended the group's connection; may be {@code null}.
+     */
+    private void reportOutage(Exception cause) {
+        final String reason = cause == null ? "unknown" : SenderConnector.getExceptionWithCauses(cause);
+        if (coordinator.wasEverConnected()) {
+            LOG.warn("Lost the connection of sender {} to nJAMS Server; reconnecting. Reason: {}",
+                senderName, reason, cause);
+        } else {
+            LOG.warn("Sender {} could not connect to nJAMS Server; retrying. Reason: {}",
+                senderName, reason, cause);
+        }
     }
 
     /**

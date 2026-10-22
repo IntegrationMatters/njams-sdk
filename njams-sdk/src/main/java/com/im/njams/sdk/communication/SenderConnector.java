@@ -227,8 +227,11 @@ class SenderConnector {
     }
 
     private void runReconnectLoop(Exception cause) {
-        if (LOG.isInfoEnabled() && cause != null) {
-            LOG.info("Initialized reconnect, because of: {}", getExceptionWithCauses(cause));
+        // Debug, not info: the outage that got us here is already reported once, with its reason, by
+        // SenderPool.electReconnector -- the only path that starts a reconnect. Repeating it here would mean two
+        // lines per outage saying the same thing.
+        if (LOG.isDebugEnabled() && cause != null) {
+            LOG.debug("Initialized reconnect, because of: {}", getExceptionWithCauses(cause));
         }
         // Whether any attempt in this loop actually failed. A group that reconnects on its first attempt was
         // never unreachable — the failure that opened the outage came from something else (see SDK-474).
@@ -246,6 +249,9 @@ class SenderConnector {
                 return;
             } catch (Exception e) {
                 connectAttemptFailed = true;
+                // Routine while an outage lasts, and already reported once when it opened, so this stays at
+                // debug -- an outage of any length must not fill the log with one line per retry.
+                LOG.debug("Reconnect attempt for sender {} failed; retrying.", pool.getSenderName(), e);
                 closeQuietly(sender);
                 try {
                     Thread.sleep(RECONNECT_INTERVAL_MS);
@@ -352,7 +358,15 @@ class SenderConnector {
         }
     }
 
-    private static String getExceptionWithCauses(final Throwable t) {
+    /**
+     * Renders a failure and its cause chain compactly, so the reason is readable from the message alone without
+     * digging into the stack trace. Shared with {@link SenderPool}, which reports the outages this connector then
+     * recovers from.
+     *
+     * @param t the failure to render; may be {@code null}.
+     * @return the failure and its causes, or an empty string for {@code null}.
+     */
+    static String getExceptionWithCauses(final Throwable t) {
         Throwable current = t;
         StringBuilder sb = new StringBuilder();
         while (current != null) {

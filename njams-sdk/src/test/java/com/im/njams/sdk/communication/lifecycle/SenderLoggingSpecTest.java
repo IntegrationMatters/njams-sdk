@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.SenderConnectorTestAccess;
+import com.im.njams.sdk.communication.SenderPoolTestAccess;
 
 /**
  * Acceptance test: reconnect logging must be logged exactly once per phase and must never flood the log across
@@ -32,6 +33,8 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
     private Logger senderLogger;
     private CapturingAppender appender;
+    private Logger poolLogger;
+    private CapturingAppender poolAppender;
 
     @Before
     public void setUp() {
@@ -39,44 +42,47 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
         appender = new CapturingAppender();
         senderLogger.addAppender(appender);
         senderLogger.setLevel(Level.DEBUG);
+        // The pool owns the per-outage report, the connector the startup one; they are asserted separately.
+        poolLogger = Logger.getLogger("com.im.njams.sdk.communication.SenderPool");
+        poolAppender = new CapturingAppender();
+        poolLogger.addAppender(poolAppender);
+        poolLogger.setLevel(Level.DEBUG);
     }
 
     @After
     public void tearDown() {
         senderLogger.removeAppender(appender);
+        poolLogger.removeAppender(poolAppender);
     }
 
     @Test
     public void reconnectLogsOnceOnStartAndOnceOnSuccess() throws Exception {
-        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
-        s.beginConnect();
-        s.awaitStartup(5000);
+        // Driven through the pool, not the connector, because the pool is where an outage is reported: a test
+        // that pokes SenderConnector.startReconnect directly skips the only code path that ever logs it.
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.awaitStartup(5000);
 
         // lose the connection: fail a few reconnect attempts, then succeed
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        s.forceGroupDisconnected();
-        s.startReconnect(new IllegalStateException("lost"));
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("lost"));
         // allow a failing attempt to happen, then let the next attempt succeed
         LifecycleTestTransport.connectAttemptedLatch().await(2000, TimeUnit.MILLISECONDS);
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
 
         awaitReconnectSuccessLogged();
 
-        assertEquals("exactly one reconnect-start info", 1,
-            countMessagesStartingWith(Level.INFO, "Initialized reconnect"));
+        assertEquals("exactly one outage report", 1, countAtLevel(poolAppender, Level.WARN));
         assertEquals("exactly one reconnect-success info", 1,
             countMessagesStartingWith(Level.INFO, "Reconnected sender"));
     }
 
     @Test
     public void manyFailedReconnectAttemptsDoNotFloodTheLog() throws Exception {
-        SenderConnectorTestAccess s = SenderConnectorTestAccess.create();
-        s.beginConnect();
-        s.awaitStartup(5000);
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.awaitStartup(5000);
 
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.FAIL);
-        s.forceGroupDisconnected();
-        s.startReconnect(new IllegalStateException("lost"));
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("lost"));
 
         // drive several failed attempts, each observed via the attempt latch -- no fixed sleeps
         final int failedAttemptsToObserve = 5;
@@ -86,10 +92,11 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
 
         LifecycleTestTransport.setSenderMode(LifecycleTestTransport.ConnectMode.SUCCEED);
         awaitReconnectSuccessLogged();
-        assertTrue("sender must eventually reconnect once failures stop", s.isGroupConnected());
+        assertTrue("sender must eventually reconnect once failures stop",
+            pool.awaitRecovered(15, TimeUnit.SECONDS));
 
-        assertEquals("reconnect-start info must stay bounded regardless of retry count", 1,
-            countMessagesStartingWith(Level.INFO, "Initialized reconnect"));
+        assertEquals("the outage is reported once regardless of retry count", 1,
+            countAtLevel(poolAppender, Level.WARN));
         assertEquals("routine retries must never log at warn level", 0, countAtLevel(Level.WARN));
         assertEquals("routine retries must never log at error level", 0, countAtLevel(Level.ERROR));
     }
@@ -127,6 +134,35 @@ public class SenderLoggingSpecTest extends AbstractLifecycleSpecTest {
         s.awaitStartup(2000);
 
         assertEquals("a shutdown-induced failure is not a startup error", 0, countAtLevel(Level.ERROR));
+    }
+
+    @Test
+    public void anOutageIsReportedOnceAtWarnWithItsCause() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("broker gone"));
+
+        assertEquals("exactly one outage report", 1, countAtLevel(poolAppender, Level.WARN));
+        assertTrue("the cause belongs in the message text",
+            messageAtLevelContains(poolAppender, Level.WARN, "broker gone"));
+    }
+
+    @Test
+    public void furtherFailuresWithinOneOutageDoNotReportAgain() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("broker gone"));
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("broker still gone"));
+
+        assertEquals("one outage, one report", 1, countAtLevel(poolAppender, Level.WARN));
+    }
+
+    @Test
+    public void anOutageOnASharedGroupIsReportedOncePerGroup() throws Exception {
+        SenderPoolTestAccess pool = SenderPoolTestAccess.create("none");
+        pool.addExceptionListener((exception, msg) -> { });
+        pool.addExceptionListener((exception, msg) -> { });
+        pool.reportFailure(pool.newUnconnectedSender(), new IllegalStateException("broker gone"));
+
+        assertEquals("per group, not per listener", 1, countAtLevel(poolAppender, Level.WARN));
     }
 
     /**
