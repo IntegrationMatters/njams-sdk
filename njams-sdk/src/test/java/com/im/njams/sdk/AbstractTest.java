@@ -35,6 +35,8 @@ import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;
 import com.im.njams.sdk.settings.ClientSettings;
 
+import org.junit.After;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,6 +86,20 @@ public abstract class AbstractTest {
         njams.start();
     }
 
+
+    /**
+     * Stops the instance this test created. JUnit builds a new test instance per test method, so without this
+     * every method in every subclass would leave a started Njams behind for the lifetime of the surefire JVM --
+     * sender pool threads, flush timer and CleanTracepointsTask registration included -- and later tests would
+     * observe state no test established. Guarded by isStarted() because several subclasses stop it themselves;
+     * Njams.stop() throws on an instance that is not started. Runs after any @After a subclass declares.
+     */
+    @After
+    public void stopNjamsStartedByThisTest() {
+        if (njams != null && njams.isStarted()) {
+            njams.stop();
+        }
+    }
 
     /**
      * This method creates(!) a job for a default ProcessModel.
