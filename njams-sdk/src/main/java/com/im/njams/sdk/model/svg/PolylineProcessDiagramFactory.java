@@ -59,9 +59,8 @@ import java.util.Set;
  * {@code njams.model().setDiagramFactory(new PolylineProcessDiagramFactory(njams))}.
  *
  * <p>Activity, group and SVG-document handling are inherited unchanged from
- * {@link NjamsProcessDiagramFactory}. Edges whose endpoints are not plain activities of the same
- * container (for example edges touching a group border) fall back to the inherited straight-line
- * rendering.
+ * {@link NjamsProcessDiagramFactory}. Edges between two different containers fall back to the inherited
+ * straight-line rendering; edges touching a group border are routed like any other.
  */
 public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
@@ -87,6 +86,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
     /** Height below the icon centre at which a bypass enters its target, keeping clear of the label. */
     private static final int TARGET_ENTRY_OFFSET = 12;
+
+    /** Height of a group's header bar, as drawn by the inherited group rendering. */
+    private static final int GROUP_HEADER_HEIGHT = 20;
 
     /** Clearance kept around every obstacle box, so a route that would graze one still counts as blocked. */
     private static final int CLEARANCE_MARGIN = 1;
@@ -203,7 +205,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         for (TransitionModel t : processModel.getTransitionModels()) {
             ActivityModel from = t.getFromActivity();
             ActivityModel to = t.getToActivity();
-            if (from == null || to == null || from instanceof GroupModel || to instanceof GroupModel) {
+            if (from == null || to == null) {
                 continue;
             }
             GroupModel pf = from.getParent();
@@ -217,11 +219,20 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 groupTransitions.computeIfAbsent(pf, k -> new ArrayList<>()).add(t);
             }
         }
-        routeContainer(rootTransitions, rootSiblings(processModel), routes);
+        routeContainer(rootTransitions, rootSiblings(processModel), null, routes);
         for (Map.Entry<GroupModel, List<TransitionModel>> entry : groupTransitions.entrySet()) {
-            routeContainer(entry.getValue(), entry.getKey().getChildActivities(), routes);
+            routeContainer(entry.getValue(), entry.getKey().getChildActivities(), entry.getKey(), routes);
         }
         return routes;
+    }
+
+    /**
+     * The highest y a route inside this container may use: just below a group's header, or unbounded at
+     * the top level. The header height mirrors the one {@code NjamsProcessDiagramFactory.drawGroup} draws.
+     */
+    private static double contentTopOf(GroupModel container) {
+        return container == null ? Double.NEGATIVE_INFINITY
+            : container.getY() + GROUP_HEADER_HEIGHT + CLEARANCE_MARGIN;
     }
 
     /** Top-level activities of the process model — the obstacles a root-level edge must clear. */
@@ -236,11 +247,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     private void routeContainer(List<TransitionModel> transitions, List<ActivityModel> siblings,
-        Map<String, Route> routes) {
+        GroupModel container, Map<String, Route> routes) {
         if (transitions.isEmpty()) {
             return;
         }
-        Bands bands = Bands.of(siblings);
+        Bands bands = Bands.of(siblings, contentTopOf(container));
         Obstacles obstacles = Obstacles.of(siblings);
 
         Map<String, Integer> outDegree = new HashMap<>();
@@ -347,6 +358,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         e.level++;
         if (e.type == Type.STRAIGHT) {
             shapeAsRouted(e, bands);
+        } else if (e.type == Type.BACKWARD) {
+            e.laneBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
         } else if (e.type == Type.BYPASS || e.verticalApproach) {
             e.laneBase = channelBelowBand(e.rowS + e.level, bands);
         } else if (!e.rowDetour) {
@@ -370,16 +383,17 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     private Edge classify(TransitionModel t, Bands bands, Obstacles obstacles) {
+
         Edge e = new Edge();
         e.transition = t;
         ActivityModel from = t.getFromActivity();
         ActivityModel to = t.getToActivity();
         e.sourceBox = NodeBox.of(from);
         e.targetBox = NodeBox.of(to);
-        e.scx = from.getX() + DEFAULT_HALF_ACTIVITY_SIZE;
-        e.scy = from.getY() + DEFAULT_HALF_ACTIVITY_SIZE;
-        e.tcx = to.getX() + DEFAULT_HALF_ACTIVITY_SIZE;
-        e.tcy = to.getY() + DEFAULT_HALF_ACTIVITY_SIZE;
+        e.scx = e.sourceBox.centerX;
+        e.scy = e.sourceBox.centerY;
+        e.tcx = e.targetBox.centerX;
+        e.tcy = e.targetBox.centerY;
         int colS = bands.colIndexOf(e.sourceBox);
         int colT = bands.colIndexOf(e.targetBox);
         int rowS = bands.rowIndexOf(e.sourceBox);
@@ -391,7 +405,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         e.rowT = rowT;
         boolean obstacleBetween =
             obstacles.blocks(List.of(new Point(e.scx, e.scy), new Point(e.tcx, e.tcy)), from, to);
-        if (colS == colT || colT < colS || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
+        if (colT < colS) {
+            // A backward edge runs against the flow, so it arcs over the rows it passes instead of
+            // cutting back through them (spec 6.5).
+            e.type = Type.BACKWARD;
+            e.laneBase = aboveChannelY(Math.min(rowS, rowT), bands);
+        } else if (colS == colT || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
             e.type = Type.STRAIGHT;
         } else {
             shapeAsRouted(e, bands);
@@ -451,6 +470,27 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             ? (bottom + bands.rowTop(rowIndex + 1)) / 2.0
             : bottom + (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
         return Math.max(mid, labelClear);
+    }
+
+    /**
+     * The channel above the given band: the midpoint of the gap to the band before it, or clear above the
+     * first one.
+     */
+    private static double aboveChannelY(int bandIndex, Bands bands) {
+        double top = bands.rowTop(bandIndex);
+        double mid = bandIndex > 0
+            ? (bands.rowBottom(bandIndex - 1) + top) / 2.0
+            : top - (DEFAULT_ROW_SPACING - DEFAULT_ACTIVITY_SIZE) / 2.0;
+        return Math.max(mid, bands.ceiling());
+    }
+
+    /** The channel above the given band, or progressively further above the diagram's first band. */
+    private static double aboveChannelBand(int bandIndex, Bands bands) {
+        if (bandIndex >= 0) {
+            return aboveChannelY(bandIndex, bands);
+        }
+        return Math.max(aboveChannelY(0, bands) + bandIndex * (double) DEFAULT_ROW_SPACING,
+            bands.ceiling());
     }
 
     /** The channel below the given band, or progressively further below the diagram's last band. */
@@ -543,10 +583,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /** Gives each edge sharing a gutter (elbow) or channel (bypass) a distinct lateral offset. */
     private void assignLanes(List<Edge> edges) {
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
+        Map<Integer, List<Edge>> backwardByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> elbowByGutter = new LinkedHashMap<>();
         Map<Integer, List<Edge>> rowDetourByRow = new LinkedHashMap<>();
         Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
+            if (e.type == Type.BACKWARD) {
+                backwardByRow.computeIfAbsent(Math.min(e.rowS, e.rowT), k -> new ArrayList<>()).add(e);
+            }
             if (e.type == Type.BYPASS || e.verticalApproach) {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
             }
@@ -566,6 +610,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             .thenComparingDouble(e -> e.tcx)
             .thenComparing(e -> e.transition.getId());
         for (List<Edge> group : bypassByRow.values()) {
+            group.sort(bypassOrder);
+            for (int i = 0; i < group.size(); i++) {
+                group.get(i).lane = i;
+            }
+        }
+        for (List<Edge> group : backwardByRow.values()) {
             group.sort(bypassOrder);
             for (int i = 0; i < group.size(); i++) {
                 group.get(i).lane = i;
@@ -652,6 +702,19 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 labelX = (e.exitX + e.approachX) / 2.0;
                 labelY = cy + DEFAULT_TEXT_SIZE;
                 labelWidth = Math.abs(e.approachX - e.exitX);
+                break;
+            }
+            case BACKWARD: {
+                double cy = e.laneBase - e.lane * LANE_GAP;
+                e.exitSide = Side.TOP;
+                e.entrySide = Side.TOP;
+                wp.add(new Point(e.scx, e.scy));
+                wp.add(new Point(e.scx, cy));
+                wp.add(new Point(e.tcx, cy));
+                wp.add(new Point(e.tcx, e.tcy));
+                labelX = (e.scx + e.tcx) / 2.0;
+                labelY = cy - LABEL_GAP;
+                labelWidth = Math.abs(e.tcx - e.scx);
                 break;
             }
             case ELBOW: {
@@ -755,13 +818,10 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
         }
-        Point start = e.exitSide == null
-            ? radiusPoint(wp.get(1), wp.get(0), DEFAULT_ACTIVITY_RADIUS)
-            : attachmentPoint(e.sourceBox, e.exitSide, 0);
-        Point end = e.entrySide == null
-            ? radiusPoint(wp.get(wp.size() - 2), wp.get(wp.size() - 1),
-                DEFAULT_ACTIVITY_RADIUS + (double) DEFAULT_MARKER_SIZE)
-            : attachmentPoint(e.targetBox, e.entrySide, DEFAULT_MARKER_SIZE);
+        Point start = attachment(e.sourceBox, e.exitSide, wp.get(0), wp.get(1),
+            DEFAULT_ACTIVITY_RADIUS, 0);
+        Point end = attachment(e.targetBox, e.entrySide, wp.get(wp.size() - 1), wp.get(wp.size() - 2),
+            DEFAULT_ACTIVITY_RADIUS + (double) DEFAULT_MARKER_SIZE, DEFAULT_MARKER_SIZE);
         return new Route(wp, start, end, labelX, labelY, labelWidth, labelAnchor);
     }
 
@@ -839,6 +899,27 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
     private static void appendPoint(StringBuilder sb, NjamsProcessDiagramContext context, Point p) {
         sb.append(context.getStartX() + p.getX()).append(',').append(context.getStartY() + p.getY()).append(' ');
+    }
+
+    /**
+     * Where the drawn line meets a node. A route that knows which side it uses, and every route touching a
+     * group, meets the node's edge there; anything else keeps to the icon's radius along its own direction.
+     */
+    private static Point attachment(NodeBox node, Side side, Point center, Point towards, double radius,
+        double clearance) {
+        Side resolved = side != null || !node.group ? side : sideTowards(center, towards);
+        return resolved != null ? attachmentPoint(node, resolved, clearance)
+            : radiusPoint(towards, center, radius);
+    }
+
+    /** The side a segment running from {@code from} to {@code to} leaves {@code from} by. */
+    private static Side sideTowards(Point from, Point to) {
+        double dx = to.getX() - from.getX();
+        double dy = to.getY() - from.getY();
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return dx >= 0 ? Side.RIGHT : Side.LEFT;
+        }
+        return dy >= 0 ? Side.BOTTOM : Side.TOP;
     }
 
     /**
@@ -1029,12 +1110,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private final List<double[]> rows;
         private final List<double[]> columns;
 
-        private Bands(List<double[]> rows, List<double[]> columns) {
+        private final double ceiling;
+
+        private Bands(List<double[]> rows, List<double[]> columns, double ceiling) {
             this.rows = rows;
             this.columns = columns;
+            this.ceiling = ceiling;
         }
 
-        static Bands of(List<ActivityModel> siblings) {
+        static Bands of(List<ActivityModel> siblings, double ceiling) {
             List<double[]> vertical = new ArrayList<>();
             List<double[]> horizontal = new ArrayList<>();
             for (ActivityModel sibling : siblings) {
@@ -1042,7 +1126,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 vertical.add(new double[] {box.top, box.bottom});
                 horizontal.add(new double[] {box.left, box.right});
             }
-            return new Bands(merge(vertical), merge(horizontal));
+            return new Bands(merge(vertical), merge(horizontal), ceiling);
         }
 
         /** Merges overlapping spans in ascending order; spans that only touch stay separate. */
@@ -1081,6 +1165,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             return rows.size();
         }
 
+        /** The highest y a route may use, so an arc above the first row stays inside its container. */
+        double ceiling() {
+            return ceiling;
+        }
+
         double rowTop(int index) {
             return rows.get(index)[0];
         }
@@ -1103,7 +1192,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     private enum Type {
-        STRAIGHT, BYPASS, ELBOW
+        STRAIGHT, BYPASS, ELBOW, BACKWARD
     }
 
     /** The side of a node a route meets it on. */

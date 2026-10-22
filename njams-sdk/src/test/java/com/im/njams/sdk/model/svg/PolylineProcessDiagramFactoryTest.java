@@ -126,6 +126,41 @@ public class PolylineProcessDiagramFactoryTest {
         return boxes;
     }
 
+    /**
+     * A transition between two children of a group stays inside that group's content area. Such an edge
+     * necessarily runs through the group's box, so the crossing assertion says nothing about it;
+     * containment is the invariant that does, and it also pins that the edge keeps clear of the header.
+     */
+    private static void assertTransitionStaysInsideGroupContent(Document doc, String groupModelId,
+        String transitionModelId) {
+        double[] content = groupContentBox(doc, groupModelId);
+        Element poly = findTransitionPolyline(doc, transitionModelId);
+        Assert.assertNotNull("transition " + transitionModelId + " must be routed", poly);
+        for (double[] point : points(poly)) {
+            Assert.assertTrue(
+                "Transition '" + transitionModelId + "' leaves the content area of group " + groupModelId
+                    + " at " + point[0] + "," + point[1],
+                point[0] >= content[0] && point[0] <= content[2]
+                    && point[1] >= content[1] && point[1] <= content[3]);
+        }
+    }
+
+    /** The content rect of one group (its box below the header), in SVG coordinates. */
+    private static double[] groupContentBox(Document doc, String groupModelId) {
+        NodeList rects = doc.getElementsByTagNameNS(SVG_NS, "rect");
+        for (int r = 0; r < rects.getLength(); r++) {
+            Element rect = (Element) rects.item(r);
+            if (!(groupModelId + "_group_container").equals(rect.getAttribute("id"))) {
+                continue;
+            }
+            double x = Double.parseDouble(rect.getAttribute("x"));
+            double y = Double.parseDouble(rect.getAttribute("y"));
+            return new double[] {x, y, x + Double.parseDouble(rect.getAttribute("width")),
+                y + Double.parseDouble(rect.getAttribute("height"))};
+        }
+        throw new AssertionError("no content rect for group " + groupModelId);
+    }
+
     private static void assertNoTransitionCrossesAnyGroupBox(Document doc) {
         List<double[]> boxes = groupBoxes(doc);
         Assert.assertFalse("expected at least one group box in this diagram", boxes.isEmpty());
@@ -192,6 +227,125 @@ public class PolylineProcessDiagramFactoryTest {
             }
         }
         return u1 <= u2;
+    }
+
+    @Test
+    public void aBackwardEdgeInATightGroupStaysBelowTheGroupHeader() throws Exception {
+        // The children sit close under the header, so the channel the arc would naturally take lies
+        // above the group's content area -- outside the box the arc is supposed to stay in.
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel p = g.createChildActivity("P", "P", null);
+        ActivityModel q = g.createChildActivity("Q", "Q", null);
+        p.setStarter(true);
+        model.createTransition("P", "Q");
+        model.createTransition("Q", "P").setName("back");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(0);
+            g.setY(0);
+            g.setWidth(300);
+            g.setHeight(200);
+            p.setX(10);
+            p.setY(40);
+            q.setX(160);
+            q.setY(40);
+        }));
+
+        assertTransitionStaysInsideGroupContent(doc, "G", transitionId(model, "Q", "P"));
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
+    public void transitionsIntoAndOutOfAGroupAreRoutedNotFallenBackTo() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        h.setStarter(true);
+        model.createTransition("A", "G");
+        model.createTransition("G", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(100);
+            g.setX(150);
+            g.setY(60);
+            g.setWidth(120);
+            g.setHeight(140);
+            h.setX(180);
+            h.setY(110);
+            b.setX(400);
+            b.setY(100);
+        }));
+
+        Assert.assertNotNull("A -> G must be routed",
+            findTransitionPolyline(doc, transitionId(model, "A", "G")));
+        Assert.assertNotNull("G -> B must be routed",
+            findTransitionPolyline(doc, transitionId(model, "G", "B")));
+        assertNoTransitionCrossesAnyGroupBox(doc);
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
+    public void aBackwardEdgeArcsAboveTheRowAndCrossesNothing() throws Exception {
+        // CommonBfsModelLayouter does not produce loop-back shapes (it places a loop head to the right),
+        // so the coordinates are set explicitly -- see spec section 6.5.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel d = model.createActivity("D", "D", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+        model.createTransition("B", "C");
+        model.createTransition("C", "D");
+        model.createTransition("D", "A").setName("retry");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(100);
+            b.setX(150);
+            b.setY(100);
+            c.setX(300);
+            c.setY(100);
+            d.setX(450);
+            d.setY(100);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "D", "A")));
+        double topOfRow = activityBoxFor(doc, model, "A")[1];
+        Assert.assertTrue("the loop-back run must arc above the row, not below it where the channels are",
+            pts.stream().anyMatch(point -> point[1] < topOfRow));
+        assertNoTransitionCrossesAnyActivity(doc);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
+    public void aBackwardEdgeInsideAGroupStaysInsideTheGroupBox() throws Exception {
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel p = g.createChildActivity("P", "P", null);
+        ActivityModel q = g.createChildActivity("Q", "Q", null);
+        p.setStarter(true);
+        model.createTransition("P", "Q");
+        model.createTransition("Q", "P").setName("back");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(0);
+            g.setY(0);
+            g.setWidth(300);
+            g.setHeight(200);
+            p.setX(10);
+            p.setY(90);
+            q.setX(160);
+            q.setY(90);
+        }));
+
+        assertTransitionStaysInsideGroupContent(doc, "G", transitionId(model, "Q", "P"));
+        assertNoTransitionCrossesAnyActivity(doc);
     }
 
     @Test
