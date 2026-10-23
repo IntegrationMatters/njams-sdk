@@ -82,6 +82,27 @@ public class PolylineDiagramSampleRenderingTest {
     }
 
     @Test
+    public void skipOverAnActivityInTheSameColumn() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "C");
+        model.createTransition("C", "B");
+        model.createTransition("A", "B").setName("skip");
+
+        a.setX(0);
+        a.setY(0);
+        c.setX(0);
+        c.setY(150);
+        b.setX(0);
+        b.setY(300);
+
+        write("same-column-skip", model);
+    }
+
+    @Test
     public void bypassOverAGroup() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel a = model.createActivity("A", "A", null);
