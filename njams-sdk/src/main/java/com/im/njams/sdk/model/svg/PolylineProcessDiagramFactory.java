@@ -395,7 +395,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         } else if (e.type == Type.BACKWARD) {
             e.channelBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
         } else if (e.upwardApproach) {
-            e.channelBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
+            e.channelBase = channelBelowBand(e.rowT + e.level, bands);
         } else if (e.type == Type.BYPASS || e.verticalApproach) {
             e.channelBase = channelBelowBand(e.rowS + e.level, bands);
         } else if (!e.rowDetour) {
@@ -483,13 +483,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.verticalApproach = e.colS != e.colT
                 && Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx);
             if (e.verticalApproach) {
-                // A target above is reached through the channel above the rows, a target below through
-                // the one beneath them (spec 6.3). Backward edges never get here — they are classified
-                // before this and follow 6.5.
+                // Either way the edge approaches its target from the near side, so it crosses in the
+                // gap BETWEEN the two rows (spec 6.3): below the source's row going down, below the
+                // target's row going up. A channel beyond the target would overshoot it and come back
+                // through its icon. Backward edges never get here — they are classified before this
+                // and follow 6.5, arcing over the rows they pass.
                 e.upwardApproach = e.tcy < e.scy;
-                e.channelBase = e.upwardApproach
-                    ? aboveChannelY(Math.min(e.rowS, e.rowT), bands)
-                    : channelY(e.rowS, bands);
+                e.channelBase = channelY(e.upwardApproach ? e.rowT : e.rowS, bands);
             }
             // Otherwise the gutter the vertical run uses depends on the fan role, decided in
             // assignElbowGutter once the fan-out / fan-in flags are known.
@@ -643,11 +643,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         Map<Integer, List<Edge>> rowDetourByRow = new LinkedHashMap<>();
         Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
-            if (e.type == Type.BACKWARD || e.upwardApproach) {
-                // Both run in the channel above the rows, so they share one set of lanes.
+            if (e.type == Type.BACKWARD) {
                 backwardByRow.computeIfAbsent(Math.min(e.rowS, e.rowT), k -> new ArrayList<>()).add(e);
             } else if (e.type == Type.BYPASS || e.verticalApproach) {
-                bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
+                // Keyed by the row whose below-channel the edge crosses in: its own, or — approaching
+                // a target above — the target's.
+                bypassByRow.computeIfAbsent(e.upwardApproach ? e.rowT : e.rowS, k -> new ArrayList<>())
+                    .add(e);
             }
             if (e.type == Type.BYPASS) {
                 // A bypass runs down the corridor just right of its source column and up the one just
@@ -844,14 +846,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
             case ELBOW: {
                 if (e.verticalApproach) {
-                    double cy = bands.clamp(e.upwardApproach
-                        ? e.channelBase - e.channelLane * LANE_GAP
-                        : e.channelBase + e.channelLane * LANE_GAP);
+                    double cy = bands.clamp(e.channelBase + e.channelLane * LANE_GAP);
                     e.exitSide = e.upwardApproach ? Side.TOP : Side.BOTTOM;
                     e.entrySide = e.upwardApproach ? Side.BOTTOM : Side.TOP;
                     wp.addAll(channelCrossingWaypoints(e, cy));
                     labelX = (e.scx + e.tcx) / 2.0;
-                    labelY = e.upwardApproach ? cy - LABEL_GAP : cy + DEFAULT_TEXT_SIZE;
+                    labelY = cy + DEFAULT_TEXT_SIZE;
                     labelWidth = Math.abs(e.tcx - e.scx);
                     break;
                 }

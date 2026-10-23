@@ -813,6 +813,33 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void anUpwardEdgeCrossesBetweenTheRowsAndNeverReachesOverItsTarget() throws Exception {
+        // Approaching from below means crossing in the gap between the two rows. A channel above the
+        // target's row overshoots it, and the run back down then goes through the target's icon and
+        // its label before stopping underneath them.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(400);
+            b.setX(60);
+            b.setY(0);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        double[] targetBox = activityBoxFor(doc, model, "B");
+        for (double[] point : pts) {
+            Assert.assertTrue("the edge approaches B from below, so no part of it may sit above B's "
+                    + "lower edge (found " + point[0] + "," + point[1] + ")",
+                point[1] >= targetBox[3]);
+        }
+    }
+
+    @Test
     public void aVerticallyDominantEdgeGoingUpEntersTheTargetFromBelow() throws Exception {
         // Spec 6.3: a vertically dominant edge exits the top when its target is above and is entered
         // from the bottom. Only the downward half of that was implemented.
