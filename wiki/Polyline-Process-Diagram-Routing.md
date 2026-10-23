@@ -41,16 +41,23 @@ Per-edge rules:
 - **Stepless bypass** (a same-row edge that skips a column) → the edge leaves the source on its right, drops into a
   channel placed **below the label band**, runs across beneath the intermediate activities, and enters the target
   from the side.
+- **Same-column skip** (a vertical edge that skips an activity below it) → the mirror of the bypass: the edge leaves
+  the source sideways, runs down a column gutter and comes back in. A detour through a row channel cannot help here,
+  because both ends share an x.
 - **Row-changing edges** (fan-out / convergence) → an orthogonal elbow through the column gutter, so each branch travels
-  in its own lane. When the approach is more vertical than horizontal, the edge instead leaves the source downwards,
-  crosses in the row channel and comes down onto the target's top edge.
+  in its own lane. When the approach is more vertical than horizontal, the edge instead leaves the source on the side
+  facing its target — downwards onto the target's top edge, or upwards onto the lower edge of the target's label band —
+  and crosses in a row channel.
 - **Backward edges** (an edge running right to left, against the flow) → the edge leaves the source upwards, runs back
-  in a channel **above** the row, and comes down onto the target's top edge. Inside a group the channel stays within
-  the group's content area.
+  in a channel **above** the row, and comes down onto the target's top edge.
 - An edge arriving from below ends at the **lower edge of the target's label band**, so the arrow never runs through
   the label.
-- Edges that share a gutter or channel are given distinct **lanes** so parallel runs never coincide. All branches of
-  one fan take the same shape, so their lanes nest instead of crossing.
+- Edges that share a gutter or channel are given distinct **lanes** so parallel runs never coincide, and two edges
+  leaving one activity are offset from each other so their first runs never lie on top of one another — overlapping
+  segments would hide a transition the server has coloured as executed behind an unexecuted one. All branches of one
+  fan take the same shape, so their lanes nest instead of crossing.
+- Inside a group, every channel stays between the group's borders, with room left for the label a channel carries
+  beneath it.
 - Rows and columns are **overlap bands**, not exact coordinates: a group and the activities beside it count as one row
   even though their boxes start at different heights.
 - A chosen route is checked against the actual activity boxes **after** lanes are applied, and moved into the next
@@ -93,4 +100,5 @@ Existing label wrapping/truncation and the server-compatibility label-suppressio
 - Self-loops and multiple independent start activities are not specially handled.
 - Transitions between two different containers fall back to straight-line drawing. Edges touching a group border are
   routed like any other edge, meeting the group on its box edge.
-- In a group too tight for the arc above its first row, the loop-back arrow can still reach over the group's header.
+- In a group too tight for the channel a route would naturally take, the route is pushed against the group's border
+  rather than given a gap of its own, so it can end up close to an activity.
