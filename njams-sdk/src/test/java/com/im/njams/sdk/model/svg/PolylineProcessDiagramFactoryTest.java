@@ -712,6 +712,38 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aRouteNeverRepeatsAWaypoint() throws Exception {
+        // C overlaps A's column, so A and B end up in neighbouring column bands with C blocking the
+        // direct segment. The bypass's exit corridor and its approach corridor are then the same gap,
+        // and its shape collapses onto a repeated point that must not reach the polyline.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            c.setX(40);
+            c.setY(0);
+            b.setX(100);
+            b.setY(0);
+        }));
+
+        for (Element poly : transitionPolylines(doc)) {
+            List<double[]> pts = points(poly);
+            for (int i = 1; i < pts.size(); i++) {
+                Assert.assertFalse("transition '" + poly.getAttribute("modelId") + "' repeats waypoint "
+                        + pts.get(i)[0] + "," + pts.get(i)[1],
+                    Math.abs(pts.get(i)[0] - pts.get(i - 1)[0]) < 0.001
+                        && Math.abs(pts.get(i)[1] - pts.get(i - 1)[1]) < 0.001);
+            }
+        }
+    }
+
+    @Test
     public void aVerticallyDominantEdgeGoingUpEntersTheTargetFromBelow() throws Exception {
         // Spec 6.3: a vertically dominant edge exits the top when its target is above and is entered
         // from the bottom. Only the downward half of that was implemented.

@@ -767,6 +767,21 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     /**
+     * Drops a waypoint that repeats the one before it. A shape collapses whenever the two corridors it
+     * uses turn out to be the same gap — a bypass between neighbouring columns exits and approaches
+     * through one corridor — and a repeated point would reach the polyline as a zero-length segment.
+     * The first two and last two points are what the attachment sides are derived from, so at least two
+     * always remain.
+     */
+    private static void removeRepeatedPoints(List<Point> wp) {
+        for (int i = wp.size() - 1; i > 0 && wp.size() > 2; i--) {
+            if (wp.get(i).getX() == wp.get(i - 1).getX() && wp.get(i).getY() == wp.get(i - 1).getY()) {
+                wp.remove(i);
+            }
+        }
+    }
+
+    /**
      * The waypoints every route that crosses in a horizontal channel is built from: leave the source
      * vertically, run across in the channel, and come back onto the target. A {@link Type#BACKWARD} edge
      * uses a channel above its row and a vertically approaching {@link Type#ELBOW} one below, which is
@@ -897,6 +912,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
         }
+        removeRepeatedPoints(wp);
         Point start = attachment(e.sourceBox, e.exitSide, wp.get(0), wp.get(1),
             DEFAULT_ACTIVITY_RADIUS, 0);
         Point end = attachment(e.targetBox, e.entrySide, wp.get(wp.size() - 1), wp.get(wp.size() - 2),
