@@ -813,6 +813,43 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aRouteReachingPastTheActivitiesKeepsTheCanvasMargin() throws Exception {
+        // The skip's gutter run is the right-most thing on the canvas. Activity bounds are padded by
+        // DEFAULT_MARGIN; a route that reaches further must be padded too, or it is drawn on the
+        // border and loses half its stroke.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "C");
+        model.createTransition("C", "B");
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            c.setX(0);
+            c.setY(150);
+            b.setX(0);
+            b.setY(300);
+        }));
+
+        double[] canvas = canvasBox(doc);
+        for (Element poly : transitionPolylines(doc)) {
+            for (double[] point : points(poly)) {
+                Assert.assertTrue("transition '" + poly.getAttribute("modelId") + "' runs within "
+                        + NjamsProcessDiagramFactory.DEFAULT_MARGIN + " of the canvas edge at "
+                        + point[0] + "," + point[1] + " (canvas " + canvas[2] + "x" + canvas[3] + ")",
+                    point[0] >= canvas[0] + NjamsProcessDiagramFactory.DEFAULT_MARGIN
+                        && point[0] <= canvas[2] - NjamsProcessDiagramFactory.DEFAULT_MARGIN
+                        && point[1] >= canvas[1] + NjamsProcessDiagramFactory.DEFAULT_MARGIN
+                        && point[1] <= canvas[3] - NjamsProcessDiagramFactory.DEFAULT_MARGIN);
+            }
+        }
+    }
+
+    @Test
     public void aVerticalEdgesLabelIsCentredOnItsLine() throws Exception {
         // A label beside a horizontal run sits above it, clear of the line. A vertical run has no
         // "above", so its label is centred on the line and crosses it, both ways.

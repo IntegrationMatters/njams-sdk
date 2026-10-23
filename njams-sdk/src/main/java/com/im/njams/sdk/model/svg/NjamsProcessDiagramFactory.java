@@ -317,10 +317,10 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         // let a subclass (e.g. a custom transition router) grow the canvas for elements that can extend
         // beyond the activities' own bounds, such as a transition label wider than its column
         for (double[] bounds : getAdditionalBounds(processModel)) {
-            minX = Math.min(minX, (int) Math.floor(bounds[0]));
-            minY = Math.min(minY, (int) Math.floor(bounds[1]));
-            maxX = Math.max(maxX, (int) Math.ceil(bounds[2]));
-            maxY = Math.max(maxY, (int) Math.ceil(bounds[3]));
+            minX = Math.min(minX, (int) Math.floor(bounds[0]) - DEFAULT_MARGIN);
+            minY = Math.min(minY, (int) Math.floor(bounds[1]) - DEFAULT_MARGIN);
+            maxX = Math.max(maxX, (int) Math.ceil(bounds[2]) + DEFAULT_MARGIN);
+            maxY = Math.max(maxY, (int) Math.ceil(bounds[3]) + DEFAULT_MARGIN);
         }
         // calculate sizsed
         int width = maxX - minX;
@@ -498,8 +498,10 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
     /**
      * Hook for a subclass whose own layout (e.g. a custom transition router) can place elements, such
      * as a transition label, outside the bounds of the activities themselves. {@link #getSvgSize} grows
-     * the canvas to include every returned box in addition to the activities' own bounds, so such an
-     * element is not clipped by the SVG viewport. The default implementation reports nothing extra.
+     * the canvas to include every returned box in addition to the activities' own bounds, and leaves
+     * the same margin around it that it leaves around an activity, so such an element is neither
+     * clipped by the SVG viewport nor drawn on its border. The default implementation reports nothing
+     * extra.
      *
      * @param processModel the process model being sized
      * @return additional {@code [left, top, right, bottom]} boxes, in the same coordinate space as
