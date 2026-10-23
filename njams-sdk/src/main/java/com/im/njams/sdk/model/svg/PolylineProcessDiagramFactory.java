@@ -1028,7 +1028,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     private static Point attachment(NodeBox node, Side side, Point center, Point towards, double radius,
         double clearance) {
         Side resolved = side != null || !node.group ? side : sideTowards(center, towards);
-        return resolved != null ? attachmentPoint(node, resolved, clearance)
+        return resolved != null ? attachmentPoint(node, resolved, center, clearance)
             : radiusPoint(towards, center, radius);
     }
 
@@ -1073,19 +1073,24 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * Where an edge meets a node on the given side, pulled back by {@code clearance} (the arrow head's
      * length at the arriving end, nothing at the leaving end). A plain activity is met on its icon
      * radius, except from below, where the label band under the icon has to stay clear; a group is met
-     * on its box edge.
+     * on its box edge, where {@code approach} — the route's own endpoint — reaches it.
      */
-    private static Point attachmentPoint(NodeBox node, Side side, double clearance) {
+    private static Point attachmentPoint(NodeBox node, Side side, Point approach, double clearance) {
         if (node.group) {
+            // A group is a box, so the line can meet its edge wherever the route arrives rather than
+            // only at the middle: a fan reaching the same side keeps the separate runs it was routed
+            // into, and the final segment stays along that run instead of bending in to the centre.
+            double x = Math.max(node.left, Math.min(node.right, approach.getX()));
+            double y = Math.max(node.top, Math.min(node.bottom, approach.getY()));
             switch (side) {
                 case LEFT:
-                    return new Point(node.left - clearance, node.centerY);
+                    return new Point(node.left - clearance, y);
                 case RIGHT:
-                    return new Point(node.right + clearance, node.centerY);
+                    return new Point(node.right + clearance, y);
                 case TOP:
-                    return new Point(node.centerX, node.top - clearance);
+                    return new Point(x, node.top - clearance);
                 default:
-                    return new Point(node.centerX, node.bottom + clearance);
+                    return new Point(x, node.bottom + clearance);
             }
         }
         switch (side) {

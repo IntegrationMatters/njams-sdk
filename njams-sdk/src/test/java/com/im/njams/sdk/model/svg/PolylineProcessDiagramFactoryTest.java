@@ -3,7 +3,9 @@ package com.im.njams.sdk.model.svg;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -846,6 +848,91 @@ public class PolylineProcessDiagramFactoryTest {
                         && point[1] >= canvas[1] + NjamsProcessDiagramFactory.DEFAULT_MARGIN
                         && point[1] <= canvas[3] - NjamsProcessDiagramFactory.DEFAULT_MARGIN);
             }
+        }
+    }
+
+    @Test
+    public void aFanIntoAGroupEntersItAtSeparatePoints() throws Exception {
+        // Each branch is routed to its own entry y, but a group endpoint used to snap to the middle of
+        // the box edge: all three landed on one point, and the segment that got there ran diagonally.
+        ProcessModel model = createProcess();
+        ActivityModel p = model.createActivity("P", "P", null);
+        ActivityModel q = model.createActivity("Q", "Q", null);
+        ActivityModel r = model.createActivity("R", "R", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        p.setStarter(true);
+        h.setStarter(true);
+        model.createTransition("P", "G");
+        model.createTransition("Q", "G");
+        model.createTransition("R", "G");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            p.setX(0);
+            p.setY(0);
+            q.setX(0);
+            q.setY(150);
+            r.setX(0);
+            r.setY(300);
+            g.setX(200);
+            g.setY(105);
+            g.setWidth(120);
+            g.setHeight(140);
+            h.setX(230);
+            h.setY(160);
+        }));
+
+        assertFanTouchesTheGroupAtSeparatePoints(doc, model, true, "P", "Q", "R");
+    }
+
+    @Test
+    public void aFanOutOfAGroupLeavesItAtSeparatePoints() throws Exception {
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        ActivityModel z = model.createActivity("Z", "Z", null);
+        h.setStarter(true);
+        model.createTransition("G", "X");
+        model.createTransition("G", "Y");
+        model.createTransition("G", "Z");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(0);
+            g.setY(105);
+            g.setWidth(120);
+            g.setHeight(140);
+            h.setX(30);
+            h.setY(160);
+            x.setX(250);
+            x.setY(0);
+            y.setX(250);
+            y.setY(150);
+            z.setX(250);
+            z.setY(300);
+        }));
+
+        assertFanTouchesTheGroupAtSeparatePoints(doc, model, false, "X", "Y", "Z");
+    }
+
+    /**
+     * Asserts that each branch meets the group at its own point, and that the segment reaching that
+     * point is horizontal — a diagonal one is the tell that the attachment ignored the route's own
+     * approach.
+     */
+    private static void assertFanTouchesTheGroupAtSeparatePoints(Document doc, ProcessModel model,
+        boolean intoTheGroup, String... others) {
+        Set<Double> touched = new HashSet<>();
+        for (String other : others) {
+            String id = intoTheGroup ? transitionId(model, other, "G") : transitionId(model, "G", other);
+            List<double[]> pts = points(findTransitionPolyline(doc, id));
+            double[] end = intoTheGroup ? pts.get(pts.size() - 1) : pts.get(0);
+            double[] before = intoTheGroup ? pts.get(pts.size() - 2) : pts.get(1);
+            Assert.assertEquals("'" + id + "' must meet the group along a horizontal run, but ran from "
+                + before[0] + "," + before[1] + " to " + end[0] + "," + end[1], before[1], end[1], 0.001);
+            Assert.assertTrue("'" + id + "' meets the group at " + end[0] + "," + end[1]
+                + ", a point another branch already uses", touched.add(end[1]));
         }
     }
 

@@ -165,6 +165,50 @@ public class PolylineDiagramSampleRenderingTest {
     }
 
     @Test
+    public void fanIntoAndOutOfAGroup() throws Exception {
+        // A group is met on its box edge, so a fan reaching the same side has to keep the separate
+        // runs it was routed into instead of collapsing onto the middle of that edge.
+        ProcessModel model = createProcess();
+        ActivityModel p = model.createActivity("P", "P", null);
+        ActivityModel q = model.createActivity("Q", "Q", null);
+        ActivityModel r = model.createActivity("R", "R", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        ActivityModel z = model.createActivity("Z", "Z", null);
+        p.setStarter(true);
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        h.setStarter(true);
+        model.createTransition("P", "G").setName("in one");
+        model.createTransition("Q", "G").setName("in two");
+        model.createTransition("R", "G").setName("in three");
+        model.createTransition("G", "X").setName("out one");
+        model.createTransition("G", "Y").setName("out two");
+        model.createTransition("G", "Z").setName("out three");
+
+        p.setX(0);
+        p.setY(0);
+        q.setX(0);
+        q.setY(150);
+        r.setX(0);
+        r.setY(300);
+        g.setX(200);
+        g.setY(105);
+        g.setWidth(120);
+        g.setHeight(140);
+        h.setX(230);
+        h.setY(160);
+        x.setX(450);
+        x.setY(0);
+        y.setX(450);
+        y.setY(150);
+        z.setX(450);
+        z.setY(300);
+
+        write("fan-group", model);
+    }
+
+    @Test
     public void verticalApproachDownwards() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel a = model.createActivity("A", "A", null);

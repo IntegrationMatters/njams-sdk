@@ -99,6 +99,7 @@ Existing label wrapping/truncation and the server-compatibility label-suppressio
 
 - Self-loops and multiple independent start activities are not specially handled.
 - Transitions between two different containers fall back to straight-line drawing. Edges touching a group border are
-  routed like any other edge, meeting the group on its box edge.
+  routed like any other edge, meeting the group on its box edge where the route reaches it — so a fan into or
+  out of a group keeps one entry point per branch, like a fan on a plain activity.
 - In a group too tight for the channel a route would naturally take, the route is pushed against the group's border
   rather than given a gap of its own, so it can end up close to an activity.
