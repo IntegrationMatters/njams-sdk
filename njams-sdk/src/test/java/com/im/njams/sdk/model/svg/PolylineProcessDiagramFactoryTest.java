@@ -712,6 +712,33 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aGroupLeftUnsizedByItsLayouterStillRenders() throws Exception {
+        // SimpleProcessModelLayouter, and CommonBfsModelLayouter on a model with no start activity,
+        // leave a group at 0x0. Its box is then a point, which must still land in a band.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        g.createChildActivity("H", "H", null).setStarter(true);
+        model.createTransition("A", "G");
+        model.createTransition("G", "B");
+
+        String svg = renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(100);
+            g.setX(150);
+            g.setY(100);
+            b.setX(400);
+            b.setY(100);
+        });
+
+        Assert.assertNotNull("a model whose group was never sized must still render", svg);
+        Assert.assertTrue("a model whose group was never sized must still render",
+            svg.contains("<svg"));
+    }
+
+    @Test
     public void aBypassLandsOnItsTargetAlongAHorizontalRun() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel x = model.createActivity("X", "X", null);

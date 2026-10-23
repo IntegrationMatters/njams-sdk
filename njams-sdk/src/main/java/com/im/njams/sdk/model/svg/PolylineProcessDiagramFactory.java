@@ -1215,13 +1215,37 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             return indexOf(columns, node.left, node.right);
         }
 
+        /**
+         * The band the given extent belongs to. A layouter that never sizes a group leaves its box with
+         * no extent at all (see {@link NodeBox#of}); such a point still belongs to the band it sits in,
+         * so an empty extent — on either side — is compared inclusively. An extent that overlaps no band
+         * at all takes the nearest one, because every caller indexes a band list with the result.
+         */
         private static int indexOf(List<double[]> bands, double start, double end) {
+            int nearest = 0;
+            double nearestDistance = Double.MAX_VALUE;
             for (int i = 0; i < bands.size(); i++) {
-                if (start < bands.get(i)[1] && bands.get(i)[0] < end) {
+                double[] band = bands.get(i);
+                if (overlaps(band, start, end)) {
                     return i;
                 }
+                double distance = Math.max(band[0] - end, start - band[1]);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearest = i;
+                }
             }
-            return -1;
+            return nearest;
+        }
+
+        private static boolean overlaps(double[] band, double start, double end) {
+            if (start == end) {
+                return start >= band[0] && start <= band[1];
+            }
+            if (band[0] == band[1]) {
+                return band[0] >= start && band[0] <= end;
+            }
+            return start < band[1] && band[0] < end;
         }
 
         int rowCount() {
