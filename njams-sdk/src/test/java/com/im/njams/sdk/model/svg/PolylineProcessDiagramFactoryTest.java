@@ -712,6 +712,33 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aBypassLandsOnItsTargetAlongAHorizontalRun() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("A", "Y");
+        model.createTransition("X", "Y");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            x.setX(0);
+            x.setY(0);
+            a.setX(150);
+            a.setY(0);
+            y.setX(300);
+            y.setY(0);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "X", "Y")));
+        double[] last = pts.get(pts.size() - 1);
+        double[] beforeLast = pts.get(pts.size() - 2);
+        Assert.assertEquals("the bypass must enter its target along a horizontal run, the way an elbow "
+            + "branch does", beforeLast[1], last[1], 0.001);
+    }
+
+    @Test
     public void aBypassAndItsStraightSiblingLeaveTheSourceOnSeparateRuns() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel x = model.createActivity("X", "X", null);

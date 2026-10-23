@@ -748,7 +748,10 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 wp.add(new Point(e.exitX, cy));
                 wp.add(new Point(e.approachX, cy));
                 wp.add(new Point(e.approachX, entryY));
-                wp.add(new Point(e.tcx, e.tcy));
+                // Rise out of the channel before the target and come in along a horizontal run, the
+                // same way an elbow branch lands — a diagonal last hop would meet the icon at an angle
+                // no other edge arrives at, and cuts the corner of whatever sits below the target.
+                wp.add(new Point(e.tcx, entryY));
                 labelX = (e.exitX + e.approachX) / 2.0;
                 labelY = cy + DEFAULT_TEXT_SIZE;
                 labelWidth = Math.abs(e.approachX - e.exitX);
