@@ -712,6 +712,43 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aStraightEdgeLeavingAGroupIsCheckedWhereItIsActuallyDrawn() throws Exception {
+        // A straight edge is checked between the two centres, but it is drawn from the group's box
+        // edge — at the box's mid height, not on that centre line. The two differ whenever the
+        // centres are not aligned, and O sits in the gap between them: clear of the checked line,
+        // crossed by the drawn one. O has to overlap G's x range so the two share a column band,
+        // which is what keeps G -> B a straight edge rather than a bypass.
+        //
+        // The gap O occupies is narrow enough that no candidate clears it either — O also stands in
+        // the exit run of the bypass G -> B escalates to, which is the documented fallback. What this
+        // pins is that the edge is no longer passed off as clear: it is seen as blocked and routed.
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel h = g.createChildActivity("H", "H", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel o = model.createActivity("O", "O", null);
+        h.setStarter(true);
+        model.createTransition("G", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(150);
+            g.setY(60);
+            g.setWidth(120);
+            g.setHeight(200);
+            h.setX(180);
+            h.setY(120);
+            b.setX(400);
+            b.setY(40);
+            o.setX(260);
+            o.setY(150);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "G", "B")));
+        Assert.assertTrue("G -> B crosses O where it is drawn, so it must not be left as a straight "
+            + "segment (was " + pts.size() + " points)", pts.size() > 2);
+    }
+
+    @Test
     public void aBypassAndAnElbowOutOfOneActivityDoNotShareACorridor() throws Exception {
         // S -> Y is a bypass over A and S -> T changes rows. Both leave S to the right, and the
         // corridor just right of S's column is the bypass's exit and the elbow's lane-0 gutter, so

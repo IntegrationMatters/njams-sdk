@@ -324,6 +324,19 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
+    /**
+     * The route as it is drawn: the waypoints run between the two node centres, but the line starts and
+     * ends at the attachments instead (see {@link #drawRoutedTransition}). For a group endpoint the
+     * attachment is a point on the box edge, which is off the centre-to-centre line whenever that line
+     * is not axis-aligned — so checking the waypoints would clear a line nobody draws.
+     */
+    private static List<Point> drawnPath(Route route) {
+        List<Point> drawn = new ArrayList<>(route.waypoints);
+        drawn.set(0, route.start);
+        drawn.set(drawn.size() - 1, route.end);
+        return drawn;
+    }
+
     private Map<Edge, Route> buildRoutes(List<Edge> edges, Bands bands) {
         Map<Edge, Route> built = new LinkedHashMap<>();
         for (Edge e : edges) {
@@ -336,7 +349,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     private static List<Edge> blockedEdges(List<Edge> edges, Map<Edge, Route> built, Obstacles obstacles) {
         List<Edge> blocked = new ArrayList<>();
         for (Edge e : edges) {
-            if (obstacles.blocks(built.get(e).waypoints, e.transition.getFromActivity(),
+            if (obstacles.blocks(drawnPath(built.get(e)), e.transition.getFromActivity(),
                 e.transition.getToActivity())) {
                 blocked.add(e);
             }
