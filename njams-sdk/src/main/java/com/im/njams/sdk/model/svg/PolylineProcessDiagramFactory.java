@@ -147,9 +147,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /**
      * {@inheritDoc}
      *
-     * <p>Draws the transition as a routed poly-line. Edges that were not routed (no plan available,
-     * or endpoints not plain activities of a single container) fall back to the inherited
-     * straight-line rendering.
+     * <p>Draws the transition as a routed poly-line. Edges that were not routed — because no plan is
+     * available, or because the two endpoints live in different containers — fall back to the inherited
+     * straight-line rendering. An edge that touches a group border is routed like any other.
      */
     @Override
     protected void drawTransition(NjamsProcessDiagramContext context, TransitionModel transitionModel) {
@@ -165,10 +165,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /**
      * {@inheritDoc}
      *
-     * <p>Reports each routed transition's label extent, computed from the routing plan built by
-     * {@link #createSvg}. A label can extend well beyond its activities' own bounds -- most notably a
-     * purely vertical transition's fallback width, which is wider than the single column it sits in --
-     * so without this the canvas could be sized too narrow and clip the label.
+     * <p>Reports each routed transition's extent — both its waypoints and its label — computed from the
+     * routing plan built by {@link #createSvg}. A route leaves its activities' own bounds whenever it
+     * detours into a channel or a gutter, and a label can reach beyond them too, most notably a purely
+     * vertical transition's fallback width, which is wider than the single column it sits in. Without
+     * this the canvas could be sized too narrow and clip either one.
      */
     @Override
     protected List<double[]> getAdditionalBounds(ProcessModel processModel) {
