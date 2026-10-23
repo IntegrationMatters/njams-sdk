@@ -732,6 +732,43 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         return e.targetFanIn && !e.sourceFanOut ? span : -span;
     }
 
+    /**
+     * The waypoints every side-entering route is built from: leave the source along its row, optionally
+     * drop into a below-row channel to clear what sits in the way, cross in a vertical corridor, and
+     * land on the target along a horizontal run. A {@link Type#BYPASS} crosses in the corridor before
+     * its target and always takes the channel; a side-entering {@link Type#ELBOW} crosses in its gutter
+     * and takes the channel only when detouring. They are otherwise the same path, so they are built
+     * here rather than separately — the shapes drifted apart twice while they were.
+     *
+     * @param channelY the channel to detour through, or {@code null} to cross straight from the exit run
+     */
+    private static List<Point> sideEntryWaypoints(Edge e, double exitY, double entryY, double corridorX,
+        Double channelY) {
+        List<Point> wp = new ArrayList<>();
+        wp.add(new Point(e.scx, exitY));
+        double crossingY = exitY;
+        if (channelY != null) {
+            wp.add(new Point(e.exitX, exitY));
+            wp.add(new Point(e.exitX, channelY));
+            crossingY = channelY;
+        }
+        wp.add(new Point(corridorX, crossingY));
+        wp.add(new Point(corridorX, entryY));
+        wp.add(new Point(e.tcx, entryY));
+        return wp;
+    }
+
+    /**
+     * The waypoints every route that crosses in a horizontal channel is built from: leave the source
+     * vertically, run across in the channel, and come back onto the target. A {@link Type#BACKWARD} edge
+     * uses a channel above its row and a vertically approaching {@link Type#ELBOW} one below, which is
+     * the only thing that differs between them.
+     */
+    private static List<Point> channelCrossingWaypoints(Edge e, double channelY) {
+        return List.of(new Point(e.scx, e.scy), new Point(e.scx, channelY),
+            new Point(e.tcx, channelY), new Point(e.tcx, e.tcy));
+    }
+
     private Route buildRoute(Edge e) {
         List<Point> wp = new ArrayList<>();
         double labelX;
@@ -741,17 +778,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         switch (e.type) {
             case BYPASS: {
                 double cy = e.laneBase + e.lane * LANE_GAP;
-                double entryY = e.tcy + TARGET_ENTRY_OFFSET;
-                double exitY = e.scy + e.nodeStagger;
-                wp.add(new Point(e.scx, exitY));
-                wp.add(new Point(e.exitX, exitY));
-                wp.add(new Point(e.exitX, cy));
-                wp.add(new Point(e.approachX, cy));
-                wp.add(new Point(e.approachX, entryY));
-                // Rise out of the channel before the target and come in along a horizontal run, the
-                // same way an elbow branch lands — a diagonal last hop would meet the icon at an angle
-                // no other edge arrives at, and cuts the corner of whatever sits below the target.
-                wp.add(new Point(e.tcx, entryY));
+                wp.addAll(sideEntryWaypoints(e, e.scy + e.nodeStagger, e.tcy + TARGET_ENTRY_OFFSET,
+                    e.approachX, cy));
                 labelX = (e.exitX + e.approachX) / 2.0;
                 labelY = cy + DEFAULT_TEXT_SIZE;
                 labelWidth = Math.abs(e.approachX - e.exitX);
@@ -761,10 +789,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 double cy = e.laneBase - e.lane * LANE_GAP;
                 e.exitSide = Side.TOP;
                 e.entrySide = Side.TOP;
-                wp.add(new Point(e.scx, e.scy));
-                wp.add(new Point(e.scx, cy));
-                wp.add(new Point(e.tcx, cy));
-                wp.add(new Point(e.tcx, e.tcy));
+                wp.addAll(channelCrossingWaypoints(e, cy));
                 labelX = (e.scx + e.tcx) / 2.0;
                 labelY = cy - LABEL_GAP;
                 labelWidth = Math.abs(e.tcx - e.scx);
@@ -775,10 +800,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                     double cy = e.laneBase + e.lane * LANE_GAP;
                     e.exitSide = Side.BOTTOM;
                     e.entrySide = Side.TOP;
-                    wp.add(new Point(e.scx, e.scy));
-                    wp.add(new Point(e.scx, cy));
-                    wp.add(new Point(e.tcx, cy));
-                    wp.add(new Point(e.tcx, e.tcy));
+                    wp.addAll(channelCrossingWaypoints(e, cy));
                     labelX = (e.scx + e.tcx) / 2.0;
                     labelY = cy + DEFAULT_TEXT_SIZE;
                     labelWidth = Math.abs(e.tcx - e.scx);
@@ -791,23 +813,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 // target; all other elbows (fan-out or plain) stagger at the source.
                 double exitY = (e.targetFanIn && !e.sourceFanOut) ? e.scy : e.scy + e.nodeStagger;
                 double entryY = (e.targetFanIn && !e.sourceFanOut) ? e.tcy + e.nodeStagger : e.tcy;
-                if (e.rowDetour) {
-                    // The exit run along the source row would otherwise cross a sibling sitting between
-                    // the source and the gutter (see assignElbowGutter) — detour through the row's
-                    // below-row channel first, the same way a BYPASS clears a same-row obstacle.
-                    double cy = e.channelBase + e.channelLane * LANE_GAP;
-                    wp.add(new Point(e.scx, exitY));
-                    wp.add(new Point(e.exitX, exitY));
-                    wp.add(new Point(e.exitX, cy));
-                    wp.add(new Point(gx, cy));
-                    wp.add(new Point(gx, entryY));
-                    wp.add(new Point(e.tcx, entryY));
-                } else {
-                    wp.add(new Point(e.scx, exitY));
-                    wp.add(new Point(gx, exitY));
-                    wp.add(new Point(gx, entryY));
-                    wp.add(new Point(e.tcx, entryY));
-                }
+                // A row detour drops into the row's below-row channel before crossing: the exit run
+                // along the source row would otherwise cross a sibling sitting between the source and
+                // the gutter (see assignElbowGutter), the same obstacle a BYPASS clears that way.
+                Double channelY = e.rowDetour ? e.channelBase + e.channelLane * LANE_GAP : null;
+                wp.addAll(sideEntryWaypoints(e, exitY, entryY, gx, channelY));
                 // Anchor the label on the side that is NOT shared with sibling edges, hugging the node
                 // and growing into the free run space: fan-out labels are right-aligned just left of the
                 // target (so they use the long approach), fan-in labels are left-aligned just right of
