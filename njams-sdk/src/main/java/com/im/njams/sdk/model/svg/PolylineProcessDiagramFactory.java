@@ -255,6 +255,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             : container.getY() + GROUP_HEADER_HEIGHT + CLEARANCE_MARGIN;
     }
 
+    /**
+     * The lowest y a route inside the given container may use. A channel carries its label underneath
+     * it, so the label's line has to fit above the border too; the root container has no lower border.
+     */
+    private static double contentBottomOf(GroupModel container) {
+        return container == null ? Double.POSITIVE_INFINITY
+            : container.getY() + container.getHeight() - CLEARANCE_MARGIN - DEFAULT_TEXT_SIZE;
+    }
+
     /** Top-level activities of the process model — the obstacles a root-level edge must clear. */
     private static List<ActivityModel> rootSiblings(ProcessModel processModel) {
         List<ActivityModel> siblings = new ArrayList<>();
@@ -271,7 +280,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         if (transitions.isEmpty()) {
             return;
         }
-        Bands bands = Bands.of(siblings, contentTopOf(container));
+        Bands bands = Bands.of(siblings, contentTopOf(container), contentBottomOf(container));
         Obstacles obstacles = Obstacles.of(siblings);
 
         Map<String, Integer> outDegree = new HashMap<>();
@@ -292,14 +301,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         assignGutters(edges, obstacles, bands);
         assignLanes(edges);
 
-        Map<Edge, Route> built = buildRoutes(edges);
+        Map<Edge, Route> built = buildRoutes(edges, bands);
         for (int round = 0; round < MAX_ESCALATION_ROUNDS; round++) {
             List<Edge> blocked = blockedEdges(edges, built, obstacles);
             if (blocked.isEmpty() || !escalateBlocked(blocked, edges, obstacles, bands)) {
                 break;
             }
             assignLanes(edges);
-            built = buildRoutes(edges);
+            built = buildRoutes(edges, bands);
         }
         for (Edge e : blockedEdges(edges, built, obstacles)) {
             LOG.debug("No clear route found for transition {}; drawing it over an activity box.",
@@ -310,10 +319,10 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         }
     }
 
-    private Map<Edge, Route> buildRoutes(List<Edge> edges) {
+    private Map<Edge, Route> buildRoutes(List<Edge> edges, Bands bands) {
         Map<Edge, Route> built = new LinkedHashMap<>();
         for (Edge e : edges) {
-            built.put(e, buildRoute(e));
+            built.put(e, buildRoute(e, bands));
         }
         return built;
     }
@@ -760,7 +769,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             new Point(e.tcx, channelY), new Point(e.tcx, e.tcy));
     }
 
-    private Route buildRoute(Edge e) {
+    private Route buildRoute(Edge e, Bands bands) {
         // Each shape below sets only the attachment sides it needs, and the same Edge is rebuilt on
         // every escalation round — so clear them first. A side left over from a shape this edge no
         // longer has would attach the drawn line to an edge of the icon its route never approaches.
@@ -773,7 +782,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         String labelAnchor = "middle";
         switch (e.type) {
             case BYPASS: {
-                double cy = e.laneBase + e.lane * LANE_GAP;
+                double cy = bands.clamp(e.laneBase + e.lane * LANE_GAP);
                 wp.addAll(sideEntryWaypoints(e, e.scy + e.nodeStagger, e.tcy + TARGET_ENTRY_OFFSET,
                     e.approachX, cy));
                 labelX = (e.exitX + e.approachX) / 2.0;
@@ -782,7 +791,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
             case BACKWARD: {
-                double cy = e.laneBase - e.lane * LANE_GAP;
+                double cy = bands.clamp(e.laneBase - e.lane * LANE_GAP);
                 e.exitSide = Side.TOP;
                 e.entrySide = Side.TOP;
                 wp.addAll(channelCrossingWaypoints(e, cy));
@@ -793,7 +802,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
             case ELBOW: {
                 if (e.verticalApproach) {
-                    double cy = e.laneBase + e.lane * LANE_GAP;
+                    double cy = bands.clamp(e.laneBase + e.lane * LANE_GAP);
                     e.exitSide = Side.BOTTOM;
                     e.entrySide = Side.TOP;
                     wp.addAll(channelCrossingWaypoints(e, cy));
@@ -812,7 +821,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 // A row detour drops into the row's below-row channel before crossing: the exit run
                 // along the source row would otherwise cross a sibling sitting between the source and
                 // the gutter (see assignElbowGutter), the same obstacle a BYPASS clears that way.
-                Double channelY = e.rowDetour ? e.channelBase + e.channelLane * LANE_GAP : null;
+                Double channelY = e.rowDetour ? bands.clamp(e.channelBase + e.channelLane * LANE_GAP)
+                    : null;
                 wp.addAll(sideEntryWaypoints(e, exitY, entryY, gx, channelY));
                 // Anchor the label on the side that is NOT shared with sibling edges, hugging the node
                 // and growing into the free run space: fan-out labels are right-aligned just left of the
@@ -1170,14 +1180,16 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private final List<double[]> columns;
 
         private final double ceiling;
+        private final double floor;
 
-        private Bands(List<double[]> rows, List<double[]> columns, double ceiling) {
+        private Bands(List<double[]> rows, List<double[]> columns, double ceiling, double floor) {
             this.rows = rows;
             this.columns = columns;
             this.ceiling = ceiling;
+            this.floor = floor;
         }
 
-        static Bands of(List<ActivityModel> siblings, double ceiling) {
+        static Bands of(List<ActivityModel> siblings, double ceiling, double floor) {
             List<double[]> vertical = new ArrayList<>();
             List<double[]> horizontal = new ArrayList<>();
             for (ActivityModel sibling : siblings) {
@@ -1185,7 +1197,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 vertical.add(new double[] {box.top, box.bottom});
                 horizontal.add(new double[] {box.left, box.right});
             }
-            return new Bands(merge(vertical), merge(horizontal), ceiling);
+            return new Bands(merge(vertical), merge(horizontal), ceiling, floor);
         }
 
         /** Merges overlapping spans in ascending order; spans that only touch stay separate. */
@@ -1251,6 +1263,16 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         /** The highest y a route may use, so an arc above the first row stays inside its container. */
         double ceiling() {
             return ceiling;
+        }
+
+        /** The lowest y a route may use, label included, so a channel stays inside its container. */
+        double floor() {
+            return floor;
+        }
+
+        /** The given channel y, kept between the container's borders. */
+        double clamp(double y) {
+            return Math.max(ceiling, Math.min(floor, y));
         }
 
         double rowTop(int index) {

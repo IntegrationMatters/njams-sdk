@@ -712,6 +712,68 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aSecondBackwardEdgeInATightGroupAlsoStaysBelowTheGroupHeader() throws Exception {
+        // Two backward edges share the channel above the row, so the second runs a lane width higher.
+        // That offset is applied after the ceiling clamp, which is what the clamp has to survive.
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel p = g.createChildActivity("P", "P", null);
+        ActivityModel q = g.createChildActivity("Q", "Q", null);
+        ActivityModel r = g.createChildActivity("R", "R", null);
+        p.setStarter(true);
+        model.createTransition("P", "Q");
+        model.createTransition("Q", "R");
+        model.createTransition("R", "P").setName("back far");
+        model.createTransition("R", "Q").setName("back near");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(0);
+            g.setY(0);
+            g.setWidth(450);
+            g.setHeight(200);
+            p.setX(10);
+            p.setY(40);
+            q.setX(160);
+            q.setY(40);
+            r.setX(310);
+            r.setY(40);
+        }));
+
+        assertTransitionStaysInsideGroupContent(doc, "G", transitionId(model, "R", "P"));
+        assertTransitionStaysInsideGroupContent(doc, "G", transitionId(model, "R", "Q"));
+    }
+
+    @Test
+    public void aChannelInATightGroupStaysAboveTheGroupsLowerBorder() throws Exception {
+        // The children sit just above the group's lower border, so the channel a bypass would take
+        // below their row -- and the label drawn under it -- fall outside the content area.
+        ProcessModel model = createProcess();
+        GroupModel g = model.createGroup("G", "G", null);
+        ActivityModel p = g.createChildActivity("P", "P", null);
+        ActivityModel q = g.createChildActivity("Q", "Q", null);
+        ActivityModel r = g.createChildActivity("R", "R", null);
+        p.setStarter(true);
+        model.createTransition("P", "Q");
+        model.createTransition("Q", "R");
+        model.createTransition("P", "R").setName("skip");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            g.setX(0);
+            g.setY(0);
+            g.setWidth(450);
+            g.setHeight(100);
+            p.setX(10);
+            p.setY(40);
+            q.setX(160);
+            q.setY(40);
+            r.setX(310);
+            r.setY(40);
+        }));
+
+        assertTransitionStaysInsideGroupContent(doc, "G", transitionId(model, "P", "R"));
+    }
+
+    @Test
     public void anEdgeDemotedFromAVerticalApproachDoesNotKeepItsBottomAttachment() throws Exception {
         // A -> B starts as a vertical approach, is blocked, and escalates to a lateral gutter elbow.
         // Its first run is then horizontal, so it must leave A's side — not the lower edge of A's
