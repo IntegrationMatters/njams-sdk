@@ -712,6 +712,38 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aBypassAndAnElbowOutOfOneActivityDoNotShareACorridor() throws Exception {
+        // S -> Y is a bypass over A and S -> T changes rows. Both leave S to the right, and the
+        // corridor just right of S's column is the bypass's exit and the elbow's lane-0 gutter, so
+        // their vertical runs land on one x and overlap.
+        ProcessModel model = createProcess();
+        ActivityModel s = model.createActivity("S", "S", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        ActivityModel t = model.createActivity("T", "T", null);
+        s.setStarter(true);
+        model.createTransition("S", "Y");
+        model.createTransition("S", "T");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            s.setX(0);
+            s.setY(0);
+            a.setX(150);
+            a.setY(0);
+            y.setX(300);
+            y.setY(0);
+            t.setX(150);
+            t.setY(200);
+        }));
+
+        List<double[]> bypass = points(findTransitionPolyline(doc, transitionId(model, "S", "Y")));
+        List<double[]> elbow = points(findTransitionPolyline(doc, transitionId(model, "S", "T")));
+        Assert.assertTrue("the bypass and the elbow must not run down the same corridor (both at "
+                + bypass.get(1)[0] + ")",
+            Math.abs(bypass.get(1)[0] - elbow.get(1)[0]) > 1);
+    }
+
+    @Test
     public void aRouteNeverRepeatsAWaypoint() throws Exception {
         // C overlaps A's column, so A and B end up in neighbouring column bands with C blocking the
         // direct segment. The bypass's exit corridor and its approach corridor are then the same gap,

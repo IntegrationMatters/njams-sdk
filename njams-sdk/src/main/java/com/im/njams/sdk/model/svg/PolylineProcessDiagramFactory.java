@@ -553,6 +553,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * Makes every branch of a fan take the same route shape. The channel shape and the gutter shape nest
      * their lanes independently, so a fan split between the two has branches crossing each other; only a
      * fan that approaches vertically throughout keeps the channel shape.
+     *
+     * <p>A fan can still mix a bypass with an elbow — a same-row branch has no elbow to take — so the
+     * corridors those two shapes share are reconciled in {@link #assignLanes} instead.
      */
     private static void alignFanShapes(List<Edge> edges) {
         Map<String, List<Edge>> fans = new LinkedHashMap<>();
@@ -629,9 +632,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
             }
             if (e.type == Type.BYPASS) {
-                // A bypass approaches its target through the gutter just left of the target column —
-                // the same reference gutter a fan-in elbow to the same target uses (see
-                // assignElbowGutter). Claim it so that group's lanes start one further out below.
+                // A bypass runs down the corridor just right of its source column and up the one just
+                // left of its target column — exactly the two reference gutters a fan-out and a fan-in
+                // elbow use (see assignElbowGutter), and it applies no lane to either. Claim both, so
+                // an elbow sharing one starts a lane further out instead of on the bypass's own x.
+                gutterColumnsClaimedByBypass.add(e.colS);
                 gutterColumnsClaimedByBypass.add(e.colT - 1);
             } else if (e.type == Type.ELBOW && !e.verticalApproach) {
                 elbowByGutter.computeIfAbsent(e.gutterCol, k -> new ArrayList<>()).add(e);
