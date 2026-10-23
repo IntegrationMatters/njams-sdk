@@ -295,7 +295,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         Map<Edge, Route> built = buildRoutes(edges);
         for (int round = 0; round < MAX_ESCALATION_ROUNDS; round++) {
             List<Edge> blocked = blockedEdges(edges, built, obstacles);
-            if (blocked.isEmpty() || !escalateFans(blocked, edges, obstacles, bands)) {
+            if (blocked.isEmpty() || !escalateBlocked(blocked, edges, obstacles, bands)) {
                 break;
             }
             assignLanes(edges);
@@ -335,36 +335,23 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      * keeps one shape. Returns whether anything moved — when nothing can be raised any more, the caller
      * stops and draws what it has.
      */
-    private boolean escalateFans(List<Edge> blocked, List<Edge> edges, Obstacles obstacles, Bands bands) {
+    /**
+     * Moves every blocked edge to its next candidate, and only those: an edge whose route is already
+     * clear keeps it. The spec asks a fan to share a route <em>shape</em>, which {@link #alignFanShapes}
+     * settles; raising a clear branch to a blocked sibling's level instead degrades a route that had
+     * nothing wrong with it. Returns false once nothing moved, which ends the escalation loop.
+     */
+    private boolean escalateBlocked(List<Edge> blocked, List<Edge> edges, Obstacles obstacles,
+        Bands bands) {
         boolean moved = false;
         for (Edge e : blocked) {
-            int target = e.level + 1;
-            for (Edge member : fanOf(e, edges)) {
-                while (member.level < target && escalate(member, bands)) {
-                    moved = true;
-                }
-            }
+            moved |= escalate(e, bands);
         }
         if (moved) {
             alignFanShapes(edges);
             assignGutters(edges, obstacles, bands);
         }
         return moved;
-    }
-
-    /** The edge itself plus every edge sharing its fan-out source or its fan-in target. */
-    private static List<Edge> fanOf(Edge e, List<Edge> edges) {
-        List<Edge> fan = new ArrayList<>();
-        String sourceId = e.transition.getFromActivity().getId();
-        String targetId = e.transition.getToActivity().getId();
-        for (Edge other : edges) {
-            if (other == e
-                || (e.sourceFanOut && sourceId.equals(other.transition.getFromActivity().getId()))
-                || (e.targetFanIn && targetId.equals(other.transition.getToActivity().getId()))) {
-                fan.add(other);
-            }
-        }
-        return fan;
     }
 
     /**

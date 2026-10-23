@@ -712,6 +712,35 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aClearBranchIsNotDegradedWhenItsSiblingEscalates() throws Exception {
+        // S -> N is adjacent, straight and clear. S -> T's final run crosses O, so it escalates; the
+        // whole fan escalates with it, which turns the clear straight branch into a channel detour.
+        ProcessModel model = createProcess();
+        ActivityModel s = model.createActivity("S", "S", null);
+        ActivityModel n = model.createActivity("N", "N", null);
+        ActivityModel t = model.createActivity("T", "T", null);
+        ActivityModel o = model.createActivity("O", "O", null);
+        s.setStarter(true);
+        model.createTransition("S", "N");
+        model.createTransition("S", "T");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            s.setX(0);
+            s.setY(0);
+            n.setX(150);
+            n.setY(0);
+            t.setX(300);
+            t.setY(200);
+            o.setX(150);
+            o.setY(200);
+        }));
+
+        List<double[]> clear = points(findTransitionPolyline(doc, transitionId(model, "S", "N")));
+        Assert.assertEquals("S -> N is clear where it is, so escalating its sibling must leave it alone",
+            2, clear.size());
+    }
+
+    @Test
     public void aGroupLeftUnsizedByItsLayouterStillRenders() throws Exception {
         // SimpleProcessModelLayouter, and CommonBfsModelLayouter on a model with no start activity,
         // leave a group at 0x0. Its box is then a point, which must still land in a band.
