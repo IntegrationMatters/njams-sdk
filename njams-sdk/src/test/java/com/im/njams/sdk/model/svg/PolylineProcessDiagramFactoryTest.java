@@ -712,6 +712,35 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aBypassAndItsStraightSiblingLeaveTheSourceOnSeparateRuns() throws Exception {
+        ProcessModel model = createProcess();
+        ActivityModel x = model.createActivity("X", "X", null);
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel y = model.createActivity("Y", "Y", null);
+        x.setStarter(true);
+        model.createTransition("X", "A");
+        model.createTransition("A", "Y");
+        model.createTransition("X", "Y");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            x.setX(0);
+            x.setY(0);
+            a.setX(150);
+            a.setY(0);
+            y.setX(300);
+            y.setY(0);
+        }));
+
+        List<double[]> straight = points(findTransitionPolyline(doc, transitionId(model, "X", "A")));
+        List<double[]> bypass = points(findTransitionPolyline(doc, transitionId(model, "X", "Y")));
+        Assert.assertTrue(
+            "X -> A and the X -> Y bypass must not run along the same y out of X, or a server-coloured "
+                + "executed transition is hidden behind its sibling (was " + straight.get(0)[1] + " and "
+                + bypass.get(0)[1] + ")",
+            Math.abs(straight.get(0)[1] - bypass.get(0)[1]) > 1);
+    }
+
+    @Test
     public void steplessBypass_isRoutedAsPolylineAvoidingIntermediateNode() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel x = model.createActivity("X", "X", null);

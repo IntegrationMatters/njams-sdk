@@ -602,6 +602,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
 
     /** Gives each edge sharing a gutter (elbow) or channel (bypass) a distinct lateral offset. */
     private void assignLanes(List<Edge> edges) {
+        // Lanes are re-assigned on every escalation round, so clear what the previous round staggered:
+        // an edge that has since changed shape would otherwise keep an offset nothing recomputes.
+        for (Edge e : edges) {
+            e.nodeStagger = 0;
+        }
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> backwardByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> elbowByGutter = new LinkedHashMap<>();
@@ -678,6 +683,30 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 }
             }
         }
+        // A bypass leaves its source on the same side, and at the same y, as a straight sibling, and
+        // the elbow stagger above never reaches it — so a fan mixing the two shapes draws both along one
+        // run out of the node, hiding a server-coloured executed transition behind an unexecuted one.
+        // Step each bypass below the runs already taken at that source, towards the channel it dives to.
+        Map<String, List<Edge>> bypassBySource = new LinkedHashMap<>();
+        for (Edge e : edges) {
+            if (e.type == Type.BYPASS && e.sourceFanOut) {
+                bypassBySource.computeIfAbsent(e.transition.getFromActivity().getId(),
+                    k -> new ArrayList<>()).add(e);
+            }
+        }
+        for (Map.Entry<String, List<Edge>> sourceGroup : bypassBySource.entrySet()) {
+            double taken = 0;
+            for (Edge e : edges) {
+                if (sourceGroup.getKey().equals(e.transition.getFromActivity().getId())) {
+                    taken = Math.max(taken, e.nodeStagger);
+                }
+            }
+            List<Edge> group = sourceGroup.getValue();
+            group.sort(bypassOrder);
+            for (int i = 0; i < group.size(); i++) {
+                group.get(i).nodeStagger = taken + (i + 1) * (LANE_GAP / 2.0);
+            }
+        }
         // A row-detouring fan-in elbow's channel run shares its row with any bypass already routed
         // through it (both use the same channelY/laneBase base for that row); it takes the next lane
         // after that row's bypasses so the two mechanisms never land on the same y.
@@ -713,8 +742,9 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             case BYPASS: {
                 double cy = e.laneBase + e.lane * LANE_GAP;
                 double entryY = e.tcy + TARGET_ENTRY_OFFSET;
-                wp.add(new Point(e.scx, e.scy));
-                wp.add(new Point(e.exitX, e.scy));
+                double exitY = e.scy + e.nodeStagger;
+                wp.add(new Point(e.scx, exitY));
+                wp.add(new Point(e.exitX, exitY));
                 wp.add(new Point(e.exitX, cy));
                 wp.add(new Point(e.approachX, cy));
                 wp.add(new Point(e.approachX, entryY));
