@@ -376,6 +376,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             shapeAsRouted(e, bands);
         } else if (e.type == Type.BACKWARD) {
             e.laneBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
+        } else if (e.upwardApproach) {
+            e.laneBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
         } else if (e.type == Type.BYPASS || e.verticalApproach) {
             e.laneBase = channelBelowBand(e.rowS + e.level, bands);
         } else if (!e.rowDetour) {
@@ -461,9 +463,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // its horizontal run has no length and the route is the blocked segment again — such an
             // edge has to go round the side, through a column gutter (the mirror of a same-row bypass).
             e.verticalApproach = e.colS != e.colT
-                && Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx) && e.tcy > e.scy;
+                && Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx);
             if (e.verticalApproach) {
-                e.laneBase = channelY(e.rowS, bands);
+                // A target above is reached through the channel above the rows, a target below through
+                // the one beneath them (spec 6.3). Backward edges never get here — they are classified
+                // before this and follow 6.5.
+                e.upwardApproach = e.tcy < e.scy;
+                e.laneBase = e.upwardApproach
+                    ? aboveChannelY(Math.min(e.rowS, e.rowT), bands)
+                    : channelY(e.rowS, bands);
             }
             // Otherwise the gutter the vertical run uses depends on the fan role, decided in
             // assignElbowGutter once the fan-out / fan-in flags are known.
@@ -613,10 +621,10 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         Map<Integer, List<Edge>> rowDetourByRow = new LinkedHashMap<>();
         Set<Integer> gutterColumnsClaimedByBypass = new HashSet<>();
         for (Edge e : edges) {
-            if (e.type == Type.BACKWARD) {
+            if (e.type == Type.BACKWARD || e.upwardApproach) {
+                // Both run in the channel above the rows, so they share one set of lanes.
                 backwardByRow.computeIfAbsent(Math.min(e.rowS, e.rowT), k -> new ArrayList<>()).add(e);
-            }
-            if (e.type == Type.BYPASS || e.verticalApproach) {
+            } else if (e.type == Type.BYPASS || e.verticalApproach) {
                 bypassByRow.computeIfAbsent(e.rowS, k -> new ArrayList<>()).add(e);
             }
             if (e.type == Type.BYPASS) {
@@ -802,12 +810,14 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
             case ELBOW: {
                 if (e.verticalApproach) {
-                    double cy = bands.clamp(e.laneBase + e.lane * LANE_GAP);
-                    e.exitSide = Side.BOTTOM;
-                    e.entrySide = Side.TOP;
+                    double cy = bands.clamp(e.upwardApproach
+                        ? e.laneBase - e.lane * LANE_GAP
+                        : e.laneBase + e.lane * LANE_GAP);
+                    e.exitSide = e.upwardApproach ? Side.TOP : Side.BOTTOM;
+                    e.entrySide = e.upwardApproach ? Side.BOTTOM : Side.TOP;
                     wp.addAll(channelCrossingWaypoints(e, cy));
                     labelX = (e.scx + e.tcx) / 2.0;
-                    labelY = cy + DEFAULT_TEXT_SIZE;
+                    labelY = e.upwardApproach ? cy - LABEL_GAP : cy + DEFAULT_TEXT_SIZE;
                     labelWidth = Math.abs(e.tcx - e.scx);
                     break;
                 }
@@ -1328,6 +1338,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private boolean targetFanIn;
         private boolean rowDetour;
         private boolean verticalApproach;
+        private boolean upwardApproach;
         private boolean gutterAssigned;
         private int rowT;
         private int level;

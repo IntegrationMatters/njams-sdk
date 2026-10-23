@@ -712,6 +712,33 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aVerticallyDominantEdgeGoingUpEntersTheTargetFromBelow() throws Exception {
+        // Spec 6.3: a vertically dominant edge exits the top when its target is above and is entered
+        // from the bottom. Only the downward half of that was implemented.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(300);
+            b.setX(60);
+            b.setY(0);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        double[] sourceBox = activityBoxFor(doc, model, "A");
+        double[] targetBox = activityBoxFor(doc, model, "B");
+        Assert.assertTrue("the edge must leave A upwards, above its icon (was " + pts.get(0)[1] + ")",
+            pts.get(0)[1] <= sourceBox[1] + 1);
+        Assert.assertTrue("the edge must enter B from below, at its label band's lower edge (was "
+                + pts.get(pts.size() - 1)[1] + ")",
+            pts.get(pts.size() - 1)[1] >= targetBox[3] + PolylineProcessDiagramFactory.LABEL_BAND_HEIGHT - 1);
+    }
+
+    @Test
     public void aSecondBackwardEdgeInATightGroupAlsoStaysBelowTheGroupHeader() throws Exception {
         // Two backward edges share the channel above the row, so the second runs a lane width higher.
         // That offset is applied after the ceiling clamp, which is what the clamp has to survive.
