@@ -140,9 +140,11 @@ public class PolylineDiagramSampleRenderingTest {
         a.setStarter(true);
         model.createTransition("A", "B").setName("up");
 
+        // B has to sit in a column of its own: two activities sharing one column take the lateral
+        // gutter route instead, which is the same-column skip, not the upward approach.
         a.setX(0);
         a.setY(400);
-        b.setX(0);
+        b.setX(60);
         b.setY(0);
 
         write("vertical-approach-up", model);
