@@ -761,6 +761,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     private Route buildRoute(Edge e) {
+        // Each shape below sets only the attachment sides it needs, and the same Edge is rebuilt on
+        // every escalation round — so clear them first. A side left over from a shape this edge no
+        // longer has would attach the drawn line to an edge of the icon its route never approaches.
+        e.exitSide = null;
+        e.entrySide = null;
         List<Point> wp = new ArrayList<>();
         double labelX;
         double labelY;

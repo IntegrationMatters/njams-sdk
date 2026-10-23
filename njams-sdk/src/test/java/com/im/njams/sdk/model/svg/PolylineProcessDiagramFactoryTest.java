@@ -712,6 +712,33 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void anEdgeDemotedFromAVerticalApproachDoesNotKeepItsBottomAttachment() throws Exception {
+        // A -> B starts as a vertical approach, is blocked, and escalates to a lateral gutter elbow.
+        // Its first run is then horizontal, so it must leave A's side — not the lower edge of A's
+        // label band, which would cut back diagonally across the band it was moved away from.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            c.setX(0);
+            c.setY(150);
+            b.setX(0);
+            b.setY(300);
+        }));
+
+        List<double[]> pts = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        Assert.assertEquals("the drawn start must sit on the same horizontal run as the first corner",
+            pts.get(1)[1], pts.get(0)[1], 0.001);
+        assertNoTransitionCrossesAnyLabelBand(doc);
+    }
+
+    @Test
     public void aSameColumnSkipIsRoutedAroundTheActivityItSkips() throws Exception {
         // The vertical mirror of the stepless bypass: A, C and B are stacked in one column and A -> B
         // skips over C, which sits there with no edges of its own. A vertical detour cannot clear it —
