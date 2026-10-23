@@ -813,6 +813,38 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aVerticalEdgesLabelIsCentredOnItsLine() throws Exception {
+        // A label beside a horizontal run sits above it, clear of the line. A vertical run has no
+        // "above", so its label is centred on the line and crosses it, both ways.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B").setName("wait");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            b.setX(0);
+            b.setY(150);
+        }));
+
+        Element label = findText(doc, transitionId(model, "A", "B") + "_label");
+        Assert.assertNotNull("the transition must be labelled", label);
+        double[] sourceBox = activityBoxFor(doc, model, "A");
+        double[] targetBox = activityBoxFor(doc, model, "B");
+        double midY = ((sourceBox[1] + sourceBox[3]) / 2 + (targetBox[1] + targetBox[3]) / 2) / 2;
+        double lineX = (sourceBox[0] + sourceBox[2]) / 2;
+        Assert.assertEquals("the label must be centred across the line", lineX,
+            Double.parseDouble(label.getAttribute("x")), 0.001);
+        Assert.assertEquals("the label must be anchored on its own middle", "middle",
+            label.getAttribute("text-anchor"));
+        double visualCentre =
+            Double.parseDouble(label.getAttribute("y")) - PolylineProcessDiagramFactory.TEXT_BASELINE_OFFSET;
+        Assert.assertEquals("the label must be centred along the line", midY, visualCentre, 1.0);
+    }
+
+    @Test
     public void aSameColumnSkipDoesNotShareItsRunOutOfTheSourceWithANeighbour() throws Exception {
         // The skip leaves A sideways, along the same row A -> X runs on, so the two would lie on top
         // of each other without the fan's exit stagger.

@@ -67,8 +67,8 @@ public class PolylineDiagramSampleRenderingTest {
         ActivityModel a = model.createActivity("A", "A", null);
         ActivityModel y = model.createActivity("Y", "Y", null);
         x.setStarter(true);
-        model.createTransition("X", "A");
-        model.createTransition("A", "Y");
+        model.createTransition("X", "A").setName("check");
+        model.createTransition("A", "Y").setName("send");
         model.createTransition("X", "Y").setName("skip");
 
         x.setX(0);
@@ -88,8 +88,8 @@ public class PolylineDiagramSampleRenderingTest {
         ActivityModel c = model.createActivity("C", "C", null);
         ActivityModel b = model.createActivity("B", "B", null);
         a.setStarter(true);
-        model.createTransition("A", "C");
-        model.createTransition("C", "B");
+        model.createTransition("A", "C").setName("check");
+        model.createTransition("C", "B").setName("send");
         model.createTransition("A", "B").setName("skip");
 
         a.setX(0);
@@ -112,10 +112,10 @@ public class PolylineDiagramSampleRenderingTest {
         ActivityModel b = model.createActivity("B", "B", null);
         ActivityModel x = model.createActivity("X", "X", null);
         a.setStarter(true);
-        model.createTransition("A", "C");
-        model.createTransition("C", "B");
+        model.createTransition("A", "C").setName("check");
+        model.createTransition("C", "B").setName("send");
         model.createTransition("A", "B").setName("skip");
-        model.createTransition("A", "X");
+        model.createTransition("A", "X").setName("notify");
 
         a.setX(0);
         a.setY(0);
@@ -138,8 +138,8 @@ public class PolylineDiagramSampleRenderingTest {
         a.setStarter(true);
         ActivityModel h = g.createChildActivity("H", "H", null);
         h.setStarter(true);
-        model.createTransition("A", "G");
-        model.createTransition("G", "B");
+        model.createTransition("A", "G").setName("enter");
+        model.createTransition("G", "B").setName("leave");
         model.createTransition("A", "B").setName("skip");
 
         placeGroupScenario(a, g, h, b);
@@ -206,9 +206,9 @@ public class PolylineDiagramSampleRenderingTest {
         ActivityModel c = model.createActivity("C", "C", null);
         ActivityModel d = model.createActivity("D", "D", null);
         a.setStarter(true);
-        model.createTransition("A", "B");
-        model.createTransition("B", "C");
-        model.createTransition("C", "D");
+        model.createTransition("A", "B").setName("first");
+        model.createTransition("B", "C").setName("second");
+        model.createTransition("C", "D").setName("third");
         model.createTransition("D", "A").setName("retry");
 
         a.setX(0);
@@ -232,12 +232,12 @@ public class PolylineDiagramSampleRenderingTest {
         model.createActivity("R", "R", null);
         model.createActivity("T", "T", null);
         s.setStarter(true);
-        model.createTransition("S", "P");
-        model.createTransition("S", "Q");
-        model.createTransition("S", "R");
-        model.createTransition("P", "T");
-        model.createTransition("Q", "T");
-        model.createTransition("R", "T");
+        model.createTransition("S", "P").setName("branch one");
+        model.createTransition("S", "Q").setName("branch two");
+        model.createTransition("S", "R").setName("branch three");
+        model.createTransition("P", "T").setName("join one");
+        model.createTransition("Q", "T").setName("join two");
+        model.createTransition("R", "T").setName("join three");
 
         new CommonBfsModelLayouter().layout(model);
 

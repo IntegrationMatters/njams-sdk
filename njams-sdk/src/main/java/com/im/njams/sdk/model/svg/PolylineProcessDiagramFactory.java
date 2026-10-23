@@ -87,6 +87,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     /** Height below the icon centre at which a bypass enters its target, keeping clear of the label. */
     private static final int TARGET_ENTRY_OFFSET = 12;
 
+    /**
+     * How far a line of text sits below its own visual centre: a baseline is the text's foot, not its
+     * middle. Used to centre a label on something rather than hang it from a baseline.
+     */
+    static final double TEXT_BASELINE_OFFSET = DEFAULT_TEXT_SIZE / 3.0;
+
     /** Height of a group's header bar, as drawn by the inherited group rendering. */
     private static final int GROUP_HEADER_HEIGHT = 20;
 
@@ -921,12 +927,12 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                     int lineCount = Math.max(1, wrapLabel(e.transition.getName(), labelWidth).getLines().length);
                     labelY = (e.scy + e.tcy) / 2.0 - LABEL_GAP - (lineCount - 1) * DEFAULT_TEXT_SIZE;
                 } else {
-                    // Purely vertical: the label lives in the same narrow gap the two activities are
-                    // spaced by, so a wrapped block must keep its last line where a single line would
-                    // sit and grow the earlier lines upward, instead of growing every line downward
-                    // into the activity below.
+                    // Purely vertical: there is no "above the line" to hang the label from, so the
+                    // block is centred on the midpoint of the run and crosses the line — horizontally
+                    // too, since labelX is the line's own x and the anchor is the text's middle.
                     int lineCount = Math.max(1, wrapLabel(e.transition.getName(), labelWidth).getLines().length);
-                    labelY = (e.scy + e.tcy) / 2.0 + DEFAULT_TEXT_SIZE - (lineCount - 1) * DEFAULT_TEXT_SIZE;
+                    labelY = (e.scy + e.tcy) / 2.0 + TEXT_BASELINE_OFFSET
+                        - (lineCount - 1) * DEFAULT_TEXT_SIZE / 2.0;
                 }
                 break;
             }
