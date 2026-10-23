@@ -380,11 +380,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         if (e.type == Type.STRAIGHT) {
             shapeAsRouted(e, bands);
         } else if (e.type == Type.BACKWARD) {
-            e.laneBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
+            e.channelBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
         } else if (e.upwardApproach) {
-            e.laneBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
+            e.channelBase = aboveChannelBand(Math.min(e.rowS, e.rowT) - e.level, bands);
         } else if (e.type == Type.BYPASS || e.verticalApproach) {
-            e.laneBase = channelBelowBand(e.rowS + e.level, bands);
+            e.channelBase = channelBelowBand(e.rowS + e.level, bands);
         } else if (!e.rowDetour) {
             e.rowDetour = true;
             e.exitX = exitCorridorX(e.sourceBox, bands);
@@ -432,7 +432,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // A backward edge runs against the flow, so it arcs over the rows it passes instead of
             // cutting back through them (spec 6.5).
             e.type = Type.BACKWARD;
-            e.laneBase = aboveChannelY(Math.min(rowS, rowT), bands);
+            e.channelBase = aboveChannelY(Math.min(rowS, rowT), bands);
         } else if (!obstacleBetween && (colS == colT || (rowS == rowT && Math.abs(colT - colS) < 2))) {
             e.type = Type.STRAIGHT;
         } else {
@@ -451,7 +451,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             e.type = Type.BYPASS;
             // Channel below the row, kept clear both of the label text drawn beneath the icons and of
             // any sibling in this row that is taller than a plain activity (e.g. a group box).
-            e.laneBase = channelY(e.rowS, bands);
+            e.channelBase = channelY(e.rowS, bands);
             // Leave the source on its right and re-enter the target from the left, through the
             // gutters between columns, so neither end crosses the label below an icon. The neighbour
             // columns come from the sibling bands, which cover every activity in the container; a
@@ -474,7 +474,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 // the one beneath them (spec 6.3). Backward edges never get here — they are classified
                 // before this and follow 6.5.
                 e.upwardApproach = e.tcy < e.scy;
-                e.laneBase = e.upwardApproach
+                e.channelBase = e.upwardApproach
                     ? aboveChannelY(Math.min(e.rowS, e.rowT), bands)
                     : channelY(e.rowS, bands);
             }
@@ -601,27 +601,28 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
      */
     private void assignElbowGutter(Edge e, Obstacles obstacles, Bands bands) {
         if (e.targetFanIn && !e.sourceFanOut) {
-            e.laneBase = approachCorridorX(e.targetBox, bands);
+            e.corridorBase = approachCorridorX(e.targetBox, bands);
             e.gutterCol = e.colT - 1;
             e.rowDetour = obstacles.blocks(
-                List.of(new Point(e.scx, e.scy), new Point(e.laneBase, e.scy)),
+                List.of(new Point(e.scx, e.scy), new Point(e.corridorBase, e.scy)),
                 e.transition.getFromActivity(), e.transition.getToActivity());
             if (e.rowDetour) {
                 e.exitX = exitCorridorX(e.sourceBox, bands);
                 e.channelBase = channelY(e.rowS, bands);
             }
         } else {
-            e.laneBase = exitCorridorX(e.sourceBox, bands);
+            e.corridorBase = exitCorridorX(e.sourceBox, bands);
             e.gutterCol = e.colS;
         }
     }
 
     /** Gives each edge sharing a gutter (elbow) or channel (bypass) a distinct lateral offset. */
     private void assignLanes(List<Edge> edges) {
-        // Lanes are re-assigned on every escalation round, so clear what the previous round staggered:
-        // an edge that has since changed shape would otherwise keep an offset nothing recomputes.
+        // This runs at the start of every escalation round, before the routes are rebuilt, so it is
+        // where everything a round derives gets cleared. Without it an edge keeps a lane, a stagger or
+        // an attachment side from a round whose shape it no longer has.
         for (Edge e : edges) {
-            e.nodeStagger = 0;
+            e.resetForRound();
         }
         Map<Integer, List<Edge>> bypassByRow = new LinkedHashMap<>();
         Map<Integer, List<Edge>> backwardByRow = new LinkedHashMap<>();
@@ -655,13 +656,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         for (List<Edge> group : bypassByRow.values()) {
             group.sort(bypassOrder);
             for (int i = 0; i < group.size(); i++) {
-                group.get(i).lane = i;
+                group.get(i).channelLane = i;
             }
         }
         for (List<Edge> group : backwardByRow.values()) {
             group.sort(bypassOrder);
             for (int i = 0; i < group.size(); i++) {
-                group.get(i).lane = i;
+                group.get(i).channelLane = i;
             }
         }
         // Elbow lanes must nest so branches sharing a gutter never cross. Lane 0 hugs the gutter base
@@ -685,7 +686,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             int laneOffset = gutterColumnsClaimedByBypass.contains(gutterGroup.getKey()) ? 1 : 0;
             for (int i = 0; i < n; i++) {
                 Edge e = group.get(i);
-                e.lane = i + laneOffset;
+                e.corridorLane = i + laneOffset;
                 // Stagger direction must follow the elbow's travel direction so the staggered exit/entry
                 // y stays strictly between scy and tcy, keeping the vertical segment clear of any
                 // straight edge from the same source (or to the same target) at y=scy (or y=tcy).
@@ -726,7 +727,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             }
         }
         // A row-detouring fan-in elbow's channel run shares its row with any bypass already routed
-        // through it (both use the same channelY/laneBase base for that row); it takes the next lane
+        // through it (both use this row's channel as their base); it takes the next lane
         // after that row's bypasses so the two mechanisms never land on the same y.
         for (Map.Entry<Integer, List<Edge>> rowGroup : rowDetourByRow.entrySet()) {
             List<Edge> group = rowGroup.getValue();
@@ -803,11 +804,6 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
     }
 
     private Route buildRoute(Edge e, Bands bands) {
-        // Each shape below sets only the attachment sides it needs, and the same Edge is rebuilt on
-        // every escalation round — so clear them first. A side left over from a shape this edge no
-        // longer has would attach the drawn line to an edge of the icon its route never approaches.
-        e.exitSide = null;
-        e.entrySide = null;
         List<Point> wp = new ArrayList<>();
         double labelX;
         double labelY;
@@ -815,7 +811,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         String labelAnchor = "middle";
         switch (e.type) {
             case BYPASS: {
-                double cy = bands.clamp(e.laneBase + e.lane * LANE_GAP);
+                double cy = bands.clamp(e.channelBase + e.channelLane * LANE_GAP);
                 wp.addAll(sideEntryWaypoints(e, e.scy + e.nodeStagger, e.tcy + TARGET_ENTRY_OFFSET,
                     e.approachX, cy));
                 labelX = (e.exitX + e.approachX) / 2.0;
@@ -824,7 +820,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 break;
             }
             case BACKWARD: {
-                double cy = bands.clamp(e.laneBase - e.lane * LANE_GAP);
+                double cy = bands.clamp(e.channelBase - e.channelLane * LANE_GAP);
                 e.exitSide = Side.TOP;
                 e.entrySide = Side.TOP;
                 wp.addAll(channelCrossingWaypoints(e, cy));
@@ -836,8 +832,8 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             case ELBOW: {
                 if (e.verticalApproach) {
                     double cy = bands.clamp(e.upwardApproach
-                        ? e.laneBase - e.lane * LANE_GAP
-                        : e.laneBase + e.lane * LANE_GAP);
+                        ? e.channelBase - e.channelLane * LANE_GAP
+                        : e.channelBase + e.channelLane * LANE_GAP);
                     e.exitSide = e.upwardApproach ? Side.TOP : Side.BOTTOM;
                     e.entrySide = e.upwardApproach ? Side.BOTTOM : Side.TOP;
                     wp.addAll(channelCrossingWaypoints(e, cy));
@@ -846,7 +842,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                     labelWidth = Math.abs(e.tcx - e.scx);
                     break;
                 }
-                double gx = e.laneBase + e.lane * LANE_GAP;
+                double gx = e.corridorBase + e.corridorLane * LANE_GAP;
                 // Stagger exit/entry y at the node so sibling branches do not share a collinear
                 // horizontal segment — which would hide a server-coloured (green) executed transition
                 // behind unexecuted siblings drawn on top of it. Pure fan-in elbows stagger at the
@@ -1341,10 +1337,15 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         LEFT, RIGHT, TOP, BOTTOM
     }
 
-    /** Working state for one edge while routing a container. */
+    /**
+     * Working state for one edge while routing a container, grouped by the phase that writes it. A
+     * route is built several times over — once per escalation round — so everything a round derives is
+     * listed last and cleared by {@link #resetForRound()} before the next one runs.
+     */
     private static final class Edge {
+
+        // Fixed by classify: the transition, where its two nodes sit, and which bands they fall in.
         private TransitionModel transition;
-        private Type type;
         private NodeBox sourceBox;
         private NodeBox targetBox;
         private double scx;
@@ -1352,26 +1353,44 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
         private double tcx;
         private double tcy;
         private int colS;
-        private int rowS;
         private int colT;
-        private int gutterCol;
-        private double laneBase;
-        private double exitX;
-        private double approachX;
-        private int lane;
-        private double nodeStagger;
+        private int rowS;
+        private int rowT;
         private boolean sourceFanOut;
         private boolean targetFanIn;
-        private boolean rowDetour;
+
+        // The shape, and how far it has been escalated: classify and shapeAsRouted choose it, escalate
+        // moves it on while the route it produces is still blocked.
+        private Type type;
         private boolean verticalApproach;
         private boolean upwardApproach;
-        private boolean gutterAssigned;
-        private int rowT;
+        private boolean rowDetour;
         private int level;
+
+        // Where the route crosses. A channel is a y between two row bands, a corridor an x between two
+        // column bands; a shape uses one of them, or — when it detours — both.
+        private double channelBase;
+        private double corridorBase;
+        private double exitX;
+        private double approachX;
+        private int gutterCol;
+        private boolean gutterAssigned;
+
+        // Derived per round from the shape above, and cleared before each one.
+        private int channelLane;
+        private int corridorLane;
+        private double nodeStagger;
         private Side exitSide;
         private Side entrySide;
-        private double channelBase;
-        private int channelLane;
+
+        /** Clears everything one routing round derives, so the next one cannot inherit it. */
+        private void resetForRound() {
+            channelLane = 0;
+            corridorLane = 0;
+            nodeStagger = 0;
+            exitSide = null;
+            entrySide = null;
+        }
     }
 
     /**
