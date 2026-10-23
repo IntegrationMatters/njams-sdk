@@ -311,9 +311,13 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             assignLanes(edges);
             built = buildRoutes(edges, bands);
         }
-        for (Edge e : blockedEdges(edges, built, obstacles)) {
-            LOG.debug("No clear route found for transition {}; drawing it over an activity box.",
-                e.transition.getId());
+        if (LOG.isDebugEnabled()) {
+            // Finding them again costs a segment-versus-box pass over every edge, which is worth it
+            // only if the result is going to be read.
+            for (Edge e : blockedEdges(edges, built, obstacles)) {
+                LOG.debug("No clear route found for transition {}; drawing it over an activity box.",
+                    e.transition.getId());
+            }
         }
         for (Map.Entry<Edge, Route> entry : built.entrySet()) {
             routes.put(entry.getKey().transition.getId(), entry.getValue());
