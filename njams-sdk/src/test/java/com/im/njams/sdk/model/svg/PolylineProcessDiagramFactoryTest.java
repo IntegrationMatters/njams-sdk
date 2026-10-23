@@ -813,6 +813,41 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aSameColumnSkipDoesNotShareItsRunOutOfTheSourceWithANeighbour() throws Exception {
+        // The skip leaves A sideways, along the same row A -> X runs on, so the two would lie on top
+        // of each other without the fan's exit stagger.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel x = model.createActivity("X", "X", null);
+        a.setStarter(true);
+        model.createTransition("A", "C");
+        model.createTransition("C", "B");
+        model.createTransition("A", "B");
+        model.createTransition("A", "X");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            c.setX(0);
+            c.setY(150);
+            b.setX(0);
+            b.setY(300);
+            x.setX(150);
+            x.setY(0);
+        }));
+
+        List<double[]> skip = points(findTransitionPolyline(doc, transitionId(model, "A", "B")));
+        List<double[]> neighbour = points(findTransitionPolyline(doc, transitionId(model, "A", "X")));
+        Assert.assertTrue("the skip and A -> X must not leave A along the same y (was "
+                + skip.get(0)[1] + " and " + neighbour.get(0)[1] + ")",
+            Math.abs(skip.get(0)[1] - neighbour.get(0)[1]) > 1);
+        assertNoTransitionsCrossEachOther(doc);
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
     public void anUpwardEdgeCrossesBetweenTheRowsAndNeverReachesOverItsTarget() throws Exception {
         // Approaching from below means crossing in the gap between the two rows. A channel above the
         // target's row overshoots it, and the run back down then goes through the target's icon and

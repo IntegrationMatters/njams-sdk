@@ -103,6 +103,33 @@ public class PolylineDiagramSampleRenderingTest {
     }
 
     @Test
+    public void skipOverAnActivityInTheSameColumnBesideANeighbourOnTheSourceRow() throws Exception {
+        // The same-column skip leaves A sideways, on the same row as A -> X. The two must not share
+        // that run out of A.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        ActivityModel x = model.createActivity("X", "X", null);
+        a.setStarter(true);
+        model.createTransition("A", "C");
+        model.createTransition("C", "B");
+        model.createTransition("A", "B").setName("skip");
+        model.createTransition("A", "X");
+
+        a.setX(0);
+        a.setY(0);
+        c.setX(0);
+        c.setY(150);
+        b.setX(0);
+        b.setY(300);
+        x.setX(150);
+        x.setY(0);
+
+        write("same-column-skip-with-neighbour", model);
+    }
+
+    @Test
     public void bypassOverAGroup() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel a = model.createActivity("A", "A", null);
