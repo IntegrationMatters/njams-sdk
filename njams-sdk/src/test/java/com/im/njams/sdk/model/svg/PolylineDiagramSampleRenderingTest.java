@@ -61,7 +61,7 @@ public class PolylineDiagramSampleRenderingTest {
     }
 
     @Test
-    public void bypassOverAnActivityOffsetVertically() throws Exception {
+    public void bypassOverAnIntermediateActivity() throws Exception {
         ProcessModel model = createProcess();
         ActivityModel x = model.createActivity("X", "X", null);
         ActivityModel a = model.createActivity("A", "A", null);
@@ -76,9 +76,9 @@ public class PolylineDiagramSampleRenderingTest {
         a.setX(150);
         a.setY(0);
         y.setX(300);
-        y.setY(7);
+        y.setY(0);
 
-        write("bypass-offset", model);
+        write("bypass", model);
     }
 
     @Test
@@ -194,12 +194,15 @@ public class PolylineDiagramSampleRenderingTest {
         write("fan-out-fan-in", model);
     }
 
-    /** A group wide enough to hold its child, with a plain activity on either side of it. */
+    /**
+     * A group wide enough to hold its child, with a plain activity on either side of it. The group's box runs
+     * from {@code y + 10} over its full height, so its centre lines up with the activities only at y=55.
+     */
     private static void placeGroupScenario(ActivityModel a, GroupModel g, ActivityModel h, ActivityModel b) {
         a.setX(0);
         a.setY(100);
         g.setX(150);
-        g.setY(60);
+        g.setY(55);
         g.setWidth(120);
         g.setHeight(140);
         h.setX(180);
