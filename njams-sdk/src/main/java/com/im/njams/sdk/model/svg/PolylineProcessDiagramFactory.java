@@ -417,7 +417,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // cutting back through them (spec 6.5).
             e.type = Type.BACKWARD;
             e.laneBase = aboveChannelY(Math.min(rowS, rowT), bands);
-        } else if (colS == colT || (rowS == rowT && !obstacleBetween && Math.abs(colT - colS) < 2)) {
+        } else if (!obstacleBetween && (colS == colT || (rowS == rowT && Math.abs(colT - colS) < 2))) {
             e.type = Type.STRAIGHT;
         } else {
             shapeAsRouted(e, bands);
@@ -448,7 +448,11 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             // An approach that is more vertical than horizontal leaves the source downwards and comes
             // down onto the target, so it uses the row channel rather than a column gutter. Upward
             // approaches keep the side-entering shape until backward edges get their own channel.
-            e.verticalApproach = Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx) && e.tcy > e.scy;
+            // Two nodes in one column are the exception: that shape returns to the source's own x, so
+            // its horizontal run has no length and the route is the blocked segment again — such an
+            // edge has to go round the side, through a column gutter (the mirror of a same-row bypass).
+            e.verticalApproach = e.colS != e.colT
+                && Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx) && e.tcy > e.scy;
             if (e.verticalApproach) {
                 e.laneBase = channelY(e.rowS, bands);
             }

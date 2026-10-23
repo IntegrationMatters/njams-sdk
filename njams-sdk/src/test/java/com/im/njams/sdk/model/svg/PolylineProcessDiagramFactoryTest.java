@@ -712,6 +712,30 @@ public class PolylineProcessDiagramFactoryTest {
     }
 
     @Test
+    public void aSameColumnSkipIsRoutedAroundTheActivityItSkips() throws Exception {
+        // The vertical mirror of the stepless bypass: A, C and B are stacked in one column and A -> B
+        // skips over C, which sits there with no edges of its own. A vertical detour cannot clear it —
+        // both ends share an x, so the detour's horizontal run has no length. The way round is a gutter.
+        ProcessModel model = createProcess();
+        ActivityModel a = model.createActivity("A", "A", null);
+        ActivityModel c = model.createActivity("C", "C", null);
+        ActivityModel b = model.createActivity("B", "B", null);
+        a.setStarter(true);
+        model.createTransition("A", "B");
+
+        Document doc = parse(renderWithoutLayout(model, () -> {
+            a.setX(0);
+            a.setY(0);
+            c.setX(0);
+            c.setY(150);
+            b.setX(0);
+            b.setY(300);
+        }));
+
+        assertNoTransitionCrossesAnyActivity(doc);
+    }
+
+    @Test
     public void aClearBranchIsNotDegradedWhenItsSiblingEscalates() throws Exception {
         // S -> N is adjacent, straight and clear. S -> T's final run crosses O, so it escalates; the
         // whole fan escalates with it, which turns the clear straight branch into a channel detour.
