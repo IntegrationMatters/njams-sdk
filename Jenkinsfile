@@ -21,10 +21,10 @@ pipeline {
         // samples are not published (maven.deploy.skip=true in their POMs).
         stage('Build') {
             steps {
-                sh """mvn clean install -Pjenkins-cli \
-                    -DrevisionNumberPlugin.revision=${env.BUILD_NUMBER} \
-                    -DscmBranch=${env.BRANCH_NAME} \
-                    -DscmCommit=${env.GIT_COMMIT}"""
+                // Branch, commit and build number are resolved by git-commit-id-maven-plugin from the
+                // checkout itself (and from BUILD_NUMBER/GIT_BRANCH when running here), so they need
+                // not be passed in and are no longer lost in the deploy stage below.
+                sh 'mvn clean install -Pjenkins-cli'
             }
             post {
                 always {

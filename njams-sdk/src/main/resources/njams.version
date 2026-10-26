@@ -1,4 +1,5 @@
-sdk.version=${project.version} (${revisionNumberPlugin.revision})
-sdk.scmBranch=${scmBranch}
-sdk.scmCommit=${scmCommit}
+sdk.version=${project.version} (${git.build.number})
+sdk.scmBranch=${git.branch}
+sdk.scmCommit=${git.commit.id}
 sdk.buildYear=${current.year}
+sdk.buildTimestamp=${current.timestamp}

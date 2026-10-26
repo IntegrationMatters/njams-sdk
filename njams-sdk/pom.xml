@@ -184,10 +184,10 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
-                        <id>timestamp-property</id>
+                        <id>current-year-property</id>
                         <goals>
                             <goal>timestamp-property</goal>
                         </goals>
@@ -197,7 +197,43 @@
                             <pattern>yyyy</pattern>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>current-timestamp-property</id>
+                        <goals>
+                            <goal>timestamp-property</goal>
+                        </goals>
+                        <phase>validate</phase>
+                        <configuration>
+                            <name>current.timestamp</name>
+                            <pattern>yyyy-MM-dd HH:mm:ss</pattern>
+                        </configuration>
+                    </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>resolve-git-metadata</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- The repository root is one level up; this module has no .git of its own. -->
+                    <dotGitDirectory>${project.basedir}/../.git</dotGitDirectory>
+                    <!-- A build from a source archive has no .git; it then keeps the POM's fallbacks. -->
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+                    <generateGitPropertiesFile>false</generateGitPropertiesFile>
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>^git\.branch$</includeOnlyProperty>
+                        <includeOnlyProperty>^git\.commit\.id$</includeOnlyProperty>
+                        <includeOnlyProperty>^git\.build\.number$</includeOnlyProperty>
+                    </includeOnlyProperties>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
