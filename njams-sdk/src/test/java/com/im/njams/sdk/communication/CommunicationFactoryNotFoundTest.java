@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.im.njams.sdk.Njams;
@@ -21,11 +22,18 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.CapturingLogAppender;
+import com.im.njams.sdk.utils.ScopedSpiRule;
 
 /**
  * Verifies what is reported when the configured sender or receiver implementation cannot be found.
  */
 public class CommunicationFactoryNotFoundTest {
+
+    /** Register the deliberately broken implementations for this test only, not for the whole test suite. */
+    @Rule
+    public ScopedSpiRule failingSender = new ScopedSpiRule(AbstractSender.class, FailingTestSender.class);
+    @Rule
+    public ScopedSpiRule failingReceiver = new ScopedSpiRule(AbstractReceiver.class, FailingTestReceiver.class);
 
     private Njams njams;
 

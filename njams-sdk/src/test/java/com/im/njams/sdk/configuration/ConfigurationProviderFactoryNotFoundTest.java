@@ -10,15 +10,23 @@ import java.util.Properties;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
+import org.junit.Rule;
 import org.junit.Test;
 
+import com.im.njams.sdk.configuration.provider.FailingConfigurationProvider;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.CapturingLogAppender;
+import com.im.njams.sdk.utils.ScopedSpiRule;
 
 /**
  * Verifies what is reported when the configured {@link ConfigurationProvider} cannot be found.
  */
 public class ConfigurationProviderFactoryNotFoundTest {
+
+    /** Registers the deliberately broken provider for this test only, not for the whole test suite. */
+    @Rule
+    public ScopedSpiRule failingProvider =
+        new ScopedSpiRule(ConfigurationProvider.class, FailingConfigurationProvider.class);
 
     private ClientSettings settingsWithProvider(String name) {
         ClientSettings settings = ClientSettings.from(new Properties());

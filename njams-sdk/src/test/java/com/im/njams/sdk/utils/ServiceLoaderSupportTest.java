@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
@@ -42,15 +43,19 @@ import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
 
 public class ServiceLoaderSupportTest {
+
+    /** Registers the deliberately broken factory for this test only, not for the whole test suite. */
+    @Rule
+    public ScopedSpiRule failingFactory = new ScopedSpiRule(JmsFactory.class, FailingJmsFactory.class);
+
     private ServiceLoaderSupport<JmsFactory> toTest = null;
 
     @Before
     public void setUp() {
-        // There is a FailingJmsFactory test class that fails to initialize during SPI lookup
-        // However, there is no test for the failing instance since the internal iterator skips that
-        // entry except for the very first access. At least there is a DEBUG message printed once
-        // for that case.
-        // FailingJmsFactory always fails to construct and is filtered out, leaving: NoopJmsFactory,
+        // FailingJmsFactory is registered by the rule above and always fails to construct, so it is
+        // filtered out of every lookup here. There is no test for the failing instance itself since the
+        // internal iterator skips that entry except for the very first access.
+        // That leaves: NoopJmsFactory,
         // WorkingJmsFactory, and EmbeddedActiveMqJmsFactory (test), plus JndiJmsFactory,
         // ActiveMqSslJmsFactory, and AzureServiceBusJmsFactory (production).
         toTest = new ServiceLoaderSupport<>(JmsFactory.class);

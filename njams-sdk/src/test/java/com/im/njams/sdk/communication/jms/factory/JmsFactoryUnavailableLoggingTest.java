@@ -8,16 +8,23 @@ import java.util.Properties;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.FailingJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.CapturingLogAppender;
+import com.im.njams.sdk.utils.ScopedSpiRule;
 
 /**
  * Verifies what is reported when a configured JMS factory is not found and the default is used instead.
  */
 public class JmsFactoryUnavailableLoggingTest {
+
+    /** Registers the deliberately broken factory for this test only, not for the whole test suite. */
+    @Rule
+    public ScopedSpiRule failingFactory = new ScopedSpiRule(JmsFactory.class, FailingJmsFactory.class);
 
     private ClientSettings settings(String key, String value) {
         ClientSettings settings = ClientSettings.from(new Properties());
