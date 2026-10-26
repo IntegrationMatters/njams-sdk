@@ -123,7 +123,7 @@ public class Njams {
     /**
      * Key for clientVersion
      */
-    public static final String CLIENT_VERSION_KEY = "clientVersion";
+    public static final String CLIENT_VERSION_KEY = "client.version";
     /**
      * Key for sdkVersion
      */

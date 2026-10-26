@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +60,7 @@ public class NjamsMetadata {
 
     /** Regex for the simple pattern {@code njams.*.debug.*} (literal dots, {@code *} matches any characters). */
     private static final Pattern DEBUG_SETTING_KEY_PATTERN = Pattern.compile("njams\\..*\\.debug\\..*");
+    private static final String UNKNOWN = "unknown";
 
     private final String category;
     private final Path clientPath;
@@ -188,27 +190,26 @@ public class NjamsMetadata {
             final Properties prop = new Properties();
             try (InputStream is = url.openStream()) {
                 prop.load(is);
-                prop.entrySet()
-                    .forEach(e -> versions.put(String.valueOf(e.getKey()), String.valueOf(e.getValue())));
+                prop.forEach((k, v) -> versions.put(String.valueOf(k), String.valueOf(v)));
             } catch (Exception e) {
                 LOG.error("Unable to load versions from {}", url, e);
             }
         }
-        if (version != null && !versions.containsKey(Njams.CLIENT_VERSION_KEY)) {
+        if (version != null && !versions.containsKey(Njams.CLIENT_VERSION_KEY) && !versions.containsKey(
+            "clientVersion")) {
             LOG.debug("No version file for {} found!", Njams.CLIENT_VERSION_KEY);
-            versions.put(Njams.CLIENT_VERSION_KEY, version);
+            versions.put(Njams.CLIENT_VERSION_KEY, StringUtils.isBlank(version) ? UNKNOWN : version);
         }
         if (!versions.containsKey(Njams.SDK_VERSION_KEY)) {
             LOG.debug("No version file for {} found!", Njams.SDK_VERSION_KEY);
-            versions.put(Njams.SDK_VERSION_KEY, "5.0.0.dev");
+            versions.put(Njams.SDK_VERSION_KEY, UNKNOWN);
         }
     }
 
     void printStartupBanner(ClientSettings settings) {
         LOG.info("************************************************************");
-        LOG.info(
-            "***      nJAMS SDK: Copyright (c) " + versions.get(Njams.BUILD_YEAR)
-                + " Salesfive Integration Services GmbH");
+        LOG.info("***      nJAMS SDK: Copyright (c) {} Salesfive Integration Services GmbH",
+            versions.get(Njams.BUILD_YEAR));
         LOG.info("*** ");
         LOG.info("***      Version Info:");
         versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
@@ -234,7 +235,7 @@ public class NjamsMetadata {
             machine = java.net.InetAddress.getLocalHost().getHostName();
         } catch (Exception e) {
             LOG.debug("Error getting machine name", e);
-            machine = "unknown";
+            machine = UNKNOWN;
         }
     }
 }
