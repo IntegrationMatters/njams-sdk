@@ -123,9 +123,6 @@ public class JmsReceiverTest {
         assertEquals("njams.commands", impl.getTopicName());
     }
 
-    //Delete this when SDK-111 has been resolved and uncomment the method with
-    //the identical name.
-
     /**
      * This method tests if the init works with empty Properties.
      */
@@ -136,17 +133,6 @@ public class JmsReceiverTest {
         //Initialized
         JmsReceiverMock.testAfterInit(impl, EMPTYPROPS);
     }
-
-    //Uncomment this when SDK-111 has been resolved and delete the method with
-    //the identical name. Maybe it is not expected NjamsSdkRuntimeException,
-    //but an other exception.
-    /**
-     * @Test(expected = NjamsSdkRuntimeException.class) public void
-     * testInitWithEmptyProps(){ this.testBeforeInit(impl);
-     * impl.init(EMPTYPROPS); }
-     */
-    //Delete this when SDK-111 has been resolved and uncomment the method with
-    //the identical name.
 
     /**
      * This method tests if the init works with null Properties. It should throw
@@ -159,16 +145,6 @@ public class JmsReceiverTest {
         impl.init(null);
     }
 
-    //Uncomment this when SDK-111 has been resolved and delete the method with
-    //the identical name. Maybe it is not expected NjamsSdkRuntimeException,
-    //but an other exception.
-    /**
-     * @Test(expected = NjamsSdkRuntimeException.class) public void
-     * testInitWithNullProps(){ this.testBeforeInit(impl); //Should throw a
-     * NullPointerException because of props.getProperty(..) with null
-     * Properties impl.init(null); }
-     *
-     */
     /**
      * This method tests if the init works with normal Properties where
      * JmsConstants.NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION is set.

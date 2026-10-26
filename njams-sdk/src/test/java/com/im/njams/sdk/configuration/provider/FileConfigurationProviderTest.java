@@ -24,6 +24,7 @@
 package com.im.njams.sdk.configuration.provider;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,7 +37,6 @@ import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.im.njams.sdk.configuration.ConfigurationProvider;
@@ -146,14 +146,13 @@ public class FileConfigurationProviderTest {
     }
 
     @Test
-    @Ignore("Revoking read permission does not work on Windows")
     public void testValidateNoRead() throws IOException {
         File config = new File(tmpDir, "config.json");
         config.createNewFile();
-        config.setReadable(false, false);
         assertTrue(config.isFile());
-        // fails here already (for Windows)
-        assertFalse(Files.isReadable(config.toPath()));
+        // Windows ignores the request, and a root user reads the file regardless of the permission bit.
+        assumeTrue("Platform cannot revoke read permission for this user",
+            config.setReadable(false, false) && !Files.isReadable(config.toPath()));
         configure(config);
         ConfigurationValidationResult validation = toTest.validate();
         assertFalse(validation.isReadable());

@@ -156,3 +156,4 @@ reply `POST` that is observed in the WireMock journal.
 | JMS reachable through the proxy; a `down` toxic blocks it | `jms.JmsThroughProxySmokeIT` |
 | HTTP `POST` through the proxy reaches the WireMock stub | `http.HttpThroughProxySmokeIT` |
 | Dynamic ports, per-proxy toxic isolation, reset between tests | `support.DockerEnvironmentSmokeIT` |
+| The SDK's JMS factory SPI resolves against the broker (JNDI lookup, connection factory, destination) | `jms.JndiJmsFactorySmokeIT` |

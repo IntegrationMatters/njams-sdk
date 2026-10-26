@@ -218,6 +218,18 @@ The module's own value is the regression assertions in §6/§7 running green aga
 no separate unit-test layer for the harness itself beyond what's needed to keep the fixed process/activity model
 and the three knobs correct — kept intentionally minimal per §2's flakiness goal.
 
+**Smoke tier.** Alongside the §6/§7 scenarios the module carries a few `*SmokeIT` classes that check the test
+environment itself rather than the SDK's resilience behavior: that the containers are reachable, that the fault
+injector works and resets between tests, and that the SDK's connection plumbing resolves at all. A failing
+scenario can then be read as a real finding rather than a broken fixture. They are listed in the module's
+`README.md` under "Environment smoke checks".
+
+**Decision record:** `JndiJmsFactorySmokeIT` was added on 2026-10-26 by moving `AMQInitTest` out of
+`njams-sdk`'s unit-test tree, where it had been `@Ignore`d as "should only be executed manually" against a
+hardcoded internal broker host and was therefore unrunnable in practice. What it covers — `JmsFactory.find`
+resolving to `JndiJmsFactory`, the connection factory that yields, and a destination created through it —
+needs a real broker, which this module already runs. It adds no §6 scenario.
+
 ## 9. Scope stability — this module does not grow in response to bug fixes
 
 This module's sole purpose is exercising the SDK's documented communication behavior under virtually-real-life
