@@ -54,6 +54,8 @@ public class HttpFragmentationUnderOutageIT {
     @Rule
     public DiscardObserver discards = new DiscardObserver();
 
+    private static final String NL = System.lineSeparator();
+
     private final DiscardMode mode;
     private Njams njams;
 
@@ -109,13 +111,24 @@ public class HttpFragmentationUnderOutageIT {
     }
 
     /**
-     * Confirms every chunk of the fragmented message with the given {@code logId} eventually reached WireMock's
-     * request journal, tolerating duplicate chunk deliveries the same way {@code assertFragmentsCompletelyDelivered}
-     * does in the JMS scenario — a retried duplicate of a chunk already received must not fail this check. What
-     * must never happen is a fragment gap: some chunk number between 1 and the declared total never arriving at
-     * all. Each chunk POST carries {@code application/json} content, matching {@code HttpSender.sendChunk}'s
-     * request body ({@code HttpClientFactory.MEDIA_TYPE_JSON} — confirmed via source read; the SDK does not send
-     * chunk bodies as {@code text/plain}), so this is not asserted separately.
+     * Confirms the fragmented message with the given {@code logId} never reached WireMock's request journal with
+     * a fragment gap — some chunk number missing while a later one arrived. Duplicates are tolerated the same way
+     * {@code assertFragmentsCompletelyDelivered} does in the JMS scenario: a retried duplicate of a chunk already
+     * received must not fail this check.
+     * <p>
+     * What completeness is required depends on the discard mode:
+     * <ul>
+     * <li>{@code none} holds and retries until the outage clears, so every chunk from 1 to the declared total
+     * must arrive.</li>
+     * <li>A discarding mode drops the message where it stood, so the arriving set is a contiguous prefix 1..n,
+     * possibly empty. It is not required to be complete: this module's README documents that the {@code
+     * timeout} toxic used for the outage blocks only the response direction, so the chunk whose failure aborts
+     * the sequence may already have reached WireMock. How long the prefix is depends on how far the sender got
+     * before the outage stopped it, so its length is not asserted — only that it has no hole in it.</li>
+     * </ul>
+     * Each chunk POST carries {@code application/json} content, matching {@code HttpSender.sendChunk}'s request
+     * body ({@code HttpClientFactory.MEDIA_TYPE_JSON} — confirmed via source read; the SDK does not send chunk
+     * bodies as {@code text/plain}), so this is not asserted separately.
      */
     private void assertFragmentsDeliveredPerMode(String logId) throws Exception {
         long deadline = System.nanoTime()
@@ -132,20 +145,73 @@ public class HttpFragmentationUnderOutageIT {
 
         if (mode.holdsMessages()) {
             assertEquals("Mode none must never discard", 0, discards.count());
-        } else {
-            // The outage covers the whole send, so the message must have been discarded as a whole.
-            assertTrue("The fragmented message was driven into an outage and must be discarded",
-                discards.count() >= 1);
-            if (chunkNumbersSeen.isEmpty()) {
-                return;
-            }
+            assertFragmented(declaredTotalChunks);
+            Set<Integer> expectedChunkNumbers = IntStream.rangeClosed(1, declaredTotalChunks)
+                .boxed().collect(Collectors.toSet());
+            assertEquals("Fragment gap detected — not every chunk of the message arrived."
+                + describeIngestJournal(logId), expectedChunkNumbers, chunkNumbersSeen);
+            return;
         }
+
+        assertTrue("The fragmented message was driven into an outage and must be discarded",
+            discards.count() >= 1);
+        if (chunkNumbersSeen.isEmpty()) {
+            return;
+        }
+        assertFragmented(declaredTotalChunks);
+        assertTrue("More chunks arrived than the message declares: " + chunkNumbersSeen.size() + " of "
+            + declaredTotalChunks + "." + describeIngestJournal(logId),
+            chunkNumbersSeen.size() <= declaredTotalChunks);
+        Set<Integer> expectedPrefix = IntStream.rangeClosed(1, chunkNumbersSeen.size())
+            .boxed().collect(Collectors.toSet());
+        assertEquals("Fragment gap detected — the chunks that arrived are not a contiguous prefix."
+            + describeIngestJournal(logId), expectedPrefix, chunkNumbersSeen);
+    }
+
+    /**
+     * Renders every ingest POST WireMock recorded, with its arrival time and chunk coordinates, so a failure
+     * shows which chunks arrived and when rather than only which set was expected. The journal holds only
+     * requests that reached WireMock, so a chunk missing from it was either never sent or lost on the way —
+     * the dump cannot tell those apart. Entries for other messages are kept: they reveal whether the sender
+     * was working at all around the outage.
+     */
+    private String describeIngestJournal(String logId) throws Exception {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder(URI.create(env.wireMockAdminUrl() + "/requests")).GET().build();
+        JsonNode root = new ObjectMapper().readTree(client.send(request, BodyHandlers.ofString()).body());
+        StringBuilder out = new StringBuilder(NL).append("Journal entries returned=")
+            .append(root.get("requests").size()).append(" meta=").append(root.get("meta"))
+            .append(" journalDisabled=").append(root.get("requestJournalDisabled"))
+            .append(NL).append("Ingest journal for logId ").append(logId).append(':');
+        for (JsonNode entry : root.get("requests")) {
+            JsonNode requestNode = entry.get("request");
+            if (!"POST".equals(requestNode.get("method").asText())
+                || !"/api/processing/ingest/dataprovider".equals(requestNode.get("url").asText())) {
+                continue;
+            }
+            JsonNode headers = requestNode.get("headers");
+            out.append(NL).append("  ").append(text(requestNode, "loggedDateString"))
+                .append(" chunk=").append(header(headers, MessageHeaders.NJAMS_CHUNK_NO_HTTP_HEADER))
+                .append('/').append(header(headers, MessageHeaders.NJAMS_CHUNKS_HTTP_HEADER))
+                .append(" type=").append(header(headers, MessageHeaders.NJAMS_MESSAGETYPE_HTTP_HEADER))
+                .append(logId.equals(header(headers, MessageHeaders.NJAMS_LOGID_HTTP_HEADER)) ? "" : " (other message)");
+        }
+        return out.toString();
+    }
+
+    private static String text(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        return value == null ? "-" : value.asText();
+    }
+
+    private static String header(JsonNode headers, String name) {
+        return text(headers, name);
+    }
+
+    /** The scenario is only meaningful if the message actually fragmented, so guard that before any gap check. */
+    private void assertFragmented(Integer declaredTotalChunks) {
         assertTrue("Message never split into multiple chunks — the size settings failed to force fragmentation",
             declaredTotalChunks != null && declaredTotalChunks > 1);
-        Set<Integer> expectedChunkNumbers = IntStream.rangeClosed(1, declaredTotalChunks)
-            .boxed().collect(Collectors.toSet());
-        assertEquals("Fragment gap detected — not every chunk of the message arrived", expectedChunkNumbers,
-            chunkNumbersSeen);
     }
 
     private Integer collectChunks(String logId, Set<Integer> chunkNumbersSeen) throws Exception {

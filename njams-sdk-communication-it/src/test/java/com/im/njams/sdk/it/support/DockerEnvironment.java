@@ -46,6 +46,20 @@ public class DockerEnvironment extends ExternalResource {
     private final ToxiproxyControl toxiproxy;
     private boolean proxiesCreated;
 
+    /**
+     * How many probes {@link #verifyProxyReachesOurWireMock()} sends. Confirmed empirically against a network
+     * that really had two container sets (not assumed): separate connections reach different containers —
+     * six probes came back 3 and 5 on two consecutive checks — so a stale set escapes detection only if every
+     * probe happens to land on ours. Ten localhost round trips, once per JVM, make that unlikely enough.
+     */
+    private static final int PROXY_UPSTREAM_PROBES = 10;
+
+    /**
+     * Static, unlike {@link #proxiesCreated}: a stale container set can only appear between Maven runs, never
+     * between two tests of one run, so the check is worth its cost once per JVM rather than per test.
+     */
+    private static boolean proxyUpstreamVerified;
+
     public DockerEnvironment() {
         try (FileInputStream in = new FileInputStream("target/docker-it.properties")) {
             props.load(in);
@@ -62,6 +76,10 @@ public class DockerEnvironment extends ExternalResource {
             toxiproxy.createProxy("jms", "0.0.0.0:20000", "activemq:61616");
             toxiproxy.createProxy("http", "0.0.0.0:20001", "wiremock:8080");
             proxiesCreated = true;
+        }
+        if (!proxyUpstreamVerified) {
+            verifyProxyReachesOurWireMock();
+            proxyUpstreamVerified = true;
         }
         // The broker is shared by all ITs and reaps connections cut through the proxy only after its inactivity
         // timeout: start every test from an empty commands topic instead of inheriting a predecessor's consumers.
@@ -209,6 +227,40 @@ public class DockerEnvironment extends ExternalResource {
             throw new IllegalStateException("Missing docker-it.properties key: " + key);
         }
         return Integer.parseInt(value);
+    }
+
+    /**
+     * Fails fast when the HTTP proxy's upstream is not the WireMock container whose journal these tests read.
+     * <p>
+     * A {@code docker:stop} that fails (it has, repeatedly, on a Windows named-pipe exhaustion) leaves a whole
+     * container set behind, and the next run's WireMock joins the same network under the same {@code wiremock}
+     * alias. Connections to that alias are then spread over both containers, so part of what a scenario sends is
+     * recorded in a journal no assertion ever inspects — which reads exactly like the SDK losing messages, and
+     * has cost a full debugging session before. Nothing else in this suite can tell the two apart, so the probe
+     * below establishes it up front instead.
+     */
+    private void verifyProxyReachesOurWireMock() throws IOException, InterruptedException {
+        resetWireMock();
+        for (int i = 0; i < PROXY_UPSTREAM_PROBES; i++) {
+            // A fresh client per probe: which container a probe reaches varies per connection, so probes sharing one pooled
+            // connection would all land on the same container and see nothing wrong.
+            HttpRequest probe =
+                HttpRequest.newBuilder(URI.create(httpBaseUrlThroughProxy() + WireMockJournal.INGEST_PATH))
+                    .timeout(Duration.ofSeconds(5))
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpClient.newHttpClient().send(probe, BodyHandlers.discarding());
+        }
+        long recorded = WireMockJournal.countMatching(this, "HEAD", WireMockJournal.INGEST_PATH, null);
+        resetWireMock();
+        if (recorded != PROXY_UPSTREAM_PROBES) {
+            throw new IllegalStateException("The HTTP proxy's upstream is not the WireMock container these tests "
+                + "inspect: only " + recorded + " of " + PROXY_UPSTREAM_PROBES + " probe requests reached it. "
+                + "Another container set is still attached to the 'njams-communication-it' network under the same "
+                + "'wiremock' alias, left behind by a failed 'docker:stop'. Remove it (docker rm -f on the stale "
+                + "wiremock/toxiproxy/activemq containers) before re-running — otherwise every HTTP scenario "
+                + "silently loses about half its messages to a journal nothing reads.");
+        }
     }
 
     private void resetWireMock() throws IOException, InterruptedException {
