@@ -1,14 +1,10 @@
 package com.im.njams.sdk.utils;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,8 +45,8 @@ public class ScopedSpiRule extends ExternalResource {
         servicesFile = Files.createTempFile("scoped-spi", ".services");
         Files.write(servicesFile, String.join("\n", providerClassNames).getBytes(StandardCharsets.UTF_8));
         originalContextLoader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(new AppendingClassLoader(originalContextLoader,
-            "META-INF/services/" + serviceType.getName(), servicesFile.toUri().toURL()));
+        Thread.currentThread().setContextClassLoader(new ServicesFileClassLoader(originalContextLoader,
+            serviceType, servicesFile.toUri().toURL(), false));
     }
 
     @Override
@@ -60,29 +56,6 @@ public class ScopedSpiRule extends ExternalResource {
             Files.deleteIfExists(servicesFile);
         } catch (IOException e) {
             // a leftover temp file is harmless
-        }
-    }
-
-    /** Serves one additional URL for a single resource name, on top of the parent's own entries. */
-    private static final class AppendingClassLoader extends ClassLoader {
-
-        private final String resourceName;
-        private final URL additionalResource;
-
-        private AppendingClassLoader(ClassLoader parent, String resourceName, URL additionalResource) {
-            super(parent);
-            this.resourceName = resourceName;
-            this.additionalResource = additionalResource;
-        }
-
-        @Override
-        public Enumeration<URL> getResources(String name) throws IOException {
-            if (!resourceName.equals(name)) {
-                return super.getResources(name);
-            }
-            final List<URL> all = new ArrayList<>(Collections.list(super.getResources(name)));
-            all.add(additionalResource);
-            return Collections.enumeration(all);
         }
     }
 }

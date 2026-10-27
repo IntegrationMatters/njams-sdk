@@ -54,21 +54,14 @@ public class ServiceLoaderSupportUnavailableTest {
     private static final String MISSING = "does.not.Exist";
     private static final String BROKEN_LINKAGE = "broken.Linkage";
 
-    /** Serves a services file for {@link Spi} and fails loading of BROKEN_LINKAGE like a missing dependency. */
-    private static class TestClassLoader extends ClassLoader {
-        private final URL servicesFile;
+    /**
+     * Serves only this test's own services file for {@link Spi} — the entries are deliberately broken, so the
+     * regular providers must not be mixed in — and fails loading of BROKEN_LINKAGE like a missing dependency.
+     */
+    private static class TestClassLoader extends ServicesFileClassLoader {
 
         TestClassLoader(ClassLoader parent, URL servicesFile) {
-            super(parent);
-            this.servicesFile = servicesFile;
-        }
-
-        @Override
-        public Enumeration<URL> getResources(String name) throws IOException {
-            if (name.equals("META-INF/services/" + Spi.class.getName())) {
-                return Collections.enumeration(Collections.singletonList(servicesFile));
-            }
-            return super.getResources(name);
+            super(parent, Spi.class, servicesFile, true);
         }
 
         @Override
