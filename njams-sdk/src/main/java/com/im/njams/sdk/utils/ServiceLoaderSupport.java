@@ -133,6 +133,8 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      * <code>jakarta.jms</code>) is not on the classpath. The SDK ships implementations for both, so one of them
      * is always expected to fail like this. This is not a general extension point. A {@link NoClassDefFoundError}
      * reports the internal class name (with slashes), a {@link ClassNotFoundException} the dotted one.
+     * A missing type of a JMS API that is present but incomplete is classified the same way; it surfaces through
+     * {@link #describeAvailability(Function)} rather than {@link #hasUnavailable()}.
      */
     private static boolean isMissingJmsApi(final Throwable root) {
         if (!(root instanceof NoClassDefFoundError) && !(root instanceof ClassNotFoundException)) {

@@ -118,9 +118,15 @@ public class ServiceLoaderSupportAvailabilityTest {
         // slash spelling (NoClassDefFoundError) and dotted spelling (ClassNotFoundException)
         ServiceLoaderSupport<Spi> loader =
             loaderFor(MISSING_JAVAX_SLASH, MissingJakartaDotted.class.getName(), First.class.getName());
-        loader.getAll();
+        List<String> loaded = loader.getAll().stream().map(Spi::name).collect(Collectors.toList());
 
+        assertEquals(Collections.singletonList("first"), loaded);
         assertFalse(loader.hasUnavailable());
+        String description = loader.describeAvailability(Spi::name);
+        String notApplicable = description.substring(description.indexOf("Not applicable"));
+        assertTrue(description, description.contains("Unavailable: none"));
+        assertTrue(description, notApplicable.contains("javax/jms/Message"));
+        assertTrue(description, notApplicable.contains("jakarta.jms.Message"));
     }
 
     @Test
