@@ -63,10 +63,12 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     private final ServiceLoader<S> serviceLoader;
     // descriptions of the implementations that could not be loaded; filled when they are first encountered
     private final Set<String> unavailable = Collections.synchronizedSet(new LinkedHashSet<>());
+    // descriptions of the implementations that cannot be loaded because the JMS API they need is not present
+    private final Set<String> notApplicable = Collections.synchronizedSet(new LinkedHashSet<>());
 
     /**
      * Iterates over all implementations that can be loaded. Implementations that cannot be loaded are skipped, but
-     * remembered in {@link ServiceLoaderSupport#unavailable}.
+     * remembered in {@link ServiceLoaderSupport#unavailable} or {@link ServiceLoaderSupport#notApplicable}.
      */
     private class SaveIterator implements Iterator<S> {
         private final Iterator<S> it;
@@ -121,8 +123,24 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
             cause = failure.getCause();
         }
         final Throwable root = rootCause(cause);
-        unavailable.add(root == null ? text : text + " - " + root.getClass().getSimpleName()
-            + (root.getMessage() == null ? "" : ": " + root.getMessage()));
+        final String description = root == null ? text : text + " - " + root.getClass().getSimpleName()
+            + (root.getMessage() == null ? "" : ": " + root.getMessage());
+        (isMissingJmsApi(root) ? notApplicable : unavailable).add(description);
+    }
+
+    /**
+     * Whether the given root cause means that a type of one of the two JMS APIs (<code>javax.jms</code> or
+     * <code>jakarta.jms</code>) is not on the classpath. The SDK ships implementations for both, so one of them
+     * is always expected to fail like this. This is not a general extension point. A {@link NoClassDefFoundError}
+     * reports the internal class name (with slashes), a {@link ClassNotFoundException} the dotted one.
+     */
+    private static boolean isMissingJmsApi(final Throwable root) {
+        if (!(root instanceof NoClassDefFoundError) && !(root instanceof ClassNotFoundException)) {
+            return false;
+        }
+        final String message = root.getMessage();
+        return message != null && (message.startsWith("javax.jms.") || message.startsWith("jakarta.jms.")
+            || message.startsWith("javax/jms/") || message.startsWith("jakarta/jms/"));
     }
 
     private static Throwable rootCause(final Throwable throwable) {
@@ -186,7 +204,9 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     /**
      * Returns whether implementations have been encountered that could not be loaded. Implementations that cannot
      * be loaded are skipped silently, so this only covers the part of the lookup that has been done so far.
-     * @return <code>true</code> if at least one implementation could not be loaded.
+     * Implementations that are merely not applicable because the JMS API (<code>javax.jms</code> or
+     * <code>jakarta.jms</code>) they need is not present are expected and not counted here.
+     * @return <code>true</code> if at least one implementation could not be loaded for any other reason.
      */
     public boolean hasUnavailable() {
         return !unavailable.isEmpty();
@@ -200,16 +220,16 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      * being logged when a lookup fails, so that it is visible whether the wanted implementation does not exist, or
      * could not be loaded. Since failing implementations are encountered only when iterating, call this
      * <em>after</em> the lookup that failed.
+     * Implementations that are not applicable because of a missing JMS API are listed separately, since that
+     * is the only hint about a missing API when no implementation is available at all.
      * @param nameOf Provides the name of an available implementation.
      * @return A multi-line description.
      */
     public String describeAvailability(final Function<? super S, String> nameOf) {
         final String available = stream().map(nameOf).filter(Objects::nonNull).sorted()
             .collect(Collectors.joining(", ", "[", "]"));
-        final List<String> failed;
-        synchronized (unavailable) {
-            failed = new ArrayList<>(unavailable);
-        }
+        final List<String> failed = copyOf(unavailable);
+        final List<String> skipped = copyOf(notApplicable);
         final StringBuilder description = new StringBuilder("Available: ").append(available).append(NEW_LINE);
         if (failed.isEmpty()) {
             description.append("Unavailable: none");
@@ -217,7 +237,17 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
             description.append("Unavailable (could not be loaded):");
             failed.forEach(f -> description.append(NEW_LINE).append("  - ").append(f));
         }
+        if (!skipped.isEmpty()) {
+            description.append(NEW_LINE).append("Not applicable (required JMS API not present):");
+            skipped.forEach(f -> description.append(NEW_LINE).append("  - ").append(f));
+        }
         return description.toString();
+    }
+
+    private static List<String> copyOf(final Set<String> synchronizedSet) {
+        synchronized (synchronizedSet) {
+            return new ArrayList<>(synchronizedSet);
+        }
     }
 
     /**
@@ -250,6 +280,17 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
                 LOG.debug("Did not find a matching instance for service type {}", serviceType);
             }
         }
+        return found;
+    }
+
+    /**
+     * Finds all instances that match the given filter.
+     * @param filter The filter used for matching.
+     * @return The matching instances in the order of the services files; empty if none matches.
+     */
+    public List<S> findAll(final Predicate<S> filter) {
+        final List<S> found = stream().filter(filter).collect(Collectors.toList());
+        LOG.debug("Found {} matching instance(s) for service type {}", found.size(), serviceType);
         return found;
     }
 
