@@ -205,7 +205,9 @@ Expected: FAIL — no `messageToString(Object)` overload.
 
 - [ ] **Step 3: Retype both helpers onto the accessor**
 
-In `StringUtils`, change the parameter of `messageToString`, `headersToString` and the private `appendHeaders` to `Object` and route every JMS call through `JmsMessageAccess`. `abbreviate`, the `StringBuilder` assembly and the `[error: …]` formatting are unchanged. Add back `messageToString(javax.jms.Message)` and `headersToString(javax.jms.Message)` as `@Deprecated` one-line delegates.
+In `StringUtils`, change the parameter of `messageToString`, `headersToString` and the private `appendHeaders` to `Object` and route every JMS call through `JmsMessageAccess`. Branch on `JmsMessageAccess.isMessage(msg)`: a non-message renders as `String.valueOf(msg)`, a message keeps today's rendering. `abbreviate` and the `StringBuilder` assembly are unchanged. Add back `messageToString(javax.jms.Message)` and `headersToString(javax.jms.Message)` as `@Deprecated` one-line delegates.
+
+The old inline `[error: <JMSException>]` marker **does not survive**, and that is accepted. `JmsMessageAccess` returns the documented fallback instead of throwing, so a failed read now renders `key=null` / `body=null`; the accessor logs the provider's real cause with the message class name at WARN, which is more diagnostic than the inline marker was. Restoring the marker would mean extending the accessor contract for a debug string, on a per-message path. A failure-path test pins the new rendering so it stays deliberate.
 
 In `JMSChunkAssembly`, change the supertype to `GenericChunkAssembly<Object>`, retype `getHeaders`/`getText` to take `Object`, and route them through `JmsMessageAccess`. Add the `setHeader(Object, String, String)` form and keep `setHeader(javax.jms.Message, String, String)` as an `@Deprecated` delegate. Drop the `javax.jms` imports that only the removed signatures needed; keep only what the deprecated overloads require.
 
