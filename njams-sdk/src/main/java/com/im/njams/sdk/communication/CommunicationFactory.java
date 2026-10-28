@@ -23,9 +23,12 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +55,9 @@ public class CommunicationFactory {
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
     private final ClientSettings settings;
+    // the sender class that was selected first; the candidate selection is not repeated for further senders
+    private volatile Class<? extends AbstractSender> resolvedSenderClass;
+    private final Object senderResolutionLock = new Object();
     private static final Map<Class<? extends AbstractReceiver>, AbstractReceiver> sharedReceivers = new HashMap<>();
 
     /**
@@ -88,9 +94,11 @@ public class CommunicationFactory {
             }
             final boolean shared = settings.getBool(NjamsSettings.PROPERTY_SHARED_COMMUNICATIONS, false);
             final ServiceLoaderSupport<AbstractReceiver> receivers = getReceiverLoader();
-            Class<? extends AbstractReceiver> type = findReceiverType(receivers, requiredReceiverName, shared);
-            if (type != null) {
-                final AbstractReceiver newInstance = createReceiver(type, njams, shared, requiredReceiverName);
+            List<Class<? extends AbstractReceiver>> candidates =
+                    findReceiverCandidates(receivers, requiredReceiverName, shared);
+            if (!candidates.isEmpty()) {
+                final AbstractReceiver newInstance =
+                        createReceiver(candidates, njams, shared, requiredReceiverName, receivers);
                 newInstance.setNjams(njams);
 
                 return newInstance;
@@ -104,57 +112,100 @@ public class CommunicationFactory {
                 + " (or its alternative " + NjamsSettings.PROPERTY_COMMUNICATION_TYPE + ") in settings properties");
     }
 
-    private Class<? extends AbstractReceiver> findReceiverType(ServiceLoaderSupport<AbstractReceiver> receivers,
-        String name, boolean wantsSharable) {
-        AbstractReceiver found =
-                receivers.find(
-                        r -> r.getName().equalsIgnoreCase(name) && wantsSharable == r instanceof ShareableReceiver);
-        if (found == null) {
-            found = receivers.find(r -> r.getName().equalsIgnoreCase(name));
-            if (wantsSharable && found != null) {
-                LOG.info("Communication type '{}' uses a dedicated receiver instance per client; sharing applies "
-                    + "to the sender only.", found.getName());
-            }
+    /**
+     * All receivers matching the given name, in the order they are to be tried: those matching the wish for a
+     * sharable receiver first, the others after them; the services-file order is kept within each group.
+     */
+    private List<Class<? extends AbstractReceiver>> findReceiverCandidates(
+        ServiceLoaderSupport<AbstractReceiver> receivers, String name, boolean wantsSharable) {
+        final List<AbstractReceiver> matches = receivers.findAll(r -> r.getName().equalsIgnoreCase(name));
+        final List<Class<? extends AbstractReceiver>> candidates = new ArrayList<>();
+        final List<Class<? extends AbstractReceiver>> others = new ArrayList<>();
+        for (AbstractReceiver match : matches) {
+            (wantsSharable == match instanceof ShareableReceiver ? candidates : others).add(match.getClass());
         }
-        LOG.debug("Found receiver for criteria name={}, sharable={}: {}", name, wantsSharable,
-                found == null ? null : found.getClass());
-        return found == null ? null : found.getClass();
+        if (wantsSharable && candidates.isEmpty() && !others.isEmpty()) {
+            LOG.info("Communication type '{}' uses a dedicated receiver instance per client; sharing applies "
+                + "to the sender only.", name);
+        }
+        candidates.addAll(others);
+        LOG.debug("Found receivers for criteria name={}, sharable={}: {}", name, wantsSharable, candidates);
+        return candidates;
     }
 
-    private AbstractReceiver createReceiver(Class<? extends AbstractReceiver> clazz, Njams njams, boolean shared, String name) {
-        try {
-            Map<String, String> copy = new LinkedHashMap<>();
-            settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
-            ClientSettings receiverSettings = ClientSettings.from(copy);
-            receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.metadata().getClientPath().toString());
-            AbstractReceiver receiver;
-            if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
-                synchronized (sharedReceivers) {
-                    receiver = sharedReceivers.get(clazz);
-                    if (receiver != null) {
-                        LOG.debug("Reusing shared receiver {}", clazz);
-                        return receiver;
-                    }
-                    LOG.debug("Creating shared receiver {}", clazz);
-                    receiver = clazz.getDeclaredConstructor().newInstance();
-                    if (receiver instanceof ClasspathValidator) {
-                        ((ClasspathValidator) receiver).validate();
-                    }
-                    sharedReceivers.put(clazz, receiver);
-                    receiver.init(receiverSettings);
+    private AbstractReceiver createReceiver(List<Class<? extends AbstractReceiver>> candidates, Njams njams,
+        boolean shared, String name, ServiceLoaderSupport<AbstractReceiver> receivers) {
+        Map<String, String> copy = new LinkedHashMap<>();
+        settings.forEach(e -> copy.put(e.getKey(), e.getValue()));
+        ClientSettings receiverSettings = ClientSettings.from(copy);
+        receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.metadata().getClientPath().toString());
+        return this.<AbstractReceiver>selectApplicable("receiver", name, candidates,
+                clazz -> createReceiver(clazz, shared, receiverSettings),
+                "Unable to create new receiver " + name + " instance.",
+                () -> receivers.describeAvailability(AbstractReceiver::getName));
+    }
+
+    private AbstractReceiver createReceiver(Class<? extends AbstractReceiver> clazz, boolean shared,
+        ClientSettings receiverSettings) throws ReflectiveOperationException, ClassNotFoundException {
+        AbstractReceiver receiver;
+        if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
+            synchronized (sharedReceivers) {
+                receiver = sharedReceivers.get(clazz);
+                if (receiver != null) {
+                    LOG.debug("Reusing shared receiver {}", clazz);
                     return receiver;
                 }
+                LOG.debug("Creating shared receiver {}", clazz);
+                receiver = newValidatedInstance(clazz);
+                receiver.init(receiverSettings);
+                // cached only after a successful init, so a failing receiver is never handed out later
+                sharedReceivers.put(clazz, receiver);
+                return receiver;
             }
-            LOG.debug("Creating dedicated receiver {}", clazz);
-            receiver = clazz.getDeclaredConstructor().newInstance();
-            if (receiver instanceof ClasspathValidator) {
-                ((ClasspathValidator) receiver).validate();
-            }
-            receiver.init(receiverSettings);
-            return receiver;
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to create new receiver " + name + " instance.", e);
         }
+        LOG.debug("Creating dedicated receiver {}", clazz);
+        receiver = newValidatedInstance(clazz);
+        receiver.init(receiverSettings);
+        return receiver;
+    }
+
+    private static <T> T newValidatedInstance(Class<? extends T> clazz)
+        throws ReflectiveOperationException, ClassNotFoundException {
+        final T instance = clazz.getDeclaredConstructor().newInstance();
+        if (instance instanceof ClasspathValidator) {
+            ((ClasspathValidator) instance).validate();
+        }
+        return instance;
+    }
+
+    /** Creates and initializes one candidate; throws {@link TransportNotApplicableException} to be skipped. */
+    @FunctionalInterface
+    private interface CandidateFactory<T> {
+        T create(Class<? extends T> candidate) throws Exception;
+    }
+
+    /**
+     * Tries the given candidates in order and returns the first that can be created and initialized. A candidate
+     * that throws {@link TransportNotApplicableException} is skipped; any other failure is final, since silently
+     * replacing a misconfigured transport by another implementation would hide the problem.
+     */
+    private <T> T selectApplicable(String kind, String name, List<Class<? extends T>> candidates,
+        CandidateFactory<T> factory, String failureMessage, Supplier<String> availability) {
+        final List<String> declined = new ArrayList<>();
+        for (Class<? extends T> candidate : candidates) {
+            try {
+                return factory.create(candidate);
+            } catch (TransportNotApplicableException e) {
+                LOG.debug("The {} {} is not applicable: {}", kind, candidate.getName(), e.getMessage());
+                declined.add(candidate.getName() + ": " + e.getMessage());
+            } catch (Exception e) {
+                throw new IllegalStateException(failureMessage, e);
+            }
+        }
+        final String error = "No " + kind + " implementation for communication type '" + name
+            + "' is applicable: " + String.join("; ", declined) + ".";
+        LOG.error("{}{}{}", error, System.lineSeparator(), availability.get());
+        throw new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
     }
 
     /**
@@ -220,21 +271,41 @@ public class CommunicationFactory {
      */
     public AbstractSender getSender() {
         final String requiredSenderName = requireSenderName();
-        final AbstractSender sender = findSenderImplementation(requiredSenderName);
-        try {
-            // create a new instance
-            LOG.debug("Create sender {}", sender.getName());
-            AbstractSender newInstance = sender.getClass().getDeclaredConstructor().newInstance();
-            if (newInstance instanceof ClasspathValidator) {
-                ((ClasspathValidator) newInstance).validate();
+        Class<? extends AbstractSender> senderClass = resolvedSenderClass;
+        if (senderClass == null) {
+            synchronized (senderResolutionLock) {
+                senderClass = resolvedSenderClass;
+                if (senderClass == null) {
+                    final AbstractSender sender = selectSender(requiredSenderName);
+                    resolvedSenderClass = sender.getClass();
+                    return sender;
+                }
             }
-
-            newInstance.init(settings);
-            return newInstance;
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Unable to create new " + requiredSenderName + " instance", e);
         }
+        return createSender(senderClass, requiredSenderName);
+    }
+
+    private AbstractSender createSender(Class<? extends AbstractSender> senderClass, String requiredSenderName) {
+        try {
+            return createInitializedSender(senderClass);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to create new " + requiredSenderName + " instance", e);
+        }
+    }
+
+    private AbstractSender createInitializedSender(Class<? extends AbstractSender> senderClass)
+        throws ReflectiveOperationException, ClassNotFoundException {
+        LOG.debug("Create sender {}", senderClass.getName());
+        final AbstractSender newInstance = newValidatedInstance(senderClass);
+        newInstance.init(settings);
+        return newInstance;
+    }
+
+    private AbstractSender selectSender(String requiredSenderName) {
+        final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
+        return this.<AbstractSender>selectApplicable("sender", requiredSenderName, findSenderCandidates(senders, requiredSenderName),
+                this::createInitializedSender, "Unable to create new " + requiredSenderName + " instance",
+                () -> senders.describeAvailability(AbstractSender::getName));
     }
 
     /**
@@ -245,7 +316,7 @@ public class CommunicationFactory {
      *         registered for it.
      */
     public void validateSenderConfiguration() {
-        findSenderImplementation(requireSenderName());
+        findSenderCandidates(getSenderLoader(), requireSenderName());
     }
 
     /**
@@ -265,18 +336,23 @@ public class CommunicationFactory {
     }
 
     /**
-     * Looks up the registered sender for the given communication type. The returned instance is the service
-     * loader's own, unconfigured, and must not be handed out - {@link #getSender()} creates the one used.
+     * Looks up the registered senders for the given communication type. Several may share one name; they are
+     * returned in the order of the services files. The returned classes are only candidates: {@link #getSender()}
+     * creates the one used.
      *
+     * @param senders the loader to look up the senders with.
      * @param requiredSenderName the configured communication type.
-     * @return the registered sender implementation for that type, never {@code null}.
+     * @return the registered sender implementations for that type, never empty.
      * @throws IllegalStateException if no implementation is registered for that type.
      */
-    private AbstractSender findSenderImplementation(final String requiredSenderName) {
-        final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
-        final AbstractSender sender = senders.find(s -> s.getName().equalsIgnoreCase(requiredSenderName));
-        if (sender != null) {
-            return sender;
+    private List<Class<? extends AbstractSender>> findSenderCandidates(
+        final ServiceLoaderSupport<AbstractSender> senders, final String requiredSenderName) {
+        final List<Class<? extends AbstractSender>> candidates = new ArrayList<>();
+        for (AbstractSender sender : senders.findAll(s -> s.getName().equalsIgnoreCase(requiredSenderName))) {
+            candidates.add(sender.getClass());
+        }
+        if (!candidates.isEmpty()) {
+            return candidates;
         }
         final String error = "Unable to find sender implementation for communication type '" + requiredSenderName
             + "' configured by setting " + NjamsSettings.PROPERTY_COMMUNICATION + ".";
