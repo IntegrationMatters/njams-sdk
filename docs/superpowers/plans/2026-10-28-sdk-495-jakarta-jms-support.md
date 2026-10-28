@@ -213,7 +213,7 @@ In `JMSChunkAssembly`, change the supertype to `GenericChunkAssembly<Object>`, r
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `mvn test -Dtest=StringUtilsJmsTest+JMSChunkAssemblyTest -pl njams-sdk`
+Run: `mvn test -Dtest=StringUtilsJmsTest,JMSChunkAssemblyTest -pl njams-sdk`
 Expected: PASS. The pre-existing `JMSChunkAssemblyTest` must pass **unmodified** — that is the proof the chunk format is unchanged.
 
 - [ ] **Step 5: Commit**
@@ -383,7 +383,7 @@ Hoisting `sendMessage`/`sendChunks` costs four hooks and is deliberate: that con
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `mvn test -Dtest=AbstractJmsSenderTest+JmsSenderTest -pl njams-sdk`
+Run: `mvn test -Dtest=AbstractJmsSenderTest,JmsSenderTest -pl njams-sdk`
 Expected: PASS. `JmsSenderTest` must pass **unmodified** — that parity is the proof the hoist preserved behaviour.
 Run: `mvn test -pl njams-sdk`
 Expected: PASS, including `JmsSenderBaselineIT` and `JmsClientEndToEndBaselineIT`.
@@ -440,7 +440,7 @@ The base's Javadoc must state it is internal SDK infrastructure and not an exten
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `mvn test -Dtest=AbstractJmsReceiverTest+JmsReceiverTest -pl njams-sdk`
+Run: `mvn test -Dtest=AbstractJmsReceiverTest,JmsReceiverTest -pl njams-sdk`
 Expected: PASS, `JmsReceiverTest` unmodified.
 Run: `mvn test -pl njams-sdk`
 Expected: PASS.
