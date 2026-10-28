@@ -23,13 +23,6 @@
  */
 package com.im.njams.sdk.utils;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.TextMessage;
-
 /**
  * Provides some String related utilities.
  *
@@ -112,11 +105,11 @@ public class StringUtils {
     }
 
     /**
-     * Creates a debug string from the given JMS {@link Message}.
-     * @param msg The message to serialize
+     * Creates a debug string from the given JMS message.
+     * @param msg The message to serialize; any {@code javax.jms} or {@code jakarta.jms} message
      * @return A string containing the message's type, and properties, and body (abbreviated).
      */
-    public static String messageToString(final Message msg) {
+    public static String messageToString(final Object msg) {
         if (msg == null) {
             return null;
         }
@@ -124,14 +117,9 @@ public class StringUtils {
         sb.append(msg.getClass().getName()).append("[properties={");
         appendHeaders(sb, msg);
         sb.append('}');
-        if (msg instanceof TextMessage) {
+        if (JmsMessageAccess.isTextMessage(msg)) {
             sb.append("; body=");
-            String body = null;
-            try {
-                body = ((TextMessage) msg).getText();
-            } catch (JMSException e) {
-                body = "[error: " + e + "]";
-            }
+            final String body = JmsMessageAccess.text(msg);
             if (body == null) {
                 sb.append("null");
             } else {
@@ -143,11 +131,22 @@ public class StringUtils {
     }
 
     /**
-     * Creates a debug string from the given JMS {@link Message}.
+     * Creates a debug string from the given JMS message.
      * @param msg The message to serialize
      * @return A string containing the message's type, and properties, and body (abbreviated).
+     * @deprecated Use {@link #messageToString(Object)} instead.
      */
-    public static String headersToString(final Message msg) {
+    @Deprecated(since = "6.1.0")
+    public static String messageToString(final javax.jms.Message msg) {
+        return messageToString((Object) msg);
+    }
+
+    /**
+     * Creates a debug string from the given JMS message's type and properties.
+     * @param msg The message to serialize; any {@code javax.jms} or {@code jakarta.jms} message
+     * @return A string containing the message's type and properties.
+     */
+    public static String headersToString(final Object msg) {
         if (msg == null) {
             return null;
         }
@@ -158,28 +157,26 @@ public class StringUtils {
         return sb.toString();
     }
 
-    @SuppressWarnings("unchecked")
-    private static String appendHeaders(StringBuilder sb, final Message msg) {
-        Collection<String> keys = Collections.emptyList();
-        try {
-            keys = Collections.list(msg.getPropertyNames());
-        } catch (Exception e) {
-            // ignore
-        }
+    /**
+     * Creates a debug string from the given JMS message's type and properties.
+     * @param msg The message to serialize
+     * @return A string containing the message's type and properties.
+     * @deprecated Use {@link #headersToString(Object)} instead.
+     */
+    @Deprecated(since = "6.1.0")
+    public static String headersToString(final javax.jms.Message msg) {
+        return headersToString((Object) msg);
+    }
+
+    private static void appendHeaders(StringBuilder sb, final Object msg) {
         int i = 0;
-        for (final String key : keys) {
+        for (final String key : JmsMessageAccess.propertyNames(msg)) {
             if (i++ > 0) {
                 sb.append(", ");
             }
-            sb.append(key).append('=');
-            try {
-                final Object obj = msg.getObjectProperty(key);
-                sb.append(obj == null ? "null" : abbreviate(obj.toString(), 300));
-            } catch (JMSException e) {
-                sb.append("[error: ").append(e).append(']');
-            }
+            final Object obj = JmsMessageAccess.objectProperty(msg, key);
+            sb.append(key).append('=').append(obj == null ? "null" : abbreviate(obj.toString(), 300));
         }
-        return sb.toString();
     }
 
 }

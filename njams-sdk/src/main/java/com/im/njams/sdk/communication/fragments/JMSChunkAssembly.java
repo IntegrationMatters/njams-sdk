@@ -23,25 +23,19 @@
  */
 package com.im.njams.sdk.communication.fragments;
 
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.TextMessage;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.im.njams.sdk.utils.JmsMessageAccess;
 
 /**
- * JMS implementation working on {@link TextMessage} messages.
+ * JMS implementation working on text messages of either {@code javax.jms} or {@code jakarta.jms}.
  */
-public class JMSChunkAssembly extends GenericChunkAssembly<TextMessage> {
+public class JMSChunkAssembly extends GenericChunkAssembly<Object> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JMSChunkAssembly.class);
-
+    /**
+     * Creates a new instance.
+     */
     public JMSChunkAssembly() {
         super(null,
             JMSChunkAssembly::getHeaders,
@@ -49,44 +43,42 @@ public class JMSChunkAssembly extends GenericChunkAssembly<TextMessage> {
             false);
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, String> getHeaders(Message jmsMsg) {
-        final Enumeration<String> properties;
-        try {
-            properties = jmsMsg.getPropertyNames();
-        } catch (JMSException e) {
-            LOG.error("Failed to list JMS properties", e);
-            return Collections.emptyMap();
-        }
+    private static Map<String, String> getHeaders(Object jmsMsg) {
         final Map<String, String> headers = new HashMap<>();
-        while (properties.hasMoreElements()) {
-            final String key = properties.nextElement();
-            try {
-                Object val = jmsMsg.getObjectProperty(key);
-                if (val != null) {
-                    headers.put(key, String.valueOf(val));
-                }
-            } catch (JMSException e) {
-                LOG.error("Failed to read JMS property {}", key, e);
+        for (final String key : JmsMessageAccess.propertyNames(jmsMsg)) {
+            final Object val = JmsMessageAccess.objectProperty(jmsMsg, key);
+            if (val != null) {
+                headers.put(key, String.valueOf(val));
             }
         }
         return headers;
     }
 
-    private static String getText(TextMessage message) {
-        try {
-            return message.getText();
-        } catch (JMSException e) {
-            LOG.error("Failed to get text from JMS message", e);
-            return null;
-        }
+    private static String getText(Object message) {
+        return JmsMessageAccess.text(message);
     }
 
-    public static void setHeader(Message msg, String key, String value) {
-        try {
-            msg.setStringProperty(key, value);
-        } catch (JMSException e) {
-            LOG.error("Failed to set JMS property {}={}", key, value, e);
-        }
+    /**
+     * Sets a string property on the given JMS message; failures are logged and otherwise ignored.
+     *
+     * @param msg the message; any {@code javax.jms} or {@code jakarta.jms} message
+     * @param key the property name
+     * @param value the property value
+     */
+    public static void setHeader(Object msg, String key, String value) {
+        JmsMessageAccess.setStringProperty(msg, key, value);
+    }
+
+    /**
+     * Sets a string property on the given JMS message; failures are logged and otherwise ignored.
+     *
+     * @param msg the message
+     * @param key the property name
+     * @param value the property value
+     * @deprecated Use {@link #setHeader(Object, String, String)} instead.
+     */
+    @Deprecated(since = "6.1.0")
+    public static void setHeader(javax.jms.Message msg, String key, String value) {
+        setHeader((Object) msg, key, value);
     }
 }

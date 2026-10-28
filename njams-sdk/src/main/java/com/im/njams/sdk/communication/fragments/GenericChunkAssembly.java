@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import javax.jms.TextMessage;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +39,7 @@ import com.im.njams.sdk.communication.MessageHeaders;
  * See {@link #resolve(Object)} for details.
  *
  * @author cwinkler
- * @param <T> The type of the raw chunked messages as used by a reader implementation, e.g., {@link TextMessage} for
+ * @param <T> The type of the raw chunked messages as used by a reader implementation, e.g., the JMS message object for
  * JMS.
  *
  */
