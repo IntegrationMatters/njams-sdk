@@ -39,8 +39,8 @@ import com.im.njams.sdk.communication.MessageHeaders;
  * See {@link #resolve(Object)} for details.
  *
  * @author cwinkler
- * @param <T> The type of the raw chunked messages as used by a reader implementation, e.g., the JMS message object for
- * JMS.
+ * @param <T> The type of the raw chunked messages as used by a reader implementation, the transport's message object; for
+ * JMS, the namespace-agnostic message instance.
  *
  */
 public abstract class GenericChunkAssembly<T> {

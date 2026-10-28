@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk.utils;
 
+import javax.jms.Message;
+
 /**
  * Provides some String related utilities.
  *
@@ -107,11 +109,15 @@ public class StringUtils {
     /**
      * Creates a debug string from the given JMS message.
      * @param msg The message to serialize; any {@code javax.jms} or {@code jakarta.jms} message
-     * @return A string containing the message's type, and properties, and body (abbreviated).
+     * @return A string containing the message's type, and properties, and body (abbreviated); or the object's
+     * string value if it is not a JMS message.
      */
     public static String messageToString(final Object msg) {
         if (msg == null) {
             return null;
+        }
+        if (!JmsMessageAccess.isMessage(msg)) {
+            return String.valueOf(msg);
         }
         final StringBuilder sb = new StringBuilder();
         sb.append(msg.getClass().getName()).append("[properties={");
@@ -137,18 +143,22 @@ public class StringUtils {
      * @deprecated Use {@link #messageToString(Object)} instead.
      */
     @Deprecated(since = "6.1.0")
-    public static String messageToString(final javax.jms.Message msg) {
+    public static String messageToString(final Message msg) {
         return messageToString((Object) msg);
     }
 
     /**
      * Creates a debug string from the given JMS message's type and properties.
      * @param msg The message to serialize; any {@code javax.jms} or {@code jakarta.jms} message
-     * @return A string containing the message's type and properties.
+     * @return A string containing the message's type and properties; or the object's string value if it is not a
+     * JMS message.
      */
     public static String headersToString(final Object msg) {
         if (msg == null) {
             return null;
+        }
+        if (!JmsMessageAccess.isMessage(msg)) {
+            return String.valueOf(msg);
         }
         StringBuilder sb = new StringBuilder();
         sb.append(msg.getClass().getName()).append("[properties={");
@@ -164,7 +174,7 @@ public class StringUtils {
      * @deprecated Use {@link #headersToString(Object)} instead.
      */
     @Deprecated(since = "6.1.0")
-    public static String headersToString(final javax.jms.Message msg) {
+    public static String headersToString(final Message msg) {
         return headersToString((Object) msg);
     }
 

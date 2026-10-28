@@ -26,6 +26,8 @@ package com.im.njams.sdk.communication.fragments;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jms.Message;
+
 import com.im.njams.sdk.utils.JmsMessageAccess;
 
 /**
@@ -78,7 +80,7 @@ public class JMSChunkAssembly extends GenericChunkAssembly<Object> {
      * @deprecated Use {@link #setHeader(Object, String, String)} instead.
      */
     @Deprecated(since = "6.1.0")
-    public static void setHeader(javax.jms.Message msg, String key, String value) {
+    public static void setHeader(Message msg, String key, String value) {
         setHeader((Object) msg, key, value);
     }
 }

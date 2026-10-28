@@ -63,7 +63,8 @@ public class StringUtilsJmsTest {
                 return "plain";
             }
         };
-        assertEquals(plain.getClass().getName() + "[properties={}]", StringUtils.messageToString(plain));
+        assertEquals("plain", StringUtils.messageToString(plain));
+        assertEquals("plain", StringUtils.headersToString(plain));
     }
 
     @Test
@@ -87,5 +88,28 @@ public class StringUtilsJmsTest {
         final String result = StringUtils.messageToString((Object) textMessage(longBody.toString()));
         assertEquals(FakeTextMessage.class.getName() + "[properties={k1=v1, k2=2}; body="
             + longBody.substring(0, 1000) + StringUtils.ELLIPSIS + "]", result);
+    }
+
+    @Test
+    public void messageToString_rendersNullForAPropertyThatFailsToRead() {
+        final FakeNonTextMessage m = new FakeNonTextMessage() {
+            @Override
+            public Object getObjectProperty(String key) throws Exception {
+                throw new Exception("provider failure");
+            }
+        };
+        m.props.put("k1", "v1");
+        assertEquals(m.getClass().getName() + "[properties={k1=null}]", StringUtils.messageToString((Object) m));
+    }
+
+    @Test
+    public void messageToString_rendersNullBodyForATextThatFailsToRead() {
+        final FakeTextMessage m = new FakeTextMessage() {
+            @Override
+            public String getText() throws Exception {
+                throw new Exception("provider failure");
+            }
+        };
+        assertEquals(m.getClass().getName() + "[properties={}; body=null]", StringUtils.messageToString((Object) m));
     }
 }
