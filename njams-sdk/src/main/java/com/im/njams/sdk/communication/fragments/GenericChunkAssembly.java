@@ -39,8 +39,8 @@ import com.im.njams.sdk.communication.MessageHeaders;
  * See {@link #resolve(Object)} for details.
  *
  * @author cwinkler
- * @param <T> The type of the raw chunked messages as used by a reader implementation, the transport's message object; for
- * JMS, the namespace-agnostic message instance.
+ * @param <T> The type of the raw chunked messages as used by a reader implementation, the transport's message object;
+ * for JMS, the namespace-agnostic message instance.
  *
  */
 public abstract class GenericChunkAssembly<T> {
@@ -66,8 +66,8 @@ public abstract class GenericChunkAssembly<T> {
     /**
      * @param keyFunction Optional. Function that provides the unique message ID for a given message chunk. I.e., all
      * parts (chunks) that belong to the same message must have the same key. Defaults to reading the
-     * {@link MessageHeaders#NJAMS_CHUNK_MESSAGE_KEY_HEADER} header but can be overridden here, if there is better/faster
-     * way to do this.
+     * {@link MessageHeaders#NJAMS_CHUNK_MESSAGE_KEY_HEADER} header but can be overridden here, if there is
+     * better/faster way to do this.
      * @param headersFunction Required. Function that provides the headers map from a given message.
      * @param dataFunction Required. Function that provides the actual data chunk from a given message. This is the
      * part that is actually split into chunks and re-assembled here.
@@ -89,8 +89,8 @@ public abstract class GenericChunkAssembly<T> {
     }
 
     /**
-     * A fast thread-safe variant of {@link Map#computeIfAbsent(Object, Function)} that ensures that each entry is created
-     * only once.
+     * A fast thread-safe variant of {@link Map#computeIfAbsent(Object, Function)} that ensures that each entry is
+     * created only once.
      *
      * @param <V> The map's value type
      * @param <K> The map's key type

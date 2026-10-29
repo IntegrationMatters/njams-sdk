@@ -108,7 +108,8 @@ public class SimpleProcessModelLayouter implements ProcessModelLayouter {
                 LOG.debug("GroupStarter for {} is {}", element.getId(), groupStarter.getId());
                 groupStarter.setX(element.getX() + ACTIVITY_HORIZONTAL_OFFSET / 2);
                 groupStarter.setY(element.getY() + ACTIVITY_VERTICAL_OFFSET / 2);
-                LOG.debug("GroupStarter {} position: {}:{}", groupStarter.getName(), groupStarter.getX(), groupStarter.getY());
+                LOG.debug("GroupStarter {} position: {}:{}", groupStarter.getName(),
+                        groupStarter.getX(), groupStarter.getY());
                 positionSuccessors(groupStarter);
             }
             resizeParent((ActivityModel) element);

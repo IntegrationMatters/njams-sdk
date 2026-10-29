@@ -163,7 +163,10 @@ public class Njams {
     private NjamsSender sender;
     private AbstractReceiver receiver;
 
-    /** Receiver pre-created at construction time, transferred to {@link #receiver} inside {@link #startReceiver(NjamsSender)}. */
+    /**
+     * Receiver pre-created at construction time, transferred to {@link #receiver} inside
+     * {@link #startReceiver(NjamsSender)}.
+     */
     private AbstractReceiver earlyReceiver;
 
     private NjamsConfiguration configuration;
@@ -472,7 +475,8 @@ public class Njams {
                 stop();
                 return startupFailure();
             }
-            LOG.info("SDK instance {} started (client-session={})", metadata.getClientPath(), metadata.getClientSessionId());
+            LOG.info("SDK instance {} started (client-session={})", metadata.getClientPath(),
+                metadata.getClientSessionId());
         }
         return isStarted() ? StartupResult.CONTINUE : startupFailure();
     }
@@ -507,7 +511,8 @@ public class Njams {
      * instance still using it — mirroring {@link #stop()}'s own gating exactly. Only once that determines this
      * really was the last user (trivially true for a non-{@code ShareableReceiver} {@link AbstractReceiver}) does
      * this signal shutdown and cancel any reconnect the receiver may already be running on its own — the receiver
-     * always retries its own connection unconditionally in the background (see {@link AbstractReceiver#beginConnect()}),
+     * always retries its own connection unconditionally in the background (see
+     * {@link AbstractReceiver#beginConnect()}),
      * independently of this startup's sender-side fail-fast decision, so it may already be reconnecting by the
      * time the sender's own failure is discovered. Signalling/cancelling unconditionally instead would wrongly
      * stop a reconnect a still-registered sharing instance depends on. That same "really the last user" outcome
@@ -592,8 +597,8 @@ public class Njams {
      * <p>
      * The sender and receiver are signalled independently: closing the sender marks its own {@code
      * ConnectionCoordinator} as shutting down; separately, the receiver is signalled and stopped. For a
-     * non-{@code ShareableReceiver}, shutdown is signalled <em>before</em> {@link AbstractReceiver#stop()} is called, so
-     * a startup connect racing in the background ({@link AbstractReceiver#beginConnect()}) observes the flag and
+     * non-{@code ShareableReceiver}, shutdown is signalled <em>before</em> {@link AbstractReceiver#stop()} is called,
+     * so a startup connect racing in the background ({@link AbstractReceiver#beginConnect()}) observes the flag and
      * releases itself instead of leaking; for a {@code ShareableReceiver}, shutdown can only be signalled once
      * the receiver is really stopped — i.e. once the last {@code Njams} instance using it has stopped it (see
      * {@link CommunicationFactory#removeNjamsFromSharedReceiver(ShareableReceiver, Njams)}, which performs the

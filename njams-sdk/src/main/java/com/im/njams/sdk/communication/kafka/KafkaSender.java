@@ -162,7 +162,8 @@ public class KafkaSender extends AbstractSender {
     private void validateTopics() {
         final Collection<String> requiredTopics = new ArrayList<>(Arrays.asList(topicEvent, topicProject));
         final Collection<String> foundTopics =
-            KafkaUtil.testTopics(PropertyUtil.toProperties(settings), requiredTopics.toArray(new String[requiredTopics.size()]));
+            KafkaUtil.testTopics(PropertyUtil.toProperties(settings),
+                    requiredTopics.toArray(new String[requiredTopics.size()]));
         LOG.debug("Found topics: {}", foundTopics);
         requiredTopics.removeAll(foundTopics);
         if (!requiredTopics.isEmpty()) {

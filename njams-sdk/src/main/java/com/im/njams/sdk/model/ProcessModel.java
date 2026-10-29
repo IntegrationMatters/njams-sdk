@@ -372,7 +372,8 @@ public class ProcessModel {
             throw new NjamsSdkRuntimeException("ToActivityModel with id " + toActivityModelId + " does not exist");
         }
         TransitionModel transition = new TransitionModel(this, transitionModelId);
-        if (njams != null && "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))) {
+        if (njams != null
+            && "6.1".equals(njams.getSettings().getProperty(NjamsSettings.PROPERTY_SERVER_COMPATIBILITY))) {
             transition.setName(transitionModelId);
         }
         transition.setFromActivity(fromActivityModel);

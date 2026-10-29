@@ -35,7 +35,8 @@ public class KafkaConstants {
     public static final String COMMUNICATION_NAME = "KAFKA";
 
     /**
-     * The default topic prefix to be used if {@link com.im.njams.sdk.NjamsSettings#PROPERTY_KAFKA_TOPIC_PREFIX} is not set.
+     * The default topic prefix to be used if {@link com.im.njams.sdk.NjamsSettings#PROPERTY_KAFKA_TOPIC_PREFIX} is
+     * not set.
      */
     public static final String DEFAULT_TOPIC_PREFIX = "njams";
 

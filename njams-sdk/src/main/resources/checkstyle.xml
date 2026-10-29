@@ -51,6 +51,9 @@
 
 <module name="Checker">
     <module name="TreeWalker">
+        <module name="LineLength">
+            <property name="max" value="120"/>
+        </module>
         <module name="JavadocMethod">
             <property name="scope" value="public"/>
             <property name="allowUndeclaredRTE" value="true"/>

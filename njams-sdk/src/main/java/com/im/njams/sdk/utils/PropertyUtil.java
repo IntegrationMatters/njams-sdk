@@ -122,7 +122,8 @@ public class PropertyUtil {
     }
 
     /**
-     * Returns the value for the given key from the given {@link Properties} and converts it to a <code>long</code> value.
+     * Returns the value for the given key from the given {@link Properties} and converts it to a <code>long</code>
+     * value.
      * @param properties The {@link Properties} to read from.
      * @param key The key to read from the properties.
      * @param defaultValue The default value to be used either when the key does not exists or the value could

@@ -112,14 +112,14 @@ public class NjamsSettings {
     public static final String PROPERTY_TRUNCATE_ON_SUCCESS = "njams.sdk.truncateOnSuccess";
 
     /**
-     * If this setting is true (which is the default), the SDK will generate a unique client id, which is used to identify
-     * the correct client in a multi- node/replica/pod container environment.
+     * If this setting is true (which is the default), the SDK will generate a unique client id, which is used to
+     * identify the correct client in a multi- node/replica/pod container environment.
      * <p>
      * An additional feature flag (named containerMode) indicates that the feature is activated and nJAMS server then
      * uses the according server feature for communicating with the specific clients in the container environment.
      * <p>
-     * Some commands will only be sent to just one of the multi-container nodes (eg. replay and all get commands). The rest
-     * will be sent to all nodes because for example a change to log-mode has to be processed by all nodes.
+     * Some commands will only be sent to just one of the multi-container nodes (eg. replay and all get commands). The
+     * rest will be sent to all nodes because for example a change to log-mode has to be processed by all nodes.
      */
     public static final String PROPERTY_CONTAINER_MODE = "njams.sdk.communication.containerMode";
 
@@ -207,7 +207,8 @@ public class NjamsSettings {
     public static final String PROPERTY_SENDER_THREAD_IDLE_TIME = "njams.sdk.senderthreadidletime";
 
     /**
-     * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full queue, etc.)
+     * This property decides what to do with a logmessage that couldn't be delivered (because of connection loss, full
+     * queue, etc.)
      * Possible values are:
      * <ul>
      * <li>none

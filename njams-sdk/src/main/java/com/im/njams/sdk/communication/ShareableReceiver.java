@@ -28,7 +28,8 @@ import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.Path;
 
 /**
- * Interface to be implemented by {@link AbstractReceiver}s that support receiving messages for multiple {@link Njams} instances.
+ * Interface to be implemented by {@link AbstractReceiver}s that support receiving messages for
+ * multiple {@link Njams} instances.
  *
  * @param <M> The raw message type that is received from the transport API
  * @author cwinkler
@@ -86,7 +87,8 @@ public interface ShareableReceiver<M> {
      *
      * @param instruction not used
      * @throws UnsupportedOperationException always
-     * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(com.faizsiegeln.njams.messageformat.v4.command.Instruction)
+     * @see com.im.njams.sdk.communication.AbstractReceiver#onInstruction(
+     * com.faizsiegeln.njams.messageformat.v4.command.Instruction)
      */
     public default void onInstruction(Instruction instruction) {
         throw new UnsupportedOperationException();

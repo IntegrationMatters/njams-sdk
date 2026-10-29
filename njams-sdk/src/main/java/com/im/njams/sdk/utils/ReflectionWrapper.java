@@ -190,8 +190,8 @@ public class ReflectionWrapper {
     }
 
     /**
-     * Invokes a setter (a void method taking a single argument) on this instance's target object with <code>null</code>.
-     * as argument.
+     * Invokes a setter (a void method taking a single argument) on this instance's target object with
+     * <code>null</code>. as argument.
      * Use {@link #setPrimitive(String, Object)} or {@link #setObject(String, Object)} for setting non-null values.
      * @param method The name of the setter method to call.
      * @param nullType The exact type of the setter's argument which is set to <code>null</code>.
@@ -238,7 +238,8 @@ public class ReflectionWrapper {
      * Setter for setting an object whose's type extends the actual setter's argument type, i.e., the given
      * object's type is not exactly the one defined by the setter. This method is actually the most detailed one
      * and can also handle the <code>null</code> and primitive alternatives, e.g.,
-     * <code>setObject("method", null, Integer.class)</code> or <code>setObject("method", new Integer(5), int.class)</code>
+     * <code>setObject("method", null, Integer.class)</code> or
+     * <code>setObject("method", new Integer(5), int.class)</code>
      * @param <T> The given object's type
      * @param method The name of the setter method to call.
      * @param object The value to set.

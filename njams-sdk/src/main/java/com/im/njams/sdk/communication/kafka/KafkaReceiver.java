@@ -302,7 +302,8 @@ public class KafkaReceiver extends AbstractReceiver {
                     LOG.debug("Creating new Kafka producer.");
                     producer =
                         new KafkaProducer<>(
-                            filterKafkaProperties(PropertyUtil.toProperties(settings), ClientType.PRODUCER, kafkaClientId),
+                            filterKafkaProperties(PropertyUtil.toProperties(settings), ClientType.PRODUCER,
+                                    kafkaClientId),
                             new StringSerializer(), new StringSerializer());
                 }
                 LOG.debug("Sending reply {} (part {}/{}): {}", responseId, chunkNo, totalChunks, response);

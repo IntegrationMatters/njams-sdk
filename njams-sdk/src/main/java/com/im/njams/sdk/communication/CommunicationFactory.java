@@ -105,7 +105,8 @@ public class CommunicationFactory {
             }
             final String error = "Unable to find receiver implementation for communication type '"
                 + requiredReceiverName + "' configured by setting " + NjamsSettings.PROPERTY_COMMUNICATION + ".";
-            LOG.error("{}{}{}", error, System.lineSeparator(), receivers.describeAvailability(AbstractReceiver::getName));
+            LOG.error("{}{}{}", error, System.lineSeparator(),
+                    receivers.describeAvailability(AbstractReceiver::getName));
             throw new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
         }
         throw new IllegalStateException("Unable to find " + NjamsSettings.PROPERTY_COMMUNICATION
@@ -303,7 +304,8 @@ public class CommunicationFactory {
 
     private AbstractSender selectSender(String requiredSenderName) {
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
-        return this.<AbstractSender>selectApplicable("sender", requiredSenderName, findSenderCandidates(senders, requiredSenderName),
+        return this.<AbstractSender>selectApplicable("sender", requiredSenderName,
+                findSenderCandidates(senders, requiredSenderName),
                 this::createInitializedSender, "Unable to create new " + requiredSenderName + " instance",
                 () -> senders.describeAvailability(AbstractSender::getName));
     }

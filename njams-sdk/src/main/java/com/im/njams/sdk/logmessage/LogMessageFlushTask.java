@@ -102,7 +102,8 @@ public class LogMessageFlushTask extends TimerTask {
             }
         } else {
             LOG.warn(
-                    "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. Did not flush...",
+                    "The LogMessageFlushTask hasn't been started before stopping for this instance: {}. "
+                            + "Did not flush...",
                     njams);
         }
         if (NJAMS_INSTANCES.size() <= 0 && timer != null) {

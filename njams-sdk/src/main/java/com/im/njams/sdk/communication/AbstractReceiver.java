@@ -319,7 +319,8 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
                     releaseIfShutdownRequested();
                 } catch (NjamsSdkRuntimeException e) {
                     try {
-                        //Using Thread.sleep because this.wait would release the lock for this object, Thread.sleep doesn't.
+                        //Using Thread.sleep because this.wait would release the lock for this object,
+                        //Thread.sleep doesn't.
                         Thread.sleep(nextReconnectInterval());
                     } catch (InterruptedException e1) {
                         LOG.debug("The reconnecting thread was interrupted.", e1);
@@ -497,7 +498,8 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
      * @return <code>false</code> in all other cases.
      */
     protected static boolean suppressGetRequestHandlerInstruction(Instruction instruction, Njams targetClient) {
-        if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction) && !targetClient.features().isContainerMode()) {
+        if (Command.GET_REQUEST_HANDLER == Command.getFromInstruction(instruction)
+            && !targetClient.features().isContainerMode()) {
             LOG.debug("Ignoring command {} because feature {} is disabled for target client: {}",
                 Command.GET_REQUEST_HANDLER, Feature.CONTAINER_MODE, targetClient.metadata().getClientPath());
 

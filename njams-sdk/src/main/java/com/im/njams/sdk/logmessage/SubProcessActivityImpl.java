@@ -69,7 +69,8 @@ public class SubProcessActivityImpl extends GroupImpl implements SubProcessActiv
     }
 
     /**
-     * Set the subprocess by adding all parameters for that subprocess. Name and Path are needed if it is a inline supprocess. LogId is needed if it is a spawned subprocess
+     * Set the subprocess by adding all parameters for that subprocess. Name and Path are needed if it is a inline
+     * supprocess. LogId is needed if it is a spawned subprocess
      *
      * @param subProcessName Name of the subprocess
      * @param subProcessPath Path of the subprocess

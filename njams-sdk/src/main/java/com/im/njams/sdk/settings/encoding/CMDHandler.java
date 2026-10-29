@@ -41,7 +41,8 @@ public class CMDHandler {
         for (String arg : args) {
             String encodedArg = Transformer.encode(arg);
             if (check(arg, encodedArg)) {
-                System.out.println("This is the encoded argument: '" + encodedArg + "' (without '') for '" + arg + "'.");
+                System.out.println(
+                    "This is the encoded argument: '" + encodedArg + "' (without '') for '" + arg + "'.");
             }
             else{
                 System.out.println("The argument: '" + arg + "' could not be encoded correctly.");

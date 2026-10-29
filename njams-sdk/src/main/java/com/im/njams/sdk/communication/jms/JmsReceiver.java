@@ -153,7 +153,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         if (njamsInstances.isEmpty()) {
             return null;
         }
-        final String selector = njamsInstances.stream().map(n -> n.metadata().getClientPath()).flatMap(JmsReceiver::ancestorPathStrings)
+        final String selector = njamsInstances.stream().map(n -> n.metadata().getClientPath())
+            .flatMap(JmsReceiver::ancestorPathStrings)
             .sorted()
             .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
         LOG.debug("Updated message selector: {}", selector);

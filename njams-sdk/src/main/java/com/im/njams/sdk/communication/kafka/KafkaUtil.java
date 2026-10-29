@@ -134,8 +134,8 @@ public class KafkaUtil {
     }
 
     /**
-     * Filters properties starting with {@link NjamsSettings#PROPERTY_KAFKA_CLIENT_PREFIX} and cuts the prefix for using them as
-     * configuration for the Kafka client.
+     * Filters properties starting with {@link NjamsSettings#PROPERTY_KAFKA_CLIENT_PREFIX} and cuts the prefix for
+     * using them as configuration for the Kafka client.
      *
      * @param properties The original client properties.
      * @param clientType Indicates the Kafka client type for that the resulting properties shall be applicable.
@@ -146,8 +146,8 @@ public class KafkaUtil {
     }
 
     /**
-     * Filters properties starting with {@link NjamsSettings#PROPERTY_KAFKA_CLIENT_PREFIX} and cuts the prefix for using them as
-     * configuration for the Kafka client.
+     * Filters properties starting with {@link NjamsSettings#PROPERTY_KAFKA_CLIENT_PREFIX} and cuts the prefix for
+     * using them as configuration for the Kafka client.
      *
      * @param properties The original client properties.
      * @param clientType Indicates the Kafka client type for that the resulting properties shall be applicable.

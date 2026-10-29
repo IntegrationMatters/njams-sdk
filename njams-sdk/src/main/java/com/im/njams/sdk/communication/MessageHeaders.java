@@ -140,7 +140,8 @@ public class MessageHeaders {
      */
     public static final String NJAMS_CLIENTID_HTTP_HEADER = "njams-clientid";
     /**
-     * <b>http-only!</b> Content type header. Is used to determine whether this command can be processed by this receiver.
+     * <b>http-only!</b> Content type header. Is used to determine whether this command can be processed by
+     * this receiver.
      */
     public static final String NJAMS_CONTENT_HTTP_HEADER = "njams-content";
     /**

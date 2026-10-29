@@ -69,8 +69,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
         synchronized (njamsInstances) {
             njamsInstances.put(njamsInstance.metadata().getClientPath(), njamsInstance);
         }
-        LOG.debug("Added client {} to shared receiver; {} attached receivers.", njamsInstance.metadata().getClientPath(),
-                njamsInstances.size());
+        LOG.debug("Added client {} to shared receiver; {} attached receivers.",
+                njamsInstance.metadata().getClientPath(), njamsInstances.size());
     }
 
     /**
@@ -84,8 +84,8 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
 
         synchronized (njamsInstances) {
             njamsInstances.remove(njamsInstance.metadata().getClientPath());
-            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.", njamsInstance.metadata().getClientPath(),
-                    njamsInstances.size());
+            LOG.debug("Removed client {} from shared receiver; {} remaining receivers.",
+                    njamsInstance.metadata().getClientPath(), njamsInstances.size());
             if (njamsInstances.isEmpty()) {
                 receiver.stop();
                 return true;

@@ -307,7 +307,8 @@ public class Transformer {
 
             StringBuilder builder = new StringBuilder();
             if (encValue.startsWith(ENCRYPTION_MARKER)) {
-                String encryptedPassword = encValue.substring(ENCRYPTION_MARKER.length() + TRANSFORMATION_ROW_MAX_DIGITS);
+                String encryptedPassword =
+                    encValue.substring(ENCRYPTION_MARKER.length() + TRANSFORMATION_ROW_MAX_DIGITS);
                 int row = Integer.valueOf(encValue.substring(ENCRYPTION_MARKER.length(),
                         ENCRYPTION_MARKER.length() + TRANSFORMATION_ROW_MAX_DIGITS));
                 int current = 0;
