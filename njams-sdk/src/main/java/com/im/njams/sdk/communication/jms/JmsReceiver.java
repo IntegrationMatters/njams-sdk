@@ -56,6 +56,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
+import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
@@ -79,9 +80,35 @@ public class JmsReceiver extends AbstractJmsReceiver
     protected MessageConsumer consumer = null;
     protected Topic topic = null;
 
+    /**
+     * Resolves the configured {@link JmsFactory} and closes it again: the resolution itself is the probe that
+     * tells whether the configured connection factory is a {@code javax.jms} one. {@link #connect()} resolves
+     * its own factory as before.
+     *
+     * @param settings the settings the receiver is initialized with
+     * @throws TransportNotApplicableException if the configured factory is not a {@code javax.jms} implementation
+     */
     @Override
     protected void resolveFactory(ClientSettings settings) {
-        // Factory resolution lands here in SDK-495 Task 8.
+        try (JmsFactory jmsFactory = JmsFactory.find(settings, true)) {
+            LOG.debug("Resolved JMS factory {}", jmsFactory);
+        } catch (RuntimeException | Error e) {
+            if (isOtherJmsNamespace(e) || isOtherJmsNamespace(e.getCause())) {
+                throw new TransportNotApplicableException(
+                    "The configured JMS factory is not a javax.jms implementation.", e);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Whether the given failure says that the configured factory serves the other JMS namespace: the cast of the
+     * connection factory failed, or a type it needs is not on the classpath. Classified by type, not by name, so
+     * that any other failure stays a hard error.
+     */
+    private static boolean isOtherJmsNamespace(Throwable failure) {
+        return failure instanceof ClassCastException || failure instanceof NoClassDefFoundError
+            || failure instanceof ClassNotFoundException;
     }
 
     /**
