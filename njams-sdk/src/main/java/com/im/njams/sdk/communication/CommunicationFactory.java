@@ -55,7 +55,8 @@ public class CommunicationFactory {
     public static final String INTERNAL_PROPERTY_CLIENTPATH = "njams.$clientPath";
 
     private final ClientSettings settings;
-    // the sender class that was selected first; the candidate selection is not repeated for further senders
+    // the sender class that was selected first; the candidate selection is not repeated for further senders.
+    // Assumes the communication type does not change during this factory's lifetime.
     private volatile Class<? extends AbstractSender> resolvedSenderClass;
     private final Object senderResolutionLock = new Object();
     private static final Map<Class<? extends AbstractReceiver>, AbstractReceiver> sharedReceivers = new HashMap<>();
@@ -99,6 +100,10 @@ public class CommunicationFactory {
             if (!candidates.isEmpty()) {
                 final AbstractReceiver newInstance =
                         createReceiver(candidates, njams, shared, requiredReceiverName, receivers);
+                if (shared && !(newInstance instanceof ShareableReceiver)) {
+                    LOG.info("Communication type '{}' uses a dedicated receiver instance per client; sharing "
+                        + "applies to the sender only.", newInstance.getName());
+                }
                 newInstance.setNjams(njams);
 
                 return newInstance;
@@ -125,10 +130,6 @@ public class CommunicationFactory {
         for (AbstractReceiver match : matches) {
             (wantsSharable == match instanceof ShareableReceiver ? candidates : others).add(match.getClass());
         }
-        if (wantsSharable && candidates.isEmpty() && !others.isEmpty()) {
-            LOG.info("Communication type '{}' uses a dedicated receiver instance per client; sharing applies "
-                + "to the sender only.", name);
-        }
         candidates.addAll(others);
         LOG.debug("Found receivers for criteria name={}, sharable={}: {}", name, wantsSharable, candidates);
         return candidates;
@@ -147,7 +148,7 @@ public class CommunicationFactory {
     }
 
     private AbstractReceiver createReceiver(Class<? extends AbstractReceiver> clazz, boolean shared,
-        ClientSettings receiverSettings) throws ReflectiveOperationException, ClassNotFoundException {
+        ClientSettings receiverSettings) throws ReflectiveOperationException {
         AbstractReceiver receiver;
         if (shared && ShareableReceiver.class.isAssignableFrom(clazz)) {
             synchronized (sharedReceivers) {
@@ -170,8 +171,7 @@ public class CommunicationFactory {
         return receiver;
     }
 
-    private static <T> T newValidatedInstance(Class<? extends T> clazz)
-        throws ReflectiveOperationException, ClassNotFoundException {
+    private static <T> T newValidatedInstance(Class<? extends T> clazz) throws ReflectiveOperationException {
         final T instance = clazz.getDeclaredConstructor().newInstance();
         if (instance instanceof ClasspathValidator) {
             ((ClasspathValidator) instance).validate();
@@ -188,17 +188,20 @@ public class CommunicationFactory {
     /**
      * Tries the given candidates in order and returns the first that can be created and initialized. A candidate
      * that throws {@link TransportNotApplicableException} is skipped; any other failure is final, since silently
-     * replacing a misconfigured transport by another implementation would hide the problem.
+     * replacing a misconfigured transport by another implementation would hide the problem. The candidates must
+     * not be empty.
      */
     private <T> T selectApplicable(String kind, String name, List<Class<? extends T>> candidates,
         CandidateFactory<T> factory, String failureMessage, Supplier<String> availability) {
         final List<String> declined = new ArrayList<>();
+        final List<TransportNotApplicableException> causes = new ArrayList<>();
         for (Class<? extends T> candidate : candidates) {
             try {
                 return factory.create(candidate);
             } catch (TransportNotApplicableException e) {
-                LOG.debug("The {} {} is not applicable: {}", kind, candidate.getName(), e.getMessage());
+                LOG.debug("The {} {} is not applicable.", kind, candidate.getName(), e);
                 declined.add(candidate.getName() + ": " + e.getMessage());
+                causes.add(e);
             } catch (Exception e) {
                 throw new IllegalStateException(failureMessage, e);
             }
@@ -206,7 +209,10 @@ public class CommunicationFactory {
         final String error = "No " + kind + " implementation for communication type '" + name
             + "' is applicable: " + String.join("; ", declined) + ".";
         LOG.error("{}{}{}", error, System.lineSeparator(), availability.get());
-        throw new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
+        final IllegalStateException failure =
+            new IllegalStateException(error + " " + ServiceLoaderSupport.SEE_LOG_HINT);
+        causes.forEach(failure::addSuppressed);
+        throw failure;
     }
 
     /**
@@ -290,12 +296,16 @@ public class CommunicationFactory {
         try {
             return createInitializedSender(senderClass);
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to create new " + requiredSenderName + " instance", e);
+            throw new IllegalStateException(senderCreationFailure(requiredSenderName), e);
         }
     }
 
+    private static String senderCreationFailure(String requiredSenderName) {
+        return "Unable to create new " + requiredSenderName + " instance";
+    }
+
     private AbstractSender createInitializedSender(Class<? extends AbstractSender> senderClass)
-        throws ReflectiveOperationException, ClassNotFoundException {
+        throws ReflectiveOperationException {
         LOG.debug("Create sender {}", senderClass.getName());
         final AbstractSender newInstance = newValidatedInstance(senderClass);
         newInstance.init(settings);
@@ -306,13 +316,14 @@ public class CommunicationFactory {
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
         return this.<AbstractSender>selectApplicable("sender", requiredSenderName,
                 findSenderCandidates(senders, requiredSenderName),
-                this::createInitializedSender, "Unable to create new " + requiredSenderName + " instance",
+                this::createInitializedSender, senderCreationFailure(requiredSenderName),
                 () -> senders.describeAvailability(AbstractSender::getName));
     }
 
     /**
-     * Checks that a sender can be created from the current settings, without creating one: the communication
-     * type must be configured, and an implementation must be registered for it.
+     * Checks the settings for creating a sender, without creating one: the communication type must be
+     * configured, and at least one implementation must be registered for it. Whether such an implementation is
+     * applicable in this environment is only found out when the sender is created.
      *
      * @throws IllegalStateException if the communication type is not configured, or no sender implementation is
      *         registered for it.

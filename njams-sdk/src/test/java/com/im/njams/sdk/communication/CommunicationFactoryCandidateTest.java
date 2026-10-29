@@ -279,6 +279,7 @@ public class CommunicationFactoryCandidateTest {
                 assertTrue(message, message.contains(CANDIDATE_NAME));
                 assertTrue(message, message.contains("decliner cannot work here"));
                 assertTrue(message, message.contains("second decliner cannot work here either"));
+                assertEquals("every decline must survive as suppressed", 2, e.getSuppressed().length);
                 assertTrue(message, message.contains(DecliningSender.class.getName()));
                 assertTrue(message, message.contains(SecondDecliningSender.class.getName()));
             }

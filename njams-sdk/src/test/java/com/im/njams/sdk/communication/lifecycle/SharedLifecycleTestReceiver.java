@@ -14,7 +14,7 @@ import com.im.njams.sdk.settings.ClientSettings;
  * Shareable counterpart of {@link LifecycleTestReceiver}, mirroring the production
  * {@code JmsReceiver}/{@code SharedJmsReceiver} pairing: same transport name ({@link LifecycleTestTransport#NAME}),
  * connect/stop behavior inherited unchanged, with {@link ShareableReceiver} support layered on top via
- * {@link SharedReceiverSupport}. {@code CommunicationFactory.findReceiverType} selects this class instead of the
+ * {@link SharedReceiverSupport}. {@code CommunicationFactory.findReceiverCandidates} selects this class instead of the
  * plain {@link LifecycleTestReceiver} whenever {@code njams.sdk.communication.shared=true}, exactly as it selects
  * {@code SharedJmsReceiver} over {@code JmsReceiver}.
  */
@@ -23,7 +23,7 @@ public class SharedLifecycleTestReceiver extends LifecycleTestReceiver implement
     /**
      * Tracks every instance actually wired into service, so tests can assert eviction produced a genuinely fresh
      * instance. Registration happens in {@link #init(ClientSettings)} rather than the constructor: {@code
-     * CommunicationFactory}'s SPI lookup (see {@code findReceiverType}) instantiates-and-discards throwaway
+     * CommunicationFactory}'s SPI lookup (see {@code findReceiverCandidates}) instantiates-and-discards throwaway
      * instances of every registered {@code AbstractReceiver} class just to read their {@code getName()} — including this
      * one, possibly several times per {@code getReceiver(Njams)} call, e.g. once per sharing {@code Njams}
      * instance even though only the first construction is actually wired up. Only the instance that is really put
