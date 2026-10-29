@@ -93,6 +93,9 @@ public abstract class AbstractJmsSender extends AbstractSender {
      * Resolves the JMS factory this sender will use. Called first during {@link #init(ClientSettings)}.
      * Implementations signal that the configured factory belongs to the other JMS namespace by throwing a
      * {@link TransportNotApplicableException}.
+     * <p>
+     * Implementations must read from the {@code settings} parameter: the inherited {@code settings} field is
+     * only assigned after this hook has returned.
      *
      * @param settings the settings the sender is initialized with
      */

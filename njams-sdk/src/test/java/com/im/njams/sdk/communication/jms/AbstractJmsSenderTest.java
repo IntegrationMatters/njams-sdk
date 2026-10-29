@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -42,10 +43,13 @@ public class AbstractJmsSenderTest {
     private static class RecordingSender extends AbstractJmsSender {
         final List<FakeMessage> sent = new ArrayList<>();
         String data = "0123456789";
+        ClientSettings resolveFactoryArgument;
+        Boolean inheritedSettingsFieldWasNullAtResolveFactory;
 
         @Override
         protected void resolveFactory(ClientSettings settings) {
-            // not under test
+            resolveFactoryArgument = settings;
+            inheritedSettingsFieldWasNullAtResolveFactory = this.settings == null;
         }
 
         @Override
@@ -108,6 +112,22 @@ public class AbstractJmsSenderTest {
         final RecordingSender s = new RecordingSender();
         s.init(ClientSettings.from(p));
         return s;
+    }
+
+    @Test
+    public void init_callsResolveFactoryWithTheSettingsBeforeTheyAreAssignedToTheInheritedField() {
+        final Properties p = new Properties();
+        p.setProperty(NjamsSettings.PROPERTY_COMMUNICATION, AbstractJmsSender.COMMUNICATION_NAME);
+        p.setProperty(SplitSupport.TESTING_NO_LIMIT_CHECKS, "true");
+        final ClientSettings settings = ClientSettings.from(p);
+        final RecordingSender s = new RecordingSender();
+
+        s.init(settings);
+
+        assertSame("resolveFactory must receive the settings init was called with", settings,
+            s.resolveFactoryArgument);
+        assertEquals("resolveFactory must run before super.init assigns the inherited settings field",
+            Boolean.TRUE, s.inheritedSettingsFieldWasNullAtResolveFactory);
     }
 
     private static LogMessage logMessage() {

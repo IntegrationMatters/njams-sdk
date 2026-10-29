@@ -191,7 +191,7 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
      */
     protected void sendMessage(MessageProducer producer, CommonMessage msg, String messageType,
         String clientSessionId) throws Exception {
-        super.sendMessage(producer, msg, messageType, clientSessionId);
+        sendMessage((Object) producer, msg, messageType, clientSessionId);
     }
 
     @Override
