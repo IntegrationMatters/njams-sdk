@@ -23,7 +23,8 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import org.apache.kafka.common.Uuid;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,7 +168,7 @@ public abstract class AbstractJmsSender extends AbstractSender {
         } else {
             if (chunks.size() > 1) {
                 // ensure same key for all chunks
-                messageKey = Uuid.randomUuid().toString();
+                messageKey = UUID.randomUUID().toString();
             } else {
                 messageKey = null;
             }

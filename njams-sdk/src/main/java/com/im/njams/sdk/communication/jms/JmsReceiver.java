@@ -28,12 +28,10 @@ import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -53,21 +51,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.Path;
-import com.im.njams.sdk.common.JsonSerializerFactory;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
-import com.im.njams.sdk.communication.fragments.RawMessage;
-import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
+import com.im.njams.sdk.utils.JmsMessageAccess;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -76,7 +69,8 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author pnientiedt, krautenberg@integrationmatters.ocm
  * @version 4.0.5
  */
-public class JmsReceiver extends AbstractReceiver implements MessageListener, ExceptionListener, ClasspathValidator {
+public class JmsReceiver extends AbstractJmsReceiver
+    implements MessageListener, ExceptionListener, ClasspathValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
@@ -86,86 +80,18 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
     private Connection connection = null;
     protected Session session = null;
     protected MessageConsumer consumer = null;
-    private String topicName = null;
-    private ObjectMapper mapper = null;
     protected Topic topic = null;
-    protected boolean useMessageselector = true;
-    protected String messageSelector = null;
-    protected Predicate<Message> messageFilter = m -> true;
-    protected long oldestMessageTime = Long.MAX_VALUE;
 
-    private SplitSupport splitSupport = null;
-    protected final JMSChunkAssembly chunkAssembly = new JMSChunkAssembly();
-
-    /**
-     * Returns the name for this Receiver. (JMS)
-     *
-     * @return the name of this Receiver. (JMS)
-     */
     @Override
-    public String getName() {
-        return JmsSender.COMMUNICATION_NAME;
-    }
-
-    /**
-     * Initializes this Receiver via the given settings.
-     * <p>
-     * Valid settings are:
-     * <ul>
-     * <li>{@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_USERNAME}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_PASSWORD}
-     * <li>{@value NjamsSettings#PROPERTY_JMS_DESTINATION} (or its alternative
-     * {@value NjamsSettings#PROPERTY_JMS_DESTINATION_PREFIX})
-     * <li>...
-     * </ul>
-     * For more look in the github FAQ of this project.
-     *
-     * @param settings the settings needed to init
-     */
-    @Override
-    public void init(ClientSettings settings) {
-        super.init(settings);
-        connectionStatus = ConnectionStatus.DISCONNECTED;
-        mapper = JsonSerializerFactory._internal().getFastMapper();
-        if (StringUtils.isNotBlank(settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION))) {
-            topicName = settings.getProperty(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION);
-        } else {
-            topicName = settings.getPropertyWithAlternativeKey(NjamsSettings.PROPERTY_JMS_DESTINATION,
-                    AbstractJmsSender.DEFAULT_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX)
-                + ".commands";
-        }
-        useMessageselector =
-            !"false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
-
-        splitSupport = new SplitSupport(settings, -1);
-    }
-
-    /**
-     * This method creates a String that is used as a message selector.
-     *
-     * @return the message selector String.
-     */
-    protected String createMessageSelector() {
-        if (!useMessageselector) {
-            return null;
-        }
-        final Collection<Njams> njamsInstances = provideNjamsInstances();
-        if (njamsInstances.isEmpty()) {
-            return null;
-        }
-        final String selector = njamsInstances.stream().map(n -> n.metadata().getClientPath())
-            .flatMap(JmsReceiver::ancestorPathStrings)
-            .sorted()
-            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
-        LOG.debug("Updated message selector: {}", selector);
-        return selector;
+    protected void resolveFactory(ClientSettings settings) {
+        // Factory resolution lands here in SDK-495 Task 8.
     }
 
     /**
      * This method creates a message filter that is used when message selectors are not supported.
      */
-    protected Predicate<Message> createMessageFilter() {
+    @Override
+    protected Predicate<Object> createMessageFilter() {
         if (useMessageselector) {
             return m -> true;
         }
@@ -178,7 +104,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             .map(n -> n.metadata().getClientPath())
             .flatMap(JmsReceiver::ancestorPathStrings)
             .collect(Collectors.toSet());
-        final Predicate<Message> filter = m -> {
+        final Predicate<Object> filter = message -> {
+            final Message m = (Message) message;
             try {
                 // for discarding old commands in case that only durable subscription is supported
                 if (m.getJMSTimestamp() > 0 && m.getJMSTimestamp() < oldestMessageTime) {
@@ -203,24 +130,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         };
         LOG.debug("Updated message filter with timestamp {} and paths: {}", oldestMessageTime, paths);
         return filter;
-    }
-
-    private static Stream<String> ancestorPathStrings(Path path) {
-        List<String> result = new ArrayList<>();
-        for (Path p = path; !p.isRoot(); p = p.getParent()) {
-            result.add(p.toString());
-        }
-        return result.stream();
-    }
-
-    /**
-     * Has to provide all {@link Njams} instances that use this receiver for selecting the commands addressed to any
-     * of these instances.
-     * @return All instances that use this receiver.
-     */
-    protected Collection<Njams> provideNjamsInstances() {
-        // the non-shared receiver only serves one Njams instance
-        return Collections.singleton(njams);
     }
 
     /**
@@ -337,20 +246,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         return cons;
     }
 
-    @Override
-    public void setNjams(Njams njams) {
-        super.setNjams(njams);
-        if (njams != null) {
-            updateFilters();
-        }
-    }
-
-    protected void updateFilters() {
-        LOG.debug("Updating selector/filter");
-        messageSelector = createMessageSelector();
-        messageFilter = createMessageFilter();
-    }
-
     /**
      * This method starts the provided connection and sets this object as
      * exceptionListener.
@@ -371,7 +266,8 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * @return a list of exceptions that may have been thrown by any of the
      * resources.
      */
-    private List<Exception> closeAll() {
+    @Override
+    protected List<Exception> closeAll() {
         connectionStatus = ConnectionStatus.DISCONNECTED;
         List<Exception> exceptions = new ArrayList<>();
         if (consumer != null) {
@@ -406,47 +302,6 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
             }
         }
         return exceptions;
-    }
-
-    /**
-     * This method is used on close and logs all exceptions that have been given in the provided list
-     * of exceptions that occurred when trying to close the JMS connection.
-     *
-     * @param exceptions the exceptions that will be logged.
-     */
-    private void printExceptionsOnClose(List<Exception> exceptions) {
-        exceptions.forEach(e -> {
-            String msg;
-            if (e instanceof NjamsSdkRuntimeException) {
-                msg = e.getMessage();
-                final Throwable cause = e.getCause();
-                if (cause != null) {
-                    msg += ". Caused by: " + cause.toString();
-                }
-            } else {
-                msg = e.toString();
-            }
-            LOG.warn(msg);
-            LOG.debug(msg, e);
-        });
-    }
-
-    /**
-     * This method stops the Jms Receiver by closing all its resources, if its
-     * status is CONNECTED.
-     */
-    @Override
-    public void stop() {
-        if (!isConnected()) {
-            return;
-        }
-        List<Exception> exceptions = this.closeAll();
-        if (!exceptions.isEmpty()) {
-            printExceptionsOnClose(exceptions);
-            LOG.warn("Unable to close {} correctly.", getClass().getSimpleName());
-        } else {
-            LOG.info("{} has been stopped successfully.", getClass().getSimpleName());
-        }
     }
 
     /**
@@ -496,25 +351,11 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
      * complete or it was not valid.
      */
     protected Instruction getInstruction(Message message) {
-        if (!(message instanceof TextMessage)) {
+        if (!JmsMessageAccess.isTextMessage(message)) {
             LOG.debug("Unexpected message type: {}", message.getClass());
             return null;
         }
-        final RawMessage resolved = chunkAssembly.resolve((TextMessage) message);
-        if (resolved == null) {
-            LOG.debug("Received incomplete command message.");
-            return null;
-        }
-        try {
-            final Instruction instruction = mapper.readValue(resolved.getBody(), Instruction.class);
-            if (instruction.getRequest() != null) {
-                return instruction;
-            }
-        } catch (Exception e) {
-            LOG.error("Error deserializing instruction: {}", resolved.getBody(), e);
-        }
-        LOG.warn("Illegal instruction format in: {}", resolved.getBody());
-        return null;
+        return deserializeInstruction(chunkAssembly.resolve(message));
     }
 
     /**
@@ -532,7 +373,7 @@ public class JmsReceiver extends AbstractReceiver implements MessageListener, Ex
         MessageProducer replyProducer = null;
         try {
             replyProducer = session.createProducer(replyDestination);
-            String response = mapper.writeValueAsString(instruction);
+            String response = serializeInstruction(instruction);
 
             final SplitIterator chunks = splitSupport.iterator(response);
             final String messageId = UUID.randomUUID().toString();
