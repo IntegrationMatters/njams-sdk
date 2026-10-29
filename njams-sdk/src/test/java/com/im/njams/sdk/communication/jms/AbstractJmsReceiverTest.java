@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 import java.util.function.Predicate;
@@ -26,7 +26,6 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -182,19 +181,46 @@ public class AbstractJmsReceiverTest {
     }
 
     @Test
-    public void deserializeInstruction_returnsNullForAnInstructionWithoutARequest() {
+    public void getInstruction_returnsNullForAnInstructionWithoutARequest() {
         final RecordingReceiver receiver = receiver();
 
-        assertNull(receiver.deserializeInstruction(null));
-        assertNull(receiver.deserializeInstruction(raw("{}")));
-        assertNull(receiver.deserializeInstruction(raw("no json at all")));
+        assertNull(receiver.getInstruction(new FakeTextMessage("{}")));
+        assertNull(receiver.getInstruction(new FakeTextMessage("no json at all")));
 
-        final Instruction instruction = receiver.deserializeInstruction(raw("{\"request\":{\"command\":\"test\"}}"));
+        final Instruction instruction =
+            receiver.getInstruction(new FakeTextMessage("{\"request\":{\"command\":\"test\"}}"));
         assertNotNull(instruction);
         assertEquals("test", instruction.getRequest().getCommand());
     }
 
-    private static RawMessage raw(String body) {
-        return new RawMessage(new HashMap<>(), body);
+    @Test
+    public void getInstruction_returnsNullForAnythingThatIsNotATextMessage() {
+        final RecordingReceiver receiver = receiver();
+
+        assertNull(receiver.getInstruction(new Object()));
+    }
+
+    /**
+     * Duck-typed stand-in for a JMS {@code TextMessage}: {@link JmsMessageAccess} resolves these three methods
+     * reflectively, so the test needs no JMS type at all.
+     */
+    public static class FakeTextMessage {
+        private final String text;
+
+        FakeTextMessage(String text) {
+            this.text = text;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public Enumeration<String> getPropertyNames() {
+            return Collections.enumeration(Collections.emptyList());
+        }
+
+        public Object getObjectProperty(String key) {
+            return null;
+        }
     }
 }

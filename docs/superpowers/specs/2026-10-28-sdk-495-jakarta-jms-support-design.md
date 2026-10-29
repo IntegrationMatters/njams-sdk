@@ -474,6 +474,9 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   `closeAll()`, `printExceptionsOnClose(List)`, `topicName`, `splitSupport`, `ancestorPathStrings(Path)`,
   and the sender's `isUseProjectQueue()`. `NJAMS_RECEIVER_PROPERTY` moved to the receiver base but keeps
   resolving through inheritance, so it is not a removal.
+- `JmsReceiver.JMS_TIMESTAMP_PROPERTY` (`protected static final String`) is **removed** — it had no reference
+  anywhere in the repo. Removal rather than deprecation was the user's explicit instruction; it is in any case
+  weaker than the FQCN re-pointing this section already accepts for the same class.
 
 Current expectation: **yes**, the label applies.
 

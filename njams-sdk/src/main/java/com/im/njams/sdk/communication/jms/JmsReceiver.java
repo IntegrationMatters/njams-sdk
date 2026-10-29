@@ -60,7 +60,6 @@ import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
-import com.im.njams.sdk.utils.JmsMessageAccess;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -74,7 +73,6 @@ public class JmsReceiver extends AbstractJmsReceiver
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
-    protected static final String JMS_TIMESTAMP_PROPERTY = "JMSTimestamp";
 
     private Connection connection = null;
     protected Session session = null;
@@ -341,22 +339,6 @@ public class JmsReceiver extends AbstractJmsReceiver
         } catch (Exception e) {
             LOG.error("Error in onMessage", e);
         }
-    }
-
-    /**
-     * This method tries to extract an {@link Instruction} from the provided JMS message.
-     * It maps the JSON string to an {@link Instruction} object.
-     *
-     * @param message the JSON Message
-     * @return the {@link Instruction} object that was extracted or <code>null</code>, if the instruction was not yet
-     * complete or it was not valid.
-     */
-    protected Instruction getInstruction(Message message) {
-        if (!JmsMessageAccess.isTextMessage(message)) {
-            LOG.debug("Unexpected message type: {}", message.getClass());
-            return null;
-        }
-        return deserializeInstruction(chunkAssembly.resolve(message));
     }
 
     /**

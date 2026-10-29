@@ -49,6 +49,7 @@ import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.RawMessage;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.JmsMessageAccess;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -74,7 +75,8 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
     protected static final String NJAMS_RECEIVER_PROPERTY = "NJAMS_RECEIVER";
 
     /**
-     * The mapper used for reading and writing instructions. Deliberately not {@code protected}: {@link ObjectMapper}
+     * The mapper used for writing replies; reading goes through {@link #parseInstruction(RawMessage)}.
+     * Deliberately not {@code protected}: {@link ObjectMapper}
      * is relocated when the SDK is shaded and must not appear on a public or protected member.
      */
     private ObjectMapper mapper = null;
@@ -279,19 +281,25 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
     }
 
     /**
-     * Maps the JSON body of a fully assembled command message to an {@link Instruction}.
+     * This method tries to extract an {@link Instruction} from the provided JMS message. It assembles chunked
+     * messages first and maps the resulting JSON string to an {@link Instruction} object.
      *
-     * @param resolved the assembled message, or <code>null</code> if it is still incomplete.
-     * @return the {@link Instruction} that was extracted, or <code>null</code> if the message was not yet complete
-     * or did not contain a valid instruction.
+     * @param message the JMS message; any {@code javax.jms} or {@code jakarta.jms} message.
+     * @return the {@link Instruction} object that was extracted or <code>null</code>, if the instruction was not yet
+     * complete or it was not valid.
      */
-    protected final Instruction deserializeInstruction(RawMessage resolved) {
+    protected final Instruction getInstruction(Object message) {
+        if (!JmsMessageAccess.isTextMessage(message)) {
+            LOG.debug("Unexpected message type: {}", message.getClass());
+            return null;
+        }
+        final RawMessage resolved = chunkAssembly.resolve(message);
         if (resolved == null) {
             LOG.debug("Received incomplete command message.");
             return null;
         }
         try {
-            final Instruction instruction = mapper.readValue(resolved.getBody(), Instruction.class);
+            final Instruction instruction = parseInstruction(resolved);
             if (instruction.getRequest() != null) {
                 return instruction;
             }
