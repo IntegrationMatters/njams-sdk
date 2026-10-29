@@ -51,6 +51,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
+import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -78,25 +79,26 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
      */
     @Override
     protected void resolveFactory(ClientSettings settings) {
-        try (JmsFactory jmsFactory = JmsFactory.find(settings, true)) {
-            LOG.debug("Resolved JMS factory {}", jmsFactory);
-        } catch (RuntimeException | Error e) {
-            if (isOtherJmsNamespace(e) || isOtherJmsNamespace(e.getCause())) {
+        JmsFactory probe = null;
+        try {
+            probe = JmsFactory.find(settings, false);
+            try (JmsFactory jmsFactory = probe) {
+                jmsFactory.init(settings);
+                LOG.debug("Resolved JMS factory {}", jmsFactory);
+            }
+        } catch (Throwable e) {
+            if (ServiceLoaderSupport.isNotApplicable(e)) {
                 throw new TransportNotApplicableException(
                     "The configured JMS factory is not a javax.jms implementation.", e);
             }
-            throw e;
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            if (e instanceof Error) {
+                throw (Error) e;
+            }
+            throw new IllegalStateException("Could not initialize: " + probe, e);
         }
-    }
-
-    /**
-     * Whether the given failure says that the configured factory serves the other JMS namespace: the cast of the
-     * connection factory failed, or a type it needs is not on the classpath. Classified by type, not by name, so
-     * that any other failure stays a hard error.
-     */
-    private static boolean isOtherJmsNamespace(Throwable failure) {
-        return failure instanceof ClassCastException || failure instanceof NoClassDefFoundError
-            || failure instanceof ClassNotFoundException;
     }
 
     @Override

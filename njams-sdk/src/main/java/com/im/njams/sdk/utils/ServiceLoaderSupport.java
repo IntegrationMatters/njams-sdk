@@ -125,22 +125,49 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
         final Throwable root = rootCause(cause);
         final String description = root == null ? text : text + " - " + root.getClass().getSimpleName()
             + (root.getMessage() == null ? "" : ": " + root.getMessage());
-        (isMissingJmsApi(root) ? notApplicable : unavailable).add(description);
+        (isNotApplicable(cause) ? notApplicable : unavailable).add(description);
     }
 
     /**
-     * Whether the given root cause means that a type of one of the two JMS APIs (<code>javax.jms</code> or
+     * Whether the given failure says that an implementation is not applicable on this classpath rather than
+     * broken. Two things say so: a {@link ClassCastException}, which is what casting a connection factory of the
+     * other JMS namespace produces, and a missing type of one of the two JMS APIs. The whole cause chain is
+     * examined, because an implementation may wrap the failure into an exception of its own.
+     * <p>
+     * Deliberately narrow: a type that is missing for any other reason, such as a broker client library that was
+     * not deployed, is a real error and must not be classified as merely not applicable.
+     *
+     * @param failure the failure to classify.
+     * @return whether the failure means "not applicable here" rather than "broken".
+     */
+    public static boolean isNotApplicable(final Throwable failure) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof ClassCastException || isMissingJmsApi(current)) {
+                return true;
+            }
+            final Throwable cause = current.getCause();
+            if (cause == current) {
+                return false;
+            }
+            current = cause;
+        }
+        return false;
+    }
+
+    /**
+     * Whether the given throwable means that a type of one of the two JMS APIs (<code>javax.jms</code> or
      * <code>jakarta.jms</code>) is not on the classpath. The SDK ships implementations for both, so one of them
      * is always expected to fail like this. This is not a general extension point. A {@link NoClassDefFoundError}
      * reports the internal class name (with slashes), a {@link ClassNotFoundException} the dotted one.
      * A missing type of a JMS API that is present but incomplete is classified the same way; it surfaces through
      * {@link #describeAvailability(Function)} rather than {@link #hasUnavailable()}.
      */
-    private static boolean isMissingJmsApi(final Throwable root) {
-        if (!(root instanceof NoClassDefFoundError) && !(root instanceof ClassNotFoundException)) {
+    private static boolean isMissingJmsApi(final Throwable throwable) {
+        if (!(throwable instanceof NoClassDefFoundError) && !(throwable instanceof ClassNotFoundException)) {
             return false;
         }
-        final String message = root.getMessage();
+        final String message = throwable.getMessage();
         return message != null && (message.startsWith("javax.jms.") || message.startsWith("jakarta.jms.")
             || message.startsWith("javax/jms/") || message.startsWith("jakarta/jms/"));
     }

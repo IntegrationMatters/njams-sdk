@@ -485,7 +485,7 @@ Expected: FAIL — `init` does not resolve a factory.
 
 - [ ] **Step 3: Implement `resolveFactory` in both javax classes**
 
-`JmsFactory.find(settings, true)` inside a try-with-resources so the factory is closed again — resolve and discard; `connect()` keeps resolving its own, so factory lifecycle is unchanged. Catch `ClassCastException`, `NoClassDefFoundError` and `ClassNotFoundException`, including when wrapped by `JmsFactory.initFactory`'s `IllegalStateException`, and rethrow as `TransportNotApplicableException` naming the namespace. Let every other failure propagate.
+`JmsFactory.find(settings, false)` inside a try-with-resources, then call `init(settings)` on it yourself — resolve and discard; `connect()` keeps resolving its own, so factory lifecycle is unchanged. Going around the static `JmsFactory.initFactory` is deliberate: it closes the factory on the failing path too, and suppresses that method's `LOG.error(..., e)` for a candidate that merely declines. Classify the failure with `ServiceLoaderSupport.isNotApplicable(Throwable)` and rethrow as `TransportNotApplicableException` naming the namespace; re-wrap a checked failure into `IllegalStateException("Could not initialize: " + factory)` as `initFactory` did, and let an unchecked one propagate untouched. See spec §5.4 bullets 2–3 for why the classification is a chain walk with a JMS-API name test rather than a check on the exception type alone.
 
 Call it as the first statement of `AbstractJmsSender.init` and `AbstractJmsReceiver.init`, before `super.init(settings)`.
 
@@ -518,6 +518,8 @@ git commit -m "SDK-495 resolve the JMS factory during init and decline on a name
 
 **Interfaces:**
 - Consumes: Tasks 6–8.
+
+**Carried in from Task 8.** `JmsSender` and `JmsReceiver` each hold a byte-identical copy of `resolveFactory` and its `isOtherJmsNamespace`/`MAX_CAUSE_DEPTH` helper. Both are namespace-free, so they were deliberately *not* hoisted in Task 8: a package-private helper is the right shape while the two classes share `communication/jms/`, and the wrong one once this task moves them to `communication/jms/javax/`. Hoist them onto `AbstractJmsSender`/`AbstractJmsReceiver` (or a shared package-private type) as part of this move, before Task 11 turns two copies into four. Any new `protected` member this creates goes into spec §5.8's inventory.
 - Produces: `com.im.njams.sdk.communication.jms.javax.JmsSender` (carrying `COMMUNICATION_NAME` via the base), `…javax.JmsReceiver`, `…javax.SharedJmsReceiver`, `…javax.factory.{JndiJmsFactory, ActiveMqSslJmsFactory, AzureServiceBusJmsFactory}`; `…jms.factory.JmsFactory` unchanged but deprecated.
 
 - [ ] **Step 1: Move the six classes and their tests, updating only package and import statements**

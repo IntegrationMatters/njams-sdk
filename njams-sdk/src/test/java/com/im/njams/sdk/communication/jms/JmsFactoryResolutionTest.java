@@ -10,8 +10,10 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
+import javax.naming.NoInitialContextException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -122,9 +124,96 @@ public class JmsFactoryResolutionTest {
     }
 
     /**
+     * Fails the way {@code ActiveMqSslJmsFactory} and {@code AzureServiceBusJmsFactory} do: they catch whatever
+     * went wrong and rethrow it wrapped into a {@link JMSException} of their own, so the discriminating failure
+     * sits one level below the exception the factory hands out.
+     */
+    public static class WrappedCastFailureJmsFactory implements JmsFactory {
+        static final String NAME = "WrappedCastFailureJmsFactory";
+
+        @Override
+        public String getName() {
+            return NAME;
+        }
+
+        @Override
+        public void init(ClientSettings settings) throws JMSException {
+            final JMSException wrapper = new JMSException("Failed to setup the connection factory");
+            wrapper.initCause(new ClassCastException(
+                "class jakarta.jms.ConnectionFactory cannot be cast to class javax.jms.ConnectionFactory"));
+            throw wrapper;
+        }
+
+        @Override
+        public ConnectionFactory createConnectionFactory() {
+            return mock(ConnectionFactory.class);
+        }
+    }
+
+    /**
+     * Fails like a JNDI context whose configured initial-context-factory class is missing. The
+     * {@link ClassNotFoundException} is real, but the type it names is a broker's JNDI provider rather than a
+     * JMS API type, so it means a deployment problem and not a JMS namespace mismatch.
+     */
+    public static class JndiProviderMissingJmsFactory implements JmsFactory {
+        static final String NAME = "JndiProviderMissingJmsFactory";
+        static final NoInitialContextException FAILURE = new NoInitialContextException(
+            "Cannot instantiate class: com.example.ExampleInitialContextFactory");
+
+        static {
+            FAILURE.initCause(new ClassNotFoundException("com.example.ExampleInitialContextFactory"));
+        }
+
+        @Override
+        public String getName() {
+            return NAME;
+        }
+
+        @Override
+        public void init(ClientSettings settings) throws NamingException {
+            throw FAILURE;
+        }
+
+        @Override
+        public ConnectionFactory createConnectionFactory() {
+            return mock(ConnectionFactory.class);
+        }
+    }
+
+    /**
+     * Fails the way {@code ActiveMqSslJmsFactory} and {@code AzureServiceBusJmsFactory} do when their broker
+     * client library is simply not deployed: {@code ReflectionWrapper} throws a {@link ClassNotFoundException}
+     * for a broker class, and the factory rethrows it inside a {@link JMSException}. Same exception types as
+     * {@link WrappedCastFailureJmsFactory}, but the missing type belongs to no JMS API - so this is a hard
+     * error, not a reason to decline.
+     */
+    public static class MissingBrokerLibraryJmsFactory implements JmsFactory {
+        static final String NAME = "MissingBrokerLibraryJmsFactory";
+        static final JMSException FAILURE = new JMSException("Failed to setup ActiveMQSslConnectionFactory");
+
+        static {
+            FAILURE.initCause(new ClassNotFoundException("org.apache.activemq.ActiveMQSslConnectionFactory"));
+        }
+
+        @Override
+        public String getName() {
+            return NAME;
+        }
+
+        @Override
+        public void init(ClientSettings settings) throws JMSException {
+            throw FAILURE;
+        }
+
+        @Override
+        public ConnectionFactory createConnectionFactory() {
+            return mock(ConnectionFactory.class);
+        }
+    }
+
+    /**
      * Fails while it is being looked up rather than while it is initialized, so that the linkage error reaches
-     * the sender/receiver unwrapped instead of wrapped into the {@link IllegalStateException} that
-     * {@code JmsFactory.initFactory} produces.
+     * the classification from {@code JmsFactory.find} itself rather than from {@code JmsFactory.init}.
      */
     public static class LinkageFailingJmsFactory implements JmsFactory {
         static volatile boolean failOnLookup = false;
@@ -152,7 +241,8 @@ public class JmsFactoryResolutionTest {
     @Rule
     public ScopedSpiRule fixtures = new ScopedSpiRule(JmsFactory.class, RecordingJmsFactory.class,
         CastFailingJmsFactory.class, MissingBrokerClientJmsFactory.class, MisconfiguredJmsFactory.class,
-        LinkageFailingJmsFactory.class);
+        LinkageFailingJmsFactory.class, WrappedCastFailureJmsFactory.class, JndiProviderMissingJmsFactory.class,
+        MissingBrokerLibraryJmsFactory.class);
 
     @Before
     public void beforeEach() {
@@ -230,12 +320,50 @@ public class JmsFactoryResolutionTest {
 
     @Test
     public void init_propagatesAConfigurationFailureUnchanged() {
-        assertConfigurationFailurePropagates(() -> new JmsSender().init(using(MisconfiguredJmsFactory.NAME)));
+        assertHardError(MisconfiguredJmsFactory.FAILURE,
+            () -> new JmsSender().init(using(MisconfiguredJmsFactory.NAME)));
     }
 
     @Test
     public void receiverInit_propagatesAConfigurationFailureUnchanged() {
-        assertConfigurationFailurePropagates(() -> new JmsReceiver().init(using(MisconfiguredJmsFactory.NAME)));
+        assertHardError(MisconfiguredJmsFactory.FAILURE,
+            () -> new JmsReceiver().init(using(MisconfiguredJmsFactory.NAME)));
+    }
+
+    @Test
+    public void init_throwsTransportNotApplicable_whenTheFactoryWrapsTheCastFailure() {
+        assertNotApplicable(ClassCastException.class,
+            () -> new JmsSender().init(using(WrappedCastFailureJmsFactory.NAME)));
+    }
+
+    @Test
+    public void receiverInit_throwsTransportNotApplicable_whenTheFactoryWrapsTheCastFailure() {
+        assertNotApplicable(ClassCastException.class,
+            () -> new JmsReceiver().init(using(WrappedCastFailureJmsFactory.NAME)));
+    }
+
+    @Test
+    public void init_propagatesAMissingJndiProviderUnchanged() {
+        assertHardError(JndiProviderMissingJmsFactory.FAILURE,
+            () -> new JmsSender().init(using(JndiProviderMissingJmsFactory.NAME)));
+    }
+
+    @Test
+    public void receiverInit_propagatesAMissingJndiProviderUnchanged() {
+        assertHardError(JndiProviderMissingJmsFactory.FAILURE,
+            () -> new JmsReceiver().init(using(JndiProviderMissingJmsFactory.NAME)));
+    }
+
+    @Test
+    public void init_propagatesAMissingBrokerLibraryUnchanged() {
+        assertHardError(MissingBrokerLibraryJmsFactory.FAILURE,
+            () -> new JmsSender().init(using(MissingBrokerLibraryJmsFactory.NAME)));
+    }
+
+    @Test
+    public void receiverInit_propagatesAMissingBrokerLibraryUnchanged() {
+        assertHardError(MissingBrokerLibraryJmsFactory.FAILURE,
+            () -> new JmsReceiver().init(using(MissingBrokerLibraryJmsFactory.NAME)));
     }
 
     @Test
@@ -270,21 +398,28 @@ public class JmsFactoryResolutionTest {
             fail("expected the implementation to decline with a " + TransportNotApplicableException.class.getName());
         } catch (TransportNotApplicableException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("javax.jms"));
-            final Throwable cause = e.getCause();
-            final Throwable wrapped = cause == null ? null : cause.getCause();
-            assertTrue("cause chain must keep the original failure: " + cause,
-                expectedCause.isInstance(cause) || expectedCause.isInstance(wrapped));
+            assertTrue("cause chain must keep the original failure: " + e.getCause(),
+                chainContains(e.getCause(), expectedCause));
         }
     }
 
-    private static void assertConfigurationFailurePropagates(Runnable init) {
+    private static boolean chainContains(Throwable failure, Class<? extends Throwable> expected) {
+        for (Throwable t = failure; t != null; t = t.getCause()) {
+            if (expected.isInstance(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void assertHardError(Throwable expectedCause, Runnable init) {
         try {
             init.run();
             fail("expected the configuration failure to propagate");
         } catch (TransportNotApplicableException e) {
             fail("a configuration failure must not be reported as not applicable: " + e);
         } catch (IllegalStateException e) {
-            assertSame(MisconfiguredJmsFactory.FAILURE, e.getCause());
+            assertSame(expectedCause, e.getCause());
         }
     }
 }

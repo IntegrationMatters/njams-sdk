@@ -326,11 +326,32 @@ no candidate left → error naming every cause
    as the **first action of the candidate's `init(ClientSettings)`**, so no separate probe entry point is needed.
 2. **Resolve and discard.** The probed factory is closed again, and `connect()` keeps doing
    `try (JmsFactory f = JmsFactory.find(settings))` exactly as today. Factory lifecycle on the primary production
-   transport is unchanged. The cost is one duplicate `InitialContext` + JNDI lookup per resolution; see §5.4.1.
+   transport is unchanged. The cost is one duplicate `InitialContext` + JNDI lookup per resolution.
+   **§5.4.1 memoizes the chosen *implementation class*, not the probe: `init` still runs per sender instance
+   (up to `maxSenderThreads`) and per reconnect attempt, so that lookup is per-`init`, not once per process**
+   (implementation finding, Task 8).
+   The probe calls `JmsFactory.find(settings, false)` and then `init(settings)` itself inside the
+   try-with-resources, rather than `find(settings, true)`. Bypassing the static `JmsFactory.initFactory` is what
+   closes the factory on the failing path too (`JndiJmsFactory.init` assigns its `InitialContext` before the
+   failing lookup, so the instance would otherwise leak), and it avoids that method's `LOG.error(..., e)`, which
+   would otherwise print a stack trace for every declining candidate on a healthy mixed-classpath startup. The
+   probe re-wraps a *checked* failure into the same `IllegalStateException("Could not initialize: " + factory)`
+   shape `initFactory` produces, so a genuine configuration error reads as before; an unchecked failure now
+   propagates untouched instead of being wrapped, which is what keeps `init(null)` an `NullPointerException`.
    *(Holding the resolved factory for the sender's lifetime would remove a JNDI lookup per connect and per
    reconnect, but it changes that lifecycle and is therefore out of scope here — see §9.)*
 3. **Mismatch is signalled by a dedicated marker exception**, thrown only by the SDK's own JMS `init` when step 1
-   fails with `ClassCastException`, `NoClassDefFoundError` or `ClassNotFoundException`. `CommunicationFactory`
+   fails with `ClassCastException`, `NoClassDefFoundError` or `ClassNotFoundException`.
+   **Two refinements from implementation (Task 8). First, the whole cause chain is examined, not just the top
+   frame: `ActiveMqSslJmsFactory` and `AzureServiceBusJmsFactory` both catch and rethrow wrapped into a
+   `JMSException` of their own, so the discriminating throwable sits a level below what the factory hands out.
+   Second, a `NoClassDefFoundError`/`ClassNotFoundException` counts only when the missing type's own name is a
+   JMS API type (`javax.jms.`/`jakarta.jms.`, in either the dotted or the slash spelling); a `ClassCastException`
+   always counts. Type alone is too coarse — `ReflectionWrapper` raises a `ClassNotFoundException` for a broker
+   class when a client library is simply not deployed, and classifying that as a namespace mismatch would make
+   the SDK silently skip to another transport over a deployment error, which is this document's own §2
+   anti-goal. The name test is exactly the one §5.5 already needs, so the two share one implementation:
+   `ServiceLoaderSupport.isNotApplicable(Throwable)`.** `CommunicationFactory`
    falls through on **that type only**. This matters: falling through on any `NoClassDefFoundError` would let a
    third-party sender whose `init` fails for an unrelated reason be silently replaced by a different transport
    implementation — a failure mode that is nearly invisible in a log. Fall-through stays opt-in.
@@ -405,7 +426,9 @@ at two different points:
    `javax.jms.*` or `jakarta.jms.*` type. The missing type's own name is the evidence, and
    `addUnavailable(...)` already walks to the root cause, so the information is in hand.
 
-`ServiceLoaderSupport` then keeps two buckets instead of one:
+Both points therefore call the same public helper, `ServiceLoaderSupport.isNotApplicable(Throwable)`, which
+walks the cause chain (bounded, with a self-reference guard) and applies the JMS-API name test described in §5.4
+bullet 3. `ServiceLoaderSupport` then keeps two buckets instead of one:
 
 - **not applicable** — classified as above; expected, not a problem;
 - **genuinely unavailable** — everything else: a broken provider, a `ServiceConfigurationError`, a missing
@@ -474,6 +497,12 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   `closeAll()`, `printExceptionsOnClose(List)`, `topicName`, `splitSupport`, `ancestorPathStrings(Path)`,
   and the sender's `isUseProjectQueue()`. `NJAMS_RECEIVER_PROPERTY` moved to the receiver base but keeps
   resolving through inheritance, so it is not a removal.
+- `AbstractJmsSender`/`AbstractJmsReceiver` declare `protected abstract void resolveFactory(ClientSettings)`
+  (Tasks 6–8) — a new member of a public class's protected surface, and an abstract one, so any out-of-tree
+  subclass of these bases must implement it. Both bases are themselves new in this ticket and documented as
+  internal infrastructure, so nothing existing is broken.
+- `ServiceLoaderSupport.isNotApplicable(Throwable)` is a **new `public static` method** on an existing public
+  class (Task 8) — additive, and the shared classifier §5.4 bullet 3 and §5.5 both use.
 - `JmsReceiver.JMS_TIMESTAMP_PROPERTY` (`protected static final String`) is **removed** — it had no reference
   anywhere in the repo. Removal rather than deprecation was the user's explicit instruction; it is in any case
   weaker than the FQCN re-pointing this section already accepts for the same class.
