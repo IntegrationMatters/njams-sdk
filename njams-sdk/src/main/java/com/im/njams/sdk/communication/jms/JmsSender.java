@@ -27,7 +27,6 @@ import static com.im.njams.sdk.communication.MessageHeaders.*;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
@@ -37,7 +36,6 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.NamingException;
 
-import org.apache.kafka.common.Uuid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +46,10 @@ import com.faizsiegeln.njams.messageformat.v4.projectmessage.ProjectMessage;
 import com.faizsiegeln.njams.messageformat.v4.tracemessage.TraceMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
-import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
-import com.im.njams.sdk.communication.fragments.SplitSupport;
-import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
-import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -64,40 +58,18 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class JmsSender extends AbstractSender implements ExceptionListener, ClasspathValidator {
+public class JmsSender extends AbstractJmsSender implements ExceptionListener, ClasspathValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
-
-    /**
-     * Name for the JMS communication implementation.
-     */
-    public static final String COMMUNICATION_NAME = "JMS";
-
-    /** Destination used by sender and receiver when no destination setting is present. */
-    static final String DEFAULT_DESTINATION = "njams";
 
     private Connection connection = null;
     protected Session session = null;
     protected MessageProducer eventProducer = null;
     protected MessageProducer projectProducer = null;
-    private SplitSupport splitSupport = null;
-    private boolean useProjectQueue = false;
 
-    /**
-     * Initializes this Sender via the given settings.
-     *
-     * @param settings the settings needed to initialize
-     */
     @Override
-    public void init(ClientSettings settings) {
-        super.init(settings);
-        useProjectQueue =
-            "false".equalsIgnoreCase(settings.getProperty(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR));
-        if (useProjectQueue) {
-            LOG.info("Using separate project queue.");
-        }
-        splitSupport = new SplitSupport(settings, -1);
-        LOG.debug("Initialized sender {} (useProjectQueue={})", getName(), useProjectQueue);
+    protected void resolveFactory(ClientSettings settings) {
+        // Factory resolution lands here in SDK-495 Task 8.
     }
 
     @Override
@@ -146,11 +118,9 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     }
 
     private void createProducers(JmsFactory jmsFactory, Session session) throws NamingException, JMSException {
-        final String destination = settings.getPropertyWithAlternativeKey(
-                NjamsSettings.PROPERTY_JMS_DESTINATION, NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX);
-        final String prefix = destination != null ? destination : DEFAULT_DESTINATION;
+        final String prefix = destinationPrefix();
         eventProducer = createProducer(jmsFactory, session, prefix + ".event");
-        if (useProjectQueue) {
+        if (isUseProjectQueue()) {
             // separate one for project/trace messages
             projectProducer = createProducer(jmsFactory, session, prefix + ".project");
         } else {
@@ -164,22 +134,8 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         throws NamingException, JMSException {
         Queue destination = jmsFactory.createQueue(session, destinationName);
         final MessageProducer messageProducer = session.createProducer(destination);
-        messageProducer.setDeliveryMode(getDeliveryMode());
+        messageProducer.setDeliveryMode(resolveDeliveryMode());
         return messageProducer;
-    }
-
-    private int getDeliveryMode() {
-        final String deliveryMode = settings.getProperty(NjamsSettings.PROPERTY_JMS_DELIVERY_MODE);
-        if ("NON_PERSISTENT".equalsIgnoreCase(deliveryMode) || "NONPERSISTENT".equalsIgnoreCase(deliveryMode)) {
-            LOG.debug("Set JMS delivery mode to NON_PERSISTENT.");
-            return DeliveryMode.NON_PERSISTENT;
-        }
-        if ("RELIABLE".equalsIgnoreCase(deliveryMode)) {
-            // 22 == TIBCO RELIABLE SEND
-            LOG.debug("Set JMS delivery mode to Tibco RELIABLE.");
-            return 22;
-        }
-        return DeliveryMode.PERSISTENT;
     }
 
     /**
@@ -224,66 +180,22 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         }
     }
 
-    String serialize(CommonMessage msg) {
-        return JsonUtils.serialize(msg);
+    /**
+     * Sends the given message through the given producer.
+     *
+     * @param producer the producer to send with
+     * @param msg the message to send
+     * @param messageType the nJAMS message type header value
+     * @param clientSessionId the client session id header value
+     * @throws Exception if the message cannot be sent
+     */
+    protected void sendMessage(MessageProducer producer, CommonMessage msg, String messageType,
+        String clientSessionId) throws Exception {
+        super.sendMessage(producer, msg, messageType, clientSessionId);
     }
 
-    protected void sendMessage(MessageProducer producer, CommonMessage msg, String messageType, String clientSessionId)
-        throws Exception {
-        final String data = serialize(msg);
-        if (splitSupport.isSplitting()) {
-            sendChunks(producer, msg, data, messageType, clientSessionId);
-        } else {
-            final String logId;
-            if (msg instanceof LogMessage) {
-                logId = ((LogMessage) msg).getLogId();
-            } else {
-                logId = null;
-            }
-
-            final TextMessage textMessage = buildMessage(logId, msg.getPath(), data, messageType, clientSessionId);
-            tryToSend(producer, textMessage);
-        }
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Sent {} for {} to {}:\n{}", msg.getClass().getSimpleName(), msg.getPath(),
-                producer.getDestination(), data);
-        } else if (LOG.isDebugEnabled()) {
-            LOG.debug("Sent {} for {} to {}", msg.getClass().getSimpleName(), msg.getPath(),
-                producer.getDestination());
-        }
-    }
-
-    private void sendChunks(MessageProducer producer, CommonMessage msg, String data, String messageType,
-        String clientSessionId)
-        throws Exception {
-        final SplitIterator chunks = splitSupport.iterator(data);
-        if (chunks.isEmpty()) {
-            return;
-        }
-        final String messageKey;
-        final String logId;
-        if (msg instanceof LogMessage) {
-            logId = ((LogMessage) msg).getLogId();
-            messageKey = logId;
-        } else {
-            if (chunks.size() > 1) {
-                // ensure same key for all chunks
-                messageKey = Uuid.randomUuid().toString();
-            } else {
-                messageKey = null;
-            }
-            logId = null;
-        }
-        while (chunks.hasNext()) {
-            final TextMessage textMessage =
-                buildMessage(logId, msg.getPath(), chunks.next(), messageType, clientSessionId);
-            splitSupport.addChunkHeaders((k, v) -> setProperty(textMessage, k, v), chunks.currentIndex(), chunks.size(),
-                messageKey);
-            tryToSend(producer, textMessage);
-        }
-    }
-
-    private TextMessage buildMessage(String logId, String path, String msg, String messageType,
+    @Override
+    protected Object buildMessage(String logId, String path, String msg, String messageType,
         String clientSessionId) throws JMSException {
         final TextMessage textMessage = session.createTextMessage(msg);
         if (logId != null) {
@@ -296,16 +208,32 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
         return textMessage;
     }
 
-    private void setProperty(TextMessage message, String key, String value) {
+    @Override
+    protected void setProperty(Object message, String key, String value) {
         try {
-            message.setStringProperty(key, value);
+            ((TextMessage) message).setStringProperty(key, value);
         } catch (JMSException e) {
             LOG.error("Failed to set property: {}", key, e);
         }
     }
 
-    private void tryToSend(MessageProducer producer, TextMessage textMessage) throws Exception {
-        sendWithRetry(() -> producer.send(textMessage));
+    @Override
+    protected void tryToSend(Object producer, Object message) throws Exception {
+        sendWithRetry(() -> ((MessageProducer) producer).send((TextMessage) message));
+    }
+
+    @Override
+    protected String describeDestination(Object producer) {
+        try {
+            return String.valueOf(((MessageProducer) producer).getDestination());
+        } catch (JMSException e) {
+            return "<unknown destination>";
+        }
+    }
+
+    @Override
+    protected Class<?> congestionExceptionType() {
+        return ResourceAllocationException.class;
     }
 
     /**
@@ -321,14 +249,14 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
             try {
                 eventProducer.close();
                 eventProducer = null;
-                if (!useProjectQueue) {
+                if (!isUseProjectQueue()) {
                     projectProducer = null;
                 }
             } catch (JMSException ex) {
                 LOG.warn("Unable to close event producer", ex);
             }
         }
-        if (useProjectQueue && projectProducer != null) {
+        if (isUseProjectQueue() && projectProducer != null) {
             try {
                 projectProducer.close();
                 projectProducer = null;
@@ -357,83 +285,6 @@ public class JmsSender extends AbstractSender implements ExceptionListener, Clas
     @Override
     public synchronized void onException(JMSException exception) {
         notifyConnectionFailure(new NjamsSdkRuntimeException("JMS Exception", exception));
-    }
-
-    @Override
-    public String getName() {
-        return COMMUNICATION_NAME;
-    }
-
-    /**
-     * Logs a send failure with the JMS detail the shared retry handling does not have — that a
-     * {@link ResourceAllocationException} means the destination is momentarily full rather than unreachable.
-     *
-     * @param outcome what the SDK decided about this failure.
-     * @param failure the failure itself.
-     */
-    @Override
-    protected void logError(SendFailureOutcome outcome, Throwable failure) {
-        switch (outcome) {
-        case DISCARDED_BY_POLICY:
-            LOG.debug("JMS destination limit exceeded; applying discard policy [{}].", discardPolicy);
-            break;
-        case ESCALATING:
-            if (isCongestion(failure)) {
-                LOG.debug("JMS destination limit exceeded; discard policy [{}] gives up on this message.",
-                    discardPolicy);
-            } else {
-                LOG.warn("Failed to send to the JMS destination; treating the connection as broken.", failure);
-            }
-            break;
-        default:
-            LOG.debug("Retrying JMS send after failure.", failure);
-            break;
-        }
-    }
-
-    /** Guards against a pathological transport exception whose cause chain loops back on itself. */
-    private static final int MAX_CAUSE_DEPTH = 32;
-
-    /**
-     * Identifies a {@link ResourceAllocationException} anywhere in the failure's cause chain as congestion: the
-     * JMS-spec-defined, provider-independent signal that the broker could not allocate the resources needed to
-     * accept the message right now (e.g. a destination or store limit), which is expected to resolve itself
-     * shortly as consumers drain the backlog. This holds for any compliant JMS provider — no vendor-specific
-     * exception type is involved. Any other failure, including a bare {@link JMSException} or one indicating the
-     * connection is technically up but not usable (e.g. {@link javax.jms.InvalidDestinationException}), is
-     * treated as a real connection problem.
-     *
-     * @param failure the failure that was reported.
-     * @return {@code true} only if the cause chain contains a {@link ResourceAllocationException}.
-     */
-    @Override
-    protected boolean isCongestion(Throwable failure) {
-        Throwable current = failure;
-        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
-            if (current instanceof ResourceAllocationException) {
-                return true;
-            }
-            final Throwable cause = current.getCause();
-            if (cause == current) {
-                return false;
-            }
-            current = cause;
-        }
-        return false;
-    }
-
-    /**
-     * JMS has no portable, provider-independent signal that distinguishes a permanently oversized message from
-     * transient resource exhaustion — both surface as the same {@link ResourceAllocationException} classified by
-     * {@link #isCongestion}. Guessing wrong here would silently drop a message that could still have gone through,
-     * so this intentionally never claims a message is permanently rejected.
-     *
-     * @param failure the failure that was reported; ignored.
-     * @return always {@code false}.
-     */
-    @Override
-    protected boolean isMessageRejected(Throwable failure) {
-        return false;
     }
 
     /**
