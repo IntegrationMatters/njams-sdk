@@ -403,7 +403,7 @@ git commit -m "SDK-495 hoist the JMS sender's namespace-free logic into a shared
 
 **Files:**
 - Create: `njams-sdk/src/main/java/com/im/njams/sdk/communication/jms/AbstractJmsReceiver.java`
-- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/jms/JmsReceiver.java`, `SharedJmsReceiver.java`
+- Modify: `njams-sdk/src/main/java/com/im/njams/sdk/communication/jms/JmsReceiver.java` (`SharedJmsReceiver.java` stays untouched — see Step 3)
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/jms/JmsReceiverTest.java` (existing — must pass unmodified)
 - Test: `njams-sdk/src/test/java/com/im/njams/sdk/communication/jms/AbstractJmsReceiverTest.java` (new)
 

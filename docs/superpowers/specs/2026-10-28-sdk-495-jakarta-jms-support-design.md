@@ -466,6 +466,14 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   only a setting naming one by **fully-qualified** class name would break, and no such FQCN is documented
   anywhere (finding 9).
 - `JMSChunkAssembly`'s supertype changes from `GenericChunkAssembly<TextMessage>` to `GenericChunkAssembly<Object>`.
+- `JmsReceiver.createMessageFilter()` and the `messageFilter` field are retyped `Predicate<Message>` →
+  `Predicate<Object>` (implementation finding, Task 7). This is the one *source-breaking* change in the
+  inventory; the rest below are additive.
+- Hoisting onto the `AbstractJmsSender`/`AbstractJmsReceiver` bases widened these from `private` to
+  `protected`, i.e. they are new permanent members of a public class's protected surface (Tasks 6–7):
+  `closeAll()`, `printExceptionsOnClose(List)`, `topicName`, `splitSupport`, `ancestorPathStrings(Path)`,
+  and the sender's `isUseProjectQueue()`. `NJAMS_RECEIVER_PROPERTY` moved to the receiver base but keeps
+  resolving through inheritance, so it is not a removal.
 
 Current expectation: **yes**, the label applies.
 

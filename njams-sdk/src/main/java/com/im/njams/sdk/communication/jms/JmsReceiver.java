@@ -75,7 +75,6 @@ public class JmsReceiver extends AbstractJmsReceiver
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
     protected static final String JMS_TIMESTAMP_PROPERTY = "JMSTimestamp";
-    protected static final String NJAMS_RECEIVER_PROPERTY = "NJAMS_RECEIVER";
 
     private Connection connection = null;
     protected Session session = null;
@@ -89,6 +88,8 @@ public class JmsReceiver extends AbstractJmsReceiver
 
     /**
      * This method creates a message filter that is used when message selectors are not supported.
+     *
+     * @return the filter to store in {@link #messageFilter}.
      */
     @Override
     protected Predicate<Object> createMessageFilter() {
@@ -105,8 +106,8 @@ public class JmsReceiver extends AbstractJmsReceiver
             .flatMap(JmsReceiver::ancestorPathStrings)
             .collect(Collectors.toSet());
         final Predicate<Object> filter = message -> {
-            final Message m = (Message) message;
             try {
+                final Message m = (Message) message;
                 // for discarding old commands in case that only durable subscription is supported
                 if (m.getJMSTimestamp() > 0 && m.getJMSTimestamp() < oldestMessageTime) {
                     LOG.trace("Message discarded by time filter (getJMSTimestamp={})", m.getJMSTimestamp());
@@ -124,7 +125,7 @@ public class JmsReceiver extends AbstractJmsReceiver
                 return false;
             } catch (Exception e) {
                 LOG.error("Failed to evaluate filter for message {}. Message discarded.",
-                    StringUtils.headersToString(m), e);
+                    StringUtils.headersToString(message), e);
                 return false;
             }
         };

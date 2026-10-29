@@ -68,6 +68,12 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
     protected String topicName = null;
 
     /**
+     * The message property naming the receiver a command is addressed to. Used both in the broker-side
+     * selector built here and in the client-side filter the subclass builds.
+     */
+    protected static final String NJAMS_RECEIVER_PROPERTY = "NJAMS_RECEIVER";
+
+    /**
      * The mapper used for reading and writing instructions. Deliberately not {@code protected}: {@link ObjectMapper}
      * is relocated when the SDK is shaded and must not appear on a public or protected member.
      */
@@ -165,7 +171,8 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
         final String selector = njamsInstances.stream().map(n -> n.metadata().getClientPath())
             .flatMap(AbstractJmsReceiver::ancestorPathStrings)
             .sorted()
-            .collect(Collectors.joining("' OR NJAMS_RECEIVER = '", "NJAMS_RECEIVER = '", "'"));
+            .collect(Collectors.joining("' OR " + NJAMS_RECEIVER_PROPERTY + " = '",
+                NJAMS_RECEIVER_PROPERTY + " = '", "'"));
         LOG.debug("Updated message selector: {}", selector);
         return selector;
     }
@@ -200,6 +207,11 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
         return Collections.singleton(njams);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Also recomputes the message selector and filter, so that they cover the newly registered instance.
+     */
     @Override
     public void setNjams(Njams njams) {
         super.setNjams(njams);
