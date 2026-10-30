@@ -1,4 +1,4 @@
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.javax;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

@@ -506,6 +506,17 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
 - `JmsReceiver.JMS_TIMESTAMP_PROPERTY` (`protected static final String`) is **removed** — it had no reference
   anywhere in the repo. Removal rather than deprecation was the user's explicit instruction; it is in any case
   weaker than the FQCN re-pointing this section already accepts for the same class.
+- Relocating the javax tree (Task 9) forced two visibility widenings on `AbstractJmsSender`, because the
+  tests that exercise those members can no longer sit in the base class's package once `JmsSender` lives in
+  `…jms.javax`. Both are additive — new members of a public class's protected/public surface, on a base class
+  that is itself new in this ticket and documented as internal infrastructure:
+  - `serialize(CommonMessage)` widened package-private → `protected`. `JmsSenderTest`'s three anonymous
+    `JmsSender` subclasses override it with `@Override`; a package-private method declared in `…jms` is not
+    inherited across the package boundary, so the overrides would not compile. Decided by the repository owner.
+  - `isCongestion(Throwable)` widened `protected` → `public`. `JmsSenderTest` asserts on it directly and also
+    needs `JmsSender`'s own protected `session`/`eventProducer`/`sendMessage`, so the test has to live in
+    `…jms.javax`; from there the base's protected method is unreachable. Widening this one read-only predicate
+    was preferred over making `JmsSender`'s two mutable producer/session fields public.
 
 Current expectation: **yes**, the label applies.
 

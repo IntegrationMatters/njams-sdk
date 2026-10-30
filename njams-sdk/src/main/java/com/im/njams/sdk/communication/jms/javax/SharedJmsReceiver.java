@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.javax;
 
 import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
@@ -48,7 +48,11 @@ import com.im.njams.sdk.utils.StringUtils;
  * Overrides the common {@link JmsReceiver} for supporting receiving messages for multiple {@link Njams} instances.
  *
  * @author cwinkler
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based shared receiver
+ *             {@code com.im.njams.sdk.communication.jms.SharedJmsReceiver}. This {@code javax.jms}
+ *             implementation stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<Message> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SharedJmsReceiver.class);
@@ -70,7 +74,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      * Adds the given instance to this receiver for receiving instructions.
      *
      * @see com.im.njams.sdk.communication.jms.AbstractJmsReceiver#setNjams(com.im.njams.sdk.Njams)
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public void setNjams(Njams njamsInstance) {
         super.setNjams(null);
@@ -92,7 +99,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      * potentially blocking {@link #connect()} and the backoff sleep between attempts). Without cancelling first,
      * a reconnect in flight at the exact moment the last instance is removed would otherwise block this call —
      * and therefore the caller's {@code Njams.stop()} — for the remainder of that reconnect attempt.
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public boolean removeNjams(Njams njamsInstance) {
         boolean reallyStopped = sharingSupport.removeNjams(njamsInstance);
@@ -127,7 +137,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      * This method is the MessageListener implementation. It receives JMS messages automatically.
      *
      * @param msg the newly arrived JMS message.
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public void onMessage(Message msg) {
         if (!messageFilter.test(msg)) {
@@ -153,6 +166,12 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public Path getReceiverPath(Message requestMessage, Instruction instruction) {
         try {
@@ -163,6 +182,12 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String getClientId(Message requestMessage, Instruction instruction) {
         try {
@@ -173,6 +198,12 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link SharedJmsReceiver}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public void sendReply(Message requestMessage, Instruction reply, String clientId) {
         try {

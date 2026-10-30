@@ -36,9 +36,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.communication.jms.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.ActiveMqSslJmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class NjamsConnectionFactoryTest {

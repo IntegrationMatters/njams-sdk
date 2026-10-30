@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.javax;
 
 import static com.im.njams.sdk.communication.MessageHeaders.*;
 
@@ -49,6 +49,7 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
+import com.im.njams.sdk.communication.jms.AbstractJmsSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
@@ -59,7 +60,11 @@ import com.im.njams.sdk.utils.StringUtils;
  *
  * @author hsiegeln
  * @version 4.0.6
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based sender
+ *             {@code com.im.njams.sdk.communication.jms.JmsSender}. This {@code javax.jms} implementation
+ *             stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class JmsSender extends AbstractJmsSender implements ExceptionListener, ClasspathValidator {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
@@ -101,6 +106,12 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JmsSender}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public synchronized void connect() throws NjamsSdkRuntimeException {
         if (isConnected()) {
@@ -267,7 +278,10 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
 
     /**
      * Close this Sender.
+     *
+     * @deprecated See {@link JmsSender}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public synchronized void close() {
         if (!isConnected()) {
@@ -311,6 +325,10 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
         }
     }
 
+    /**
+     * @deprecated See {@link JmsSender}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public synchronized void onException(JMSException exception) {
         notifyConnectionFailure(new NjamsSdkRuntimeException("JMS Exception", exception));
@@ -320,7 +338,10 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.
+     *
+     * @deprecated See {@link JmsSender}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public String[] librariesToCheck() {
         return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",

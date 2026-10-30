@@ -115,7 +115,13 @@ public abstract class AbstractJmsSender extends AbstractSender {
         return COMMUNICATION_NAME;
     }
 
-    String serialize(CommonMessage msg) {
+    /**
+     * Serializes the given message to its JSON wire representation.
+     *
+     * @param msg the message to serialize
+     * @return the serialized message
+     */
+    protected String serialize(CommonMessage msg) {
         return JsonUtils.serialize(msg);
     }
 
@@ -294,7 +300,7 @@ public abstract class AbstractJmsSender extends AbstractSender {
      * @return {@code true} only if the cause chain contains a resource-allocation exception.
      */
     @Override
-    protected boolean isCongestion(Throwable failure) {
+    public boolean isCongestion(Throwable failure) {
         final Class<?> congestionType = congestionExceptionType();
         Throwable current = failure;
         for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {

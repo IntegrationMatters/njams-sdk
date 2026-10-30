@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.javax;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,6 +47,7 @@ import org.junit.Test;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.WorkingJmsFactory;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
@@ -72,7 +73,7 @@ public class JmsSenderTest {
         WorkingJmsFactory.reset();
         sender = spy(new JmsSender() {
             @Override
-            String serialize(CommonMessage msg) {
+            protected String serialize(CommonMessage msg) {
                 return "dummy data";
             }
         });
@@ -116,7 +117,7 @@ public class JmsSenderTest {
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
         JmsSender noneSender = spy(new JmsSender() {
             @Override
-            String serialize(CommonMessage msg) {
+            protected String serialize(CommonMessage msg) {
                 return "dummy data";
             }
 
@@ -172,7 +173,7 @@ public class JmsSenderTest {
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
         JmsSender onConnectionLossSender = spy(new JmsSender() {
             @Override
-            String serialize(CommonMessage msg) {
+            protected String serialize(CommonMessage msg) {
                 return "dummy data";
             }
         });

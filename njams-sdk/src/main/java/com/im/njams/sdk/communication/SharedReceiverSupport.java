@@ -63,7 +63,7 @@ public class SharedReceiverSupport<R extends AbstractReceiver & ShareableReceive
      * Adds the given instance to this receiver for receiving instructions.
      *
      * @param njamsInstance The instance to add.
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
+     * @see com.im.njams.sdk.communication.jms.AbstractJmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
     public void addNjams(Njams njamsInstance) {
         synchronized (njamsInstances) {

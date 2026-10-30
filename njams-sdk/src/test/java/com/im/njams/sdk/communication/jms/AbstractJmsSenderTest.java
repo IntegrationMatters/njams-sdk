@@ -79,7 +79,7 @@ public class AbstractJmsSenderTest {
         }
 
         @Override
-        String serialize(CommonMessage msg) {
+        protected String serialize(CommonMessage msg) {
             return data;
         }
 

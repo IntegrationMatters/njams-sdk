@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms;
+package com.im.njams.sdk.communication.jms.javax;
 
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
@@ -59,6 +59,7 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
+import com.im.njams.sdk.communication.jms.AbstractJmsReceiver;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
@@ -69,7 +70,11 @@ import com.im.njams.sdk.utils.StringUtils;
  *
  * @author pnientiedt, krautenberg@integrationmatters.ocm
  * @version 4.0.5
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based receiver
+ *             {@code com.im.njams.sdk.communication.jms.JmsReceiver}. This {@code javax.jms} implementation
+ *             stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class JmsReceiver extends AbstractJmsReceiver
     implements MessageListener, ExceptionListener, ClasspathValidator {
 
@@ -164,7 +169,10 @@ public class JmsReceiver extends AbstractJmsReceiver
     /**
      * This method is called when the receiver has to connect. It can't be
      * started if init(..) hasn't been called beforehand.
+     *
+     * @deprecated See {@link JmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public synchronized void connect() {
         if (!isConnected()) {
@@ -338,7 +346,10 @@ public class JmsReceiver extends AbstractJmsReceiver
      * Messages automatically.
      *
      * @param msg the newly arrived JMS message.
+     *
+     * @deprecated See {@link JmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public void onMessage(Message msg) {
         if (!messageFilter.test(msg)) {
@@ -426,7 +437,10 @@ public class JmsReceiver extends AbstractJmsReceiver
      * This method logs all JMS Exceptions and tries to reconnect the connection.
      *
      * @param exception The jmsException to be logged.
+     *
+     * @deprecated See {@link JmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public void onException(JMSException exception) {
         LOG.trace("JMS failure", exception);
@@ -437,7 +451,10 @@ public class JmsReceiver extends AbstractJmsReceiver
      * This method gets all libraries that need to be checked.
      *
      * @return an array of Strings of fully qualified class names.
+     *
+     * @deprecated See {@link JmsReceiver}.
      */
+    @Deprecated(since = "6.1.0")
     @Override
     public String[] librariesToCheck() {
         return new String[] {

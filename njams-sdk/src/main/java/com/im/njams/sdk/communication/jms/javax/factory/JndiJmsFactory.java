@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms.factory;
+package com.im.njams.sdk.communication.jms.javax.factory;
 
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY;
 
@@ -41,12 +41,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * This factory implements the traditional way of creating JMS object via JNDI lookups.
+ *
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based
+ *             {@code com.im.njams.sdk.communication.jms.JndiJmsFactory}. This {@code javax.jms}
+ *             implementation stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class JndiJmsFactory implements JmsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(JndiJmsFactory.class);
@@ -59,11 +65,23 @@ public class JndiJmsFactory implements JmsFactory {
     protected ConnectionFactory factory = null;
     private Context context = null;
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String getName() {
         return NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public void init(ClientSettings settings) throws NamingException, JMSException {
         if (context != null) {
@@ -91,6 +109,12 @@ public class JndiJmsFactory implements JmsFactory {
         LOG.debug("Got connection factory {} from JNDI lookup.", factory);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public ConnectionFactory createConnectionFactory() {
         if (factory == null) {
@@ -100,6 +124,12 @@ public class JndiJmsFactory implements JmsFactory {
         return factory;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public Topic createTopic(Session session, String topicName) throws JMSException, NamingException {
         if (context != null) {
@@ -114,6 +144,12 @@ public class JndiJmsFactory implements JmsFactory {
         return JmsFactory.super.createTopic(session, topicName);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public Queue createQueue(Session session, String queueName) throws JMSException, NamingException {
         if (context != null) {
@@ -128,6 +164,12 @@ public class JndiJmsFactory implements JmsFactory {
         return JmsFactory.super.createQueue(session, queueName);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public void close() {
         if (context != null) {
@@ -142,6 +184,10 @@ public class JndiJmsFactory implements JmsFactory {
         }
     }
 
+    /**
+     * @deprecated See {@link JndiJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[name=" + NAME + "]";

@@ -19,7 +19,7 @@ import org.junit.Test;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.NjamsSender;
-import com.im.njams.sdk.communication.jms.JmsSender;
+import com.im.njams.sdk.communication.jms.javax.JmsSender;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class JmsSenderBaselineIT {

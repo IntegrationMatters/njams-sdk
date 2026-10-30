@@ -1,4 +1,4 @@
-package com.im.njams.sdk.communication.jms.factory;
+package com.im.njams.sdk.communication.jms.javax.factory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

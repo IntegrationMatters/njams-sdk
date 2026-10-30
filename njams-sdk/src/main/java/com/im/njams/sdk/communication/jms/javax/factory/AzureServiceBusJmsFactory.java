@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms.factory;
+package com.im.njams.sdk.communication.jms.javax.factory;
 
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_PASSWORD;
 import static com.im.njams.sdk.NjamsSettings.PROPERTY_JMS_PROVIDER_URL;
@@ -37,6 +37,7 @@ import javax.jms.JMSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ReflectionWrapper;
 
@@ -44,7 +45,11 @@ import com.im.njams.sdk.utils.ReflectionWrapper;
  * IMPORTANT: This is loaded and initialized via SPI. Make sure that an instance can be created even when
  * required libraries are missing!
  *
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based
+ *             {@code com.im.njams.sdk.communication.jms.AzureServiceBusJmsFactory}. This {@code javax.jms}
+ *             implementation stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class AzureServiceBusJmsFactory implements JmsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureServiceBusJmsFactory.class);
@@ -54,11 +59,23 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
     public static final String NAME = "AzureServiceBusPremium";
     private ConnectionFactory factory = null;
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link AzureServiceBusJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String getName() {
         return NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link AzureServiceBusJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public void init(ClientSettings settings) throws JMSException {
         if (factory != null) {
@@ -105,6 +122,12 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
         return jmsEx;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link AzureServiceBusJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public ConnectionFactory createConnectionFactory() {
         if (factory == null) {
@@ -113,6 +136,10 @@ public class AzureServiceBusJmsFactory implements JmsFactory {
         return factory;
     }
 
+    /**
+     * @deprecated See {@link AzureServiceBusJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[name=" + NAME + "]";

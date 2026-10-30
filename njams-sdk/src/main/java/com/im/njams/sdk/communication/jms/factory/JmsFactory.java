@@ -35,6 +35,9 @@ import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.javax.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.AzureServiceBusJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
@@ -46,7 +49,16 @@ import com.im.njams.sdk.utils.StringUtils;
  * <b>Implementation Notes:</b> Make sure that implementations use the
  * {@link Thread#getContextClassLoader() context classloader} like JNDI or SPI does for looking up JMS implementations
  * which may be provided by external classpath that is only accessible via this {@link ClassLoader}.
+ *
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based SPI interface
+ *             {@code com.im.njams.sdk.communication.jms.JmsFactory}. This {@code javax.jms} interface stays
+ *             supported and is not scheduled for removal. It can also never be relocated: third-party
+ *             implementations ship a
+ *             {@code META-INF/services/com.im.njams.sdk.communication.jms.factory.JmsFactory} file, which
+ *             {@link java.util.ServiceLoader} resolves by this exact type name, so renaming or moving the
+ *             type would make those implementations disappear without any error.
  */
+@Deprecated(since = "6.1.0")
 public interface JmsFactory extends AutoCloseable {
     /** Logger for static and default implementations */
     static final Logger LOG = LoggerFactory.getLogger(JmsFactory.class);

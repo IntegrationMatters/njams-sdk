@@ -37,10 +37,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
-import com.im.njams.sdk.communication.jms.factory.ActiveMqSslJmsFactory;
-import com.im.njams.sdk.communication.jms.factory.AzureServiceBusJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.AzureServiceBusJmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 
 public class ServiceLoaderSupportTest {
 

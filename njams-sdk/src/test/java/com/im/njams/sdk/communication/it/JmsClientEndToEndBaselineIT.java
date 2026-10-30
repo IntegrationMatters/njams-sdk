@@ -18,7 +18,7 @@ import org.junit.Test;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
-import com.im.njams.sdk.communication.jms.JmsSender;
+import com.im.njams.sdk.communication.jms.javax.JmsSender;
 import com.im.njams.sdk.logmessage.Job;
 import com.im.njams.sdk.model.ActivityModel;
 import com.im.njams.sdk.model.ProcessModel;

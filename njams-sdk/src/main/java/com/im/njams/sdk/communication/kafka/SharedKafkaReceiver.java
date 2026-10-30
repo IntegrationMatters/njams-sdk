@@ -53,7 +53,7 @@ public class SharedKafkaReceiver extends KafkaReceiver implements ShareableRecei
     /**
      * Adds the given instance to this receiver for receiving instructions.
      *
-     * @see com.im.njams.sdk.communication.jms.JmsReceiver#setNjams(com.im.njams.sdk.Njams)
+     * @see com.im.njams.sdk.communication.jms.AbstractJmsReceiver#setNjams(com.im.njams.sdk.Njams)
      */
     @Override
     public void setNjams(final Njams njamsInstance) {

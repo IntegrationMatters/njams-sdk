@@ -23,6 +23,8 @@ import org.junit.Test;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
+import com.im.njams.sdk.communication.jms.javax.JmsReceiver;
+import com.im.njams.sdk.communication.jms.javax.JmsSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ScopedSpiRule;
 

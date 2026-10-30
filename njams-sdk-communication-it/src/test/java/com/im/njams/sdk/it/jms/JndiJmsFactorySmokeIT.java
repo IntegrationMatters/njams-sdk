@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.it.support.DockerEnvironment;
 import com.im.njams.sdk.settings.ClientSettings;
 

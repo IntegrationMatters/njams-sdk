@@ -16,6 +16,9 @@ import javax.jms.Topic;
 import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.javax.factory.ActiveMqSslJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.AzureServiceBusJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**

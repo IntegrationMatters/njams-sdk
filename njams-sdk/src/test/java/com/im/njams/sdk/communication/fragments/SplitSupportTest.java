@@ -41,7 +41,7 @@ import com.im.njams.sdk.communication.MessageHeaders;
 import com.im.njams.sdk.communication.fragments.SplitSupport.Range;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.http.HttpSender;
-import com.im.njams.sdk.communication.jms.JmsSender;
+import com.im.njams.sdk.communication.jms.javax.JmsSender;
 
 public class SplitSupportTest {
     private SplitSupport splitSupport = null;

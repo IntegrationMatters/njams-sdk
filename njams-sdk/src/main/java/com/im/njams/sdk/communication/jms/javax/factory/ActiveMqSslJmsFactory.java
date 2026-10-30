@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package com.im.njams.sdk.communication.jms.factory;
+package com.im.njams.sdk.communication.jms.javax.factory;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ReflectionWrapper;
 
@@ -39,7 +40,12 @@ import com.im.njams.sdk.utils.ReflectionWrapper;
  * required libraries are missing!<br>
  * This extends {@link JndiJmsFactory} for using JNDI when looking up queue/topic. Only obtaining a
  * {@link ConnectionFactory} is different here.
+ *
+ * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based
+ *             {@code com.im.njams.sdk.communication.jms.ActiveMqSslJmsFactory}. This {@code javax.jms}
+ *             implementation stays supported and is not scheduled for removal.
  */
+@Deprecated(since = "6.1.0")
 public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(ActiveMqSslJmsFactory.class);
@@ -48,6 +54,12 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
      */
     public static final String NAME = "ActiveMQSslConnectionFactory";
 
+    /**
+     * {@inheritDoc}
+     *
+     * @deprecated See {@link ActiveMqSslJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String getName() {
         return NAME;
@@ -91,6 +103,10 @@ public class ActiveMqSslJmsFactory extends JndiJmsFactory implements JmsFactory 
         }
     }
 
+    /**
+     * @deprecated See {@link ActiveMqSslJmsFactory}.
+     */
+    @Deprecated(since = "6.1.0")
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[name=" + NAME + "]";

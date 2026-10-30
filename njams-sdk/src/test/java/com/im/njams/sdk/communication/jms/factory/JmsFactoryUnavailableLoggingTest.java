@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.jms.FailingJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.CapturingLogAppender;
 import com.im.njams.sdk.utils.ScopedSpiRule;

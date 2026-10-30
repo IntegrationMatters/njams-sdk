@@ -29,7 +29,7 @@ import javax.naming.Context;
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.factory.JndiJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.communication.kafka.KafkaUtil;
 import com.im.njams.sdk.settings.ClientSettings;
 
