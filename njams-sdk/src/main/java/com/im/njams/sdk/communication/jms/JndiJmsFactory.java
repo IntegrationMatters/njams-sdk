@@ -81,16 +81,20 @@ public class JndiJmsFactory implements JmsFactory {
     }
 
     /**
-     * Initializes the {@link ConnectionFactory} from the JNDI context.
+     * Initializes the {@link ConnectionFactory} by looking it up in the JNDI context. The lookup name is taken
+     * from {@value com.im.njams.sdk.NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}, which is required: JNDI has
+     * nothing to resolve without it.
      * @param settings The settings to use for initialization.
-     * @throws NamingException If a JNDI related error occurred
+     * @throws NamingException If the connection factory setting is missing, or a JNDI related error occurred
      * @throws JMSException If creating a JMS object failed
      */
     protected void initFactory(ClientSettings settings) throws NamingException, JMSException {
         final String connectFactory = settings.getProperty(PROPERTY_JMS_CONNECTION_FACTORY);
-        if (StringUtils.isNotBlank(connectFactory)) {
-            factory = (ConnectionFactory) context.lookup(connectFactory);
+        if (StringUtils.isBlank(connectFactory)) {
+            throw new NamingException("Setting " + PROPERTY_JMS_CONNECTION_FACTORY
+                + " is required for the JNDI lookup.");
         }
+        factory = (ConnectionFactory) context.lookup(connectFactory);
         LOG.debug("Got connection factory {} from JNDI lookup.", factory);
     }
 

@@ -58,13 +58,13 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 public class JmsReceiverTest {
 
     private static ClientSettings FILLEDPROPS;
-    private static final ClientSettings EMPTYPROPS = ClientSettings.from(new Properties());
+    private static final ClientSettings EMPTYPROPS = ClientSettings.from(jmsProps());
 
     private JmsReceiverMock impl;
 
     @BeforeClass
     public static void initReceiver() {
-        Properties props = new Properties();
+        Properties props = jmsProps();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
@@ -76,6 +76,16 @@ public class JmsReceiverTest {
         props.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.sdk.test");
         FILLEDPROPS = ClientSettings.from(props);
+    }
+
+    /**
+     * JMS always needs a connection factory, either as a JNDI lookup name or as the name of a JmsFactory
+     * implementation. These tests do not exercise factory resolution, so they use the no-op implementation.
+     */
+    private static Properties jmsProps() {
+        Properties p = new Properties();
+        p.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
+        return p;
     }
 
     @Before
@@ -152,7 +162,7 @@ public class JmsReceiverTest {
     @Test
     public void testInitWithCustomProps() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
         ClientSettings props = ClientSettings.from(p);
         impl.init(props);
@@ -167,7 +177,7 @@ public class JmsReceiverTest {
     @Test
     public void testMultipleInitWithSameProps() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.sdk.test.custom.commands");
         ClientSettings props = ClientSettings.from(p);
         //first initialize
@@ -184,7 +194,7 @@ public class JmsReceiverTest {
     @Test
     public void testDestinationAndCommandsSet() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.overwrite");
         p.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.overwritten");
         //first initialize
@@ -199,7 +209,7 @@ public class JmsReceiverTest {
     @Test
     public void testDestinationPrefixAlternativeKey() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
         impl.init(ClientSettings.from(p));
         assertEquals("njams4.alt.commands", impl.getTopicName());
@@ -212,7 +222,7 @@ public class JmsReceiverTest {
     @Test
     public void testDestinationKeyTakesPrecedenceOverAlternative() {
         JmsReceiverMock.testBeforeInit(impl);
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.primary");
         p.put(NjamsSettings.PROPERTY_JMS_DESTINATION_PREFIX, "njams4.alt");
         impl.init(ClientSettings.from(p));
@@ -242,7 +252,7 @@ public class JmsReceiverTest {
      */
     @Test(expected = NjamsSdkRuntimeException.class)
     public void testConnectWithPropertiesWithRealDestinationButWithoutUsername() {
-        Properties p = new Properties();
+        Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         p.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
             "com.tibco.tibjms.naming.TibjmsInitialContextFactory");

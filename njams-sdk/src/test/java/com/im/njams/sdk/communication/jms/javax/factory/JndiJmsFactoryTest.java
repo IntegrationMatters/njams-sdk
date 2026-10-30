@@ -8,6 +8,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.Map;
+
+import javax.naming.NamingException;
 
 import javax.jms.Queue;
 import javax.jms.Session;
@@ -15,6 +18,7 @@ import javax.jms.Topic;
 
 import org.junit.Test;
 
+import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
@@ -25,6 +29,19 @@ public class JndiJmsFactoryTest {
 
     private static ClientSettings emptySettings() {
         return ClientSettings.from(new HashMap<>());
+    }
+
+    /**
+     * Settings whose JNDI lookup resolves without a broker: ActiveMQ's client-side initial context factory
+     * synthesises the ConnectionFactory from the URL and opens no socket.
+     */
+    private static ClientSettings resolvableSettings() {
+        Map<String, String> map = new HashMap<>();
+        map.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        map.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tcp://localhost:61616");
+        map.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
+        return ClientSettings.from(map);
     }
 
     @Test
@@ -72,23 +89,22 @@ public class JndiJmsFactoryTest {
     }
 
     @Test
-    public void initWithoutConnectionFactoryLeavesFactoryUnset() throws Exception {
+    public void initWithoutConnectionFactoryThrowsNamingTheSetting() {
         JndiJmsFactory factory = new JndiJmsFactory();
-        factory.init(emptySettings());
-        // a context exists now, but no connection factory was looked up
         try {
-            factory.createConnectionFactory();
-            fail("expected IllegalStateException; no connection factory configured");
-        } catch (IllegalStateException expected) {
-            // expected
+            factory.init(emptySettings());
+            fail("expected NamingException; JNDI has nothing to look up");
+        } catch (Exception e) {
+            assertEquals(NamingException.class, e.getClass());
+            assertTrue(e.getMessage(), e.getMessage().contains(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY));
         }
     }
 
     @Test
     public void initIsIdempotent() throws Exception {
         JndiJmsFactory factory = new JndiJmsFactory();
-        factory.init(emptySettings());
+        factory.init(resolvableSettings());
         // second call must return early without error
-        factory.init(emptySettings());
+        factory.init(resolvableSettings());
     }
 }

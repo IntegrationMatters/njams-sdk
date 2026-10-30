@@ -71,7 +71,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author pnientiedt, krautenberg@integrationmatters.ocm
  * @version 4.0.5
  * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based receiver
- *             {@code com.im.njams.sdk.communication.jms.JmsReceiver}. This {@code javax.jms} implementation
+ *             {@link com.im.njams.sdk.communication.jms.JmsReceiver}. This {@code javax.jms} implementation
  *             stays supported and is not scheduled for removal.
  */
 @Deprecated(since = "6.1.0")
@@ -82,8 +82,11 @@ public class JmsReceiver extends AbstractJmsReceiver
 
 
     private Connection connection = null;
+    /** The JMS session this receiver consumes on. */
     protected Session session = null;
+    /** Consumer subscribed to {@link #topic}. */
     protected MessageConsumer consumer = null;
+    /** The topic this receiver subscribes to for commands from nJAMS Server. */
     protected Topic topic = null;
 
     /**

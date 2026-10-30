@@ -71,8 +71,12 @@ with no change required of existing `javax` consumers.
   (`getDeclaredMethods()` by framework or tooling classpath scanning) would throw `NoClassDefFoundError`.
   Accepted.
 - A reflective hop on the log-message send path.
-- One transport implementation being silently substituted for another because the first one's `init` happened to
-  fail. Falling through to the next candidate must be opt-in and explicit (§5.4).
+- ~~One transport implementation being silently substituted for another because the first one's `init` happened
+  to fail. Falling through to the next candidate must be opt-in and explicit (§5.4).~~ **Withdrawn 2026-10-30.**
+  The candidate list is filtered to one `getName()`, so it never holds a *different* transport — it holds one
+  implementation per JMS namespace, and a failure in one of them is normally just the namespace that does not fit
+  the classpath. Making fall-through conditional meant the SDK aborted before trying the namespace that works.
+  Candidates are now tried until one succeeds; only all of them failing is an error. See §5.4 bullet 4.
 
 ## 3. Constraints
 
@@ -313,11 +317,11 @@ candidate. `CommunicationFactory` tries them in order:
 ```
 for each candidate matching the configured communication type, in services-file order:
     1. resolve the candidate's own JmsFactory from the settings
-       └─ fails with a namespace mismatch?  → discard this candidate, try the next
+       └─ fails?                            → discard this candidate, try the next
     2. init() the candidate
-       └─ fails?                            → HARD ERROR, do not try the next
+       └─ fails?                            → discard this candidate, try the next
     success → this is the implementation
-no candidate left → error naming every cause
+no candidate left → one error naming every cause
 ```
 
 1. **Step 1 is the discriminator, and it already exists.** `JndiJmsFactory.initFactory` does
@@ -352,14 +356,20 @@ no candidate left → error naming every cause
    the SDK silently skip to another transport over a deployment error, which is this document's own §2
    anti-goal. The name test is exactly the one §5.5 already needs, so the two share one implementation:
    `ServiceLoaderSupport.isNotApplicable(Throwable)`.** `CommunicationFactory`
-   falls through on **that type only**. This matters: falling through on any `NoClassDefFoundError` would let a
-   third-party sender whose `init` fails for an unrelated reason be silently replaced by a different transport
-   implementation — a failure mode that is nearly invisible in a log. Fall-through stays opt-in.
-   The same type has a second use at class-load time, in `ServiceLoaderSupport` — see §5.5.
-4. **Step 2 is a hard error, deliberately.** Once the factory has resolved, the namespace is already proven, and
-   everything `init` does afterwards (`super.init`, `useProjectQueue`, `SplitSupport`, topic name, mapper) is
-   namespace-free and would fail identically in the other tree. Falling through would report a plain
-   configuration mistake against the wrong namespace.
+   still raises the marker for **that type only**, which is what keeps the *reporting* precise — a declined
+   candidate says "not this namespace", a failed one says what actually went wrong. Since 2026-10-30 the marker
+   is no longer what *enables* fall-through: `CommunicationFactory` tries the next candidate on any failure
+   (bullet 4). The same type has a second use at class-load time, in `ServiceLoaderSupport` — see §5.5.
+4. **Every failure skips to the next candidate; only all of them failing is an error.** *(Changed 2026-10-30 —
+   this bullet previously made step 2 a deliberate hard error.)* The original reasoning assumed step 1 proves the
+   namespace before step 2 runs, so a step-2 failure could not be namespace-related. That does not hold when the
+   configured `JmsFactory` is registered in **one** namespace's SPI registry only: the other namespace's `find`
+   matches nothing, falls back to its default `JndiJmsFactory`, and fails there — a real failure that has nothing
+   to do with the configuration and must not abort the namespace that would have worked. The candidate list holds
+   one implementation per namespace (filtered by `getName()`, so never a different transport), which is why
+   skipping is safe: there is no third party to displace. All candidates failing still produces one error naming
+   every cause, which is where a genuine misconfiguration surfaces — reported once, against every namespace that
+   tried it, instead of against whichever happened to run first.
 5. **Candidate order** is services-file order. **List the jakarta entries first** in
    `META-INF/services/com.im.njams.sdk.communication.AbstractSender` and `…AbstractReceiver`, so jakarta is the
    forward-looking default when both are viable. An FQCN in `njams.sdk.communication.jms.jmsfactory` remains the
@@ -511,6 +521,19 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   are **not** deprecated and reuse the javax `getName()` values (`JNDI`, `ActiveMQSslConnectionFactory`,
   `AzureServiceBusPremium`) — no collision follows, because each tree's `find(...)` only ever loads its own
   services file.
+- `com.im.njams.sdk.communication.jms.JmsSender`, `JmsReceiver` and `SharedJmsReceiver` are **new public
+  classes** (Task 11), occupying the three FQCNs the javax tree vacated. They extend the same
+  `AbstractJmsSender`/`AbstractJmsReceiver` bases, report the same `getName()` → `"JMS"`, expose the same
+  `protected` surface as their javax counterparts (`session`, `consumer`, `topic`, `eventProducer`,
+  `projectProducer`, `createConsumer(Session, Topic)`, `reply(Destination, …)`, `sendMessage(MessageProducer, …)`,
+  the `AbstractJms*` hook overrides) with the JMS parameter and field types moved to `jakarta.jms`, and are
+  **not** deprecated. `SharedJmsReceiver` implements `ShareableReceiver<jakarta.jms.Message>`;
+  `ShareableReceiver<T>` is erased, so `CommunicationFactory`'s `instanceof ShareableReceiver` check is
+  unaffected. `javax.naming.*` stays `javax.*` in both trees — JNDI is a JDK API, not Jakarta EE. They are
+  registered **ahead of** the javax entries in
+  `META-INF/services/com.im.njams.sdk.communication.{AbstractSender,AbstractReceiver}`, making jakarta the
+  preferred tree whenever both are viable. As types these are purely additive; the FQCN re-pointing they cause
+  is covered by the paragraph below.
 - `JmsReceiver.JMS_TIMESTAMP_PROPERTY` (`protected static final String`) is **removed** — it had no reference
   anywhere in the repo. Removal rather than deprecation was the user's explicit instruction; it is in any case
   weaker than the FQCN re-pointing this section already accepts for the same class.
@@ -539,6 +562,18 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   Java forbids private interface *fields*, so avoiding it would need a package-private holder class and would
   create a javax/jakarta asymmetry against §5.2's near-identical-copy invariant. **Left as-is deliberately;
   flagged here so the `breaking-change` decision sees it rather than discovering it later.**
+
+- `communication.CommunicationFactory` selection: a candidate failing for any reason is now skipped rather than
+  aborting the loop (§5.4 bullet 4). Observable only when more than one implementation shares a `getName()`,
+  which before this ticket never happened — so no shipped configuration changes behaviour.
+- `communication.jms.JndiJmsFactory.init` (**both trees**) now throws `NamingException` naming
+  `njams.sdk.communication.jms.connectionFactory` when that setting is blank, instead of completing with no
+  connection factory and failing later at `createConnectionFactory()` with `"Not initialized."`. JMS always needs
+  a connection factory — as a JNDI lookup name or as a `JmsFactory` implementation name — so this turns a
+  guaranteed-later failure into an init-time error that names the missing setting. It is an observable behaviour
+  change on a shipped class: a client configuring JMS with no connection factory at all now fails earlier and
+  with a different exception. `ActiveMqSslJmsFactory` overrides `initFactory` in both trees and is unaffected;
+  `AzureServiceBusJmsFactory` does not extend `JndiJmsFactory` at all.
 
 Current expectation: **yes**, the label applies.
 
@@ -615,8 +650,9 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
 - New unit tests for the shared accessor and its two callers (§5.3): the fallback when `getPropertyNames` is
   absent, the body-omitted path when `getText` is absent, that **both negative outcomes are cached** rather than
   re-probed, and that a package-private implementation class is handled without `IllegalAccessException`.
-- New unit tests for the §5.4 selection algorithm: the candidate loop, fall-through on the marker exception only,
-  a **hard error** when step 2 fails, the combined error when no candidate works, and the memoization in §5.4.1.
+- New unit tests for the §5.4 selection algorithm: the candidate loop, fall-through on the marker exception,
+  fall-through on **any other** failure too (changed 2026-10-30), the combined error when no candidate works, and
+  the memoization in §5.4.1.
   These need no JMS API at all — stubbed candidates and factories suffice — so they live in `njams-sdk`.
 - New unit tests for `ServiceLoaderSupport`'s two buckets (§5.5): a provider failing to load on a missing
   `javax.jms`/`jakarta.jms` type lands in "not applicable" and leaves `hasUnavailable()` **false**; a provider

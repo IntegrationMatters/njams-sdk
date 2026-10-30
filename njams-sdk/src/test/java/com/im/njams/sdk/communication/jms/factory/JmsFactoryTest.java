@@ -1,7 +1,9 @@
 package com.im.njams.sdk.communication.jms.factory;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +14,7 @@ import javax.jms.ConnectionFactory;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.Topic;
+import javax.naming.NamingException;
 
 import org.junit.Test;
 
@@ -96,10 +99,17 @@ public class JmsFactoryTest {
     }
 
     @Test
-    public void findWithInitInitializesDefaultJndiFactory() {
-        // no connection factory configured -> JNDI default initializes without performing any lookup
-        JmsFactory factory = JmsFactory.find(settings());
-        assertTrue(factory instanceof JndiJmsFactory);
+    public void findWithoutConnectionFactoryFailsInitializingTheJndiDefault() {
+        // JNDI is the default, but it has nothing to look up without a configured connection factory
+        assertTrue(JmsFactory.find(settings(), false) instanceof JndiJmsFactory);
+        try {
+            JmsFactory.find(settings());
+            fail("expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertEquals(NamingException.class, e.getCause().getClass());
+            assertTrue(e.getCause().getMessage(),
+                e.getCause().getMessage().contains(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY));
+        }
     }
 
     @Test

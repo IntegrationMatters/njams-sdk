@@ -90,6 +90,7 @@ public class JmsSenderTest {
 
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, WorkingJmsFactory.NAME);
         sender.init(ClientSettings.from(props));
     }
 
@@ -124,6 +125,7 @@ public class JmsSenderTest {
     public void queueFullIsSmoothedThenRetriedIndefinitelyUnderNonePolicy() throws Exception {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, WorkingJmsFactory.NAME);
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "none");
         JmsSender noneSender = spy(new JmsSender() {
             @Override
@@ -180,6 +182,7 @@ public class JmsSenderTest {
     public void queueFullUnderConnectionLossPolicyRetriesInsteadOfDiscardingImmediately() throws Exception {
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
+        props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, WorkingJmsFactory.NAME);
         props.put(NjamsSettings.PROPERTY_DISCARD_POLICY, "onconnectionloss");
         JmsSender onConnectionLossSender = spy(new JmsSender() {
             @Override

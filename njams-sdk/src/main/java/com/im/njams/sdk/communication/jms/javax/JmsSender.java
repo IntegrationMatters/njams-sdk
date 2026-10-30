@@ -61,7 +61,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author hsiegeln
  * @version 4.0.6
  * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based sender
- *             {@code com.im.njams.sdk.communication.jms.JmsSender}. This {@code javax.jms} implementation
+ *             {@link com.im.njams.sdk.communication.jms.JmsSender}. This {@code javax.jms} implementation
  *             stays supported and is not scheduled for removal.
  */
 @Deprecated(since = "6.1.0")
@@ -70,8 +70,14 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
     private Connection connection = null;
+    /** The JMS session this sender produces on. */
     protected Session session = null;
+    /** Producer for the event destination, carrying log, trace and event messages. */
     protected MessageProducer eventProducer = null;
+    /**
+     * Producer for the project destination. The same instance as {@link #eventProducer} when no separate
+     * project destination is configured.
+     */
     protected MessageProducer projectProducer = null;
 
     /**

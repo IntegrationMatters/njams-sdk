@@ -29,7 +29,7 @@ Five failure modes the spec implies that no task would otherwise exercise. Each 
 
 1. **A provider's `getPropertyNames()`/`getText()` throwing `JMSException` now arrives wrapped in `InvocationTargetException`.** The old direct calls caught `JMSException`; reflection changes the exception's shape, so an unaware `catch (JMSException)` no longer fires and the throwable escapes into the command-receive path. Pinned to Task 2.
 2. **`CommunicationFactory`'s memo is written from several threads.** `SenderPool.create()` is called by up to `maxSenderThreads` workers and `SenderConnector` adds its startup/reconnect path on the same instance, so an unsynchronised memo field can be torn or resolved twice. Pinned to Task 5.
-3. **A third-party sender whose `init` fails for an unrelated reason must not be silently replaced.** Falling through on anything other than the marker type substitutes a different transport implementation, which is nearly invisible in a log. Pinned to Task 5.
+3. ~~**A third-party sender whose `init` fails for an unrelated reason must not be silently replaced.** Falling through on anything other than the marker type substitutes a different transport implementation, which is nearly invisible in a log. Pinned to Task 5.~~ **Reversed 2026-10-30, on the user's direction.** `findSenderCandidates`/`findReceiverCandidates` filter by `getName()`, so the candidate list never holds a different transport — it holds one implementation per JMS namespace. Aborting on the first failure meant a configuration resolvable in only one namespace never reached the one that works. `selectApplicable` now skips any failing candidate; only all of them failing is an error, and that error still names every cause. `CommunicationFactoryCandidateTest.aCandidateFailingForAnyOtherReason_isAHardError_andTheNextIsNotTried` was rewritten as `...isSkipped_andTheNextIsTried`.
 4. **A provider message class that is package-private but implements a public interface** makes a `Method` resolved on the concrete class fail at `invoke` with `IllegalAccessException`. Pinned to Task 2.
 5. **A healthy single-namespace startup must log no warning.** After this change the other tree always fails to load, so `hasUnavailable()` would be permanently true and `JmsFactory.find` would warn on every normal JMS start. Pinned to Task 4.
 
@@ -616,6 +616,25 @@ git commit -m "SDK-495 add the jakarta JmsFactory SPI and its three implementati
 - Create: `communication/jms/{JmsSender,JmsReceiver,SharedJmsReceiver}.java`
 - Modify: `njams-sdk/src/main/resources/META-INF/services/{…AbstractSender,…AbstractReceiver}`
 
+**Added mid-task on 2026-10-30, on the user's direction** — `JmsSenderBaselineIT` failed once the jakarta
+sender was registered first, and the cause was a selection defect, not a defect in the new classes (see the
+amended §5.4 bullet 4 and Review Focus 3):
+- Modify: `communication/CommunicationFactory.java` — `selectApplicable` skips any failing candidate instead of
+  aborting on the first non-marker failure. The now-unused `failureMessage` parameter and both call-site
+  arguments go with it.
+- Modify: `communication/jms/JndiJmsFactory.java` **and** `communication/jms/javax/factory/JndiJmsFactory.java` —
+  `initFactory` throws `NamingException` naming `njams.sdk.communication.jms.connectionFactory` when that setting
+  is blank, instead of returning with no connection factory and failing later at `createConnectionFactory()`.
+  Both `ActiveMqSslJmsFactory`s override `initFactory` and are unaffected; neither `AzureServiceBusJmsFactory`
+  extends `JndiJmsFactory`. This is an observable behaviour change on shipped API — recorded in spec §5.8 as a
+  `breaking-change` input.
+- Modify (with explicit user permission, per `testing-conventions.md`): `CommunicationFactoryCandidateTest`,
+  `JmsFactoryTest`, `JndiJmsFactoryTest`, `JmsSenderTest`, `JmsReceiverTest`. Three of these pinned the old
+  contract by name and were inverted and renamed; the rest only needed a `connectionFactory` in their setup.
+- Modify: Javadoc for the six `protected` fields on each of the jakarta and javax `JmsSender`/`JmsReceiver`
+  (`public-api-design.md` requires it on protected fields; checkstyle's `JavadocVariable` is `scope=public` and
+  does not catch them).
+
 **Interfaces:**
 - Consumes: `AbstractJmsSender`, `AbstractJmsReceiver` (Tasks 6–7), the jakarta `JmsFactory` (Task 10), `TransportNotApplicableException` (Task 4).
 - Produces: `com.im.njams.sdk.communication.jms.JmsSender` / `JmsReceiver` / `SharedJmsReceiver`, all reporting `getName()` → `"JMS"`.
@@ -651,7 +670,12 @@ Put the jakarta entries above the `…jms.javax` ones in both `…AbstractSender
 - [ ] **Step 3: Verify**
 
 Run: `mvn test -pl njams-sdk`
-Expected: PASS. On this classpath the jakarta providers fail to load, `SaveIterator` records them as *not applicable* (Task 4), `hasUnavailable()` stays false, and the javax tree is selected exactly as before.
+Expected: PASS. **Note, corrected 2026-10-30:** this step previously claimed "the jakarta providers fail to load"
+on this classpath. That is false — Task 1 put *both* JMS APIs on `njams-sdk`'s own test classpath, so the jakarta
+providers load cleanly and, being registered first, are tried first and then skipped at `init`. Nothing lands in
+the *not-applicable* bucket here and that bucket cannot be exercised inside `njams-sdk` at all; Tasks 13/14's
+single-namespace modules are the only place it can be. `hasUnavailable()` stays false because everything loads,
+and the javax tree is still what ends up selected.
 Run: `mvn test -Dtest=JmsSenderBaselineIT -pl njams-sdk` and inspect the log.
 Expected: PASS with **no WARN** from `JmsFactory.find` — Review Focus 5 on a real startup.
 Run: `mvn validate -Pcheckstyle -pl njams-sdk && mvn javadoc:javadoc -pl njams-sdk`

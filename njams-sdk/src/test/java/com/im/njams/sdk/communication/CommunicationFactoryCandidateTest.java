@@ -255,16 +255,12 @@ public class CommunicationFactoryCandidateTest {
     }
 
     @Test
-    public void aCandidateFailingForAnyOtherReason_isAHardError_andTheNextIsNotTried() throws Throwable {
+    public void aCandidateFailingForAnyOtherReason_isSkipped_andTheNextIsTried() throws Throwable {
         withSenders(() -> {
-            try {
-                new CommunicationFactory(settings(CANDIDATE_NAME)).getSender();
-                fail("IllegalStateException expected");
-            } catch (IllegalStateException e) {
-                assertTrue(e.getMessage(), e.getMessage().contains(CANDIDATE_NAME));
-                assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-            }
-            assertEquals(List.of("BrokenSender"), INITIALISED);
+            AbstractSender sender = new CommunicationFactory(settings(CANDIDATE_NAME)).getSender();
+
+            assertEquals(WorkingSender.class, sender.getClass());
+            assertEquals(List.of("BrokenSender", "WorkingSender"), INITIALISED);
         }, BrokenSender.class, WorkingSender.class);
     }
 

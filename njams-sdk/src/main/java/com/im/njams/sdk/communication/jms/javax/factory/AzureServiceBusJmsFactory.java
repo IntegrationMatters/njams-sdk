@@ -46,7 +46,7 @@ import com.im.njams.sdk.utils.ReflectionWrapper;
  * required libraries are missing!
  *
  * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based
- *             {@code com.im.njams.sdk.communication.jms.AzureServiceBusJmsFactory}. This {@code javax.jms}
+ *             {@link com.im.njams.sdk.communication.jms.AzureServiceBusJmsFactory}. This {@code javax.jms}
  *             implementation stays supported and is not scheduled for removal.
  */
 @Deprecated(since = "6.1.0")

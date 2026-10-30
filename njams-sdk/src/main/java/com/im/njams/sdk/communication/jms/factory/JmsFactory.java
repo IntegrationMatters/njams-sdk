@@ -51,7 +51,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * which may be provided by external classpath that is only accessible via this {@link ClassLoader}.
  *
  * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based SPI interface
- *             {@code com.im.njams.sdk.communication.jms.JmsFactory}. This {@code javax.jms} interface stays
+ *             {@link com.im.njams.sdk.communication.jms.JmsFactory}. This {@code javax.jms} interface stays
  *             supported and is not scheduled for removal. It can also never be relocated: third-party
  *             implementations ship a
  *             {@code META-INF/services/com.im.njams.sdk.communication.jms.factory.JmsFactory} file, which

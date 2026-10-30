@@ -143,7 +143,6 @@ public class CommunicationFactory {
         receiverSettings.put(INTERNAL_PROPERTY_CLIENTPATH, njams.metadata().getClientPath().toString());
         return this.<AbstractReceiver>selectApplicable("receiver", name, candidates,
                 clazz -> createReceiver(clazz, shared, receiverSettings),
-                "Unable to create new receiver " + name + " instance.",
                 () -> receivers.describeAvailability(AbstractReceiver::getName));
     }
 
@@ -179,31 +178,29 @@ public class CommunicationFactory {
         return instance;
     }
 
-    /** Creates and initializes one candidate; throws {@link TransportNotApplicableException} to be skipped. */
+    /** Creates and initializes one candidate; any failure means the candidate is skipped. */
     @FunctionalInterface
     private interface CandidateFactory<T> {
         T create(Class<? extends T> candidate) throws Exception;
     }
 
     /**
-     * Tries the given candidates in order and returns the first that can be created and initialized. A candidate
-     * that throws {@link TransportNotApplicableException} is skipped; any other failure is final, since silently
-     * replacing a misconfigured transport by another implementation would hide the problem. The candidates must
-     * not be empty.
+     * Tries the given candidates in order and returns the first that can be created and initialized. Any candidate
+     * that fails is skipped, whatever the reason: the list holds one implementation per JMS namespace, so a failure
+     * is normally just the namespace that does not fit the classpath. Only all candidates failing is final, and the
+     * combined failure then names every cause. The candidates must not be empty.
      */
     private <T> T selectApplicable(String kind, String name, List<Class<? extends T>> candidates,
-        CandidateFactory<T> factory, String failureMessage, Supplier<String> availability) {
+        CandidateFactory<T> factory, Supplier<String> availability) {
         final List<String> declined = new ArrayList<>();
-        final List<TransportNotApplicableException> causes = new ArrayList<>();
+        final List<Exception> causes = new ArrayList<>();
         for (Class<? extends T> candidate : candidates) {
             try {
                 return factory.create(candidate);
-            } catch (TransportNotApplicableException e) {
-                LOG.debug("The {} {} is not applicable.", kind, candidate.getName(), e);
+            } catch (Exception e) {
+                LOG.debug("The {} {} is not usable.", kind, candidate.getName(), e);
                 declined.add(candidate.getName() + ": " + e.getMessage());
                 causes.add(e);
-            } catch (Exception e) {
-                throw new IllegalStateException(failureMessage, e);
             }
         }
         final String error = "No " + kind + " implementation for communication type '" + name
@@ -316,7 +313,7 @@ public class CommunicationFactory {
         final ServiceLoaderSupport<AbstractSender> senders = getSenderLoader();
         return this.<AbstractSender>selectApplicable("sender", requiredSenderName,
                 findSenderCandidates(senders, requiredSenderName),
-                this::createInitializedSender, senderCreationFailure(requiredSenderName),
+                this::createInitializedSender,
                 () -> senders.describeAvailability(AbstractSender::getName));
     }
 

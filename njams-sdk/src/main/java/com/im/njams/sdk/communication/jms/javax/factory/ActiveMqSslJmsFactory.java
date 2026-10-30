@@ -42,7 +42,7 @@ import com.im.njams.sdk.utils.ReflectionWrapper;
  * {@link ConnectionFactory} is different here.
  *
  * @deprecated Since 6.1.0 in favour of the {@code jakarta.jms} based
- *             {@code com.im.njams.sdk.communication.jms.ActiveMqSslJmsFactory}. This {@code javax.jms}
+ *             {@link com.im.njams.sdk.communication.jms.ActiveMqSslJmsFactory}. This {@code javax.jms}
  *             implementation stays supported and is not scheduled for removal.
  */
 @Deprecated(since = "6.1.0")
