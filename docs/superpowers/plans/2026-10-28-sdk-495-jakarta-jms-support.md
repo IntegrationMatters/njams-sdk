@@ -55,6 +55,11 @@ Five failure modes the spec implies that no task would otherwise exercise. Each 
 - `utils/StringUtils.java`, `communication/fragments/JMSChunkAssembly.java`, `utils/ServiceLoaderSupport.java`, `communication/CommunicationFactory.java`, `communication/AbstractSender.java` + `AbstractReceiver.java` (Javadoc only), `NjamsSettings.java` (Javadoc links), `pom.xml`, `njams-sdk/pom.xml`.
 - `njams-sdk/src/main/resources/META-INF/services/{…AbstractSender,…AbstractReceiver}` and a new `…communication.jms.JmsFactory`.
 
+**Test tree — mirrored per namespace** (Task 12; `njams-sdk/src/test/java/com/im/njams/sdk/`)
+- Moved into `communication/jms/javax/`: `WorkingJmsFactory`, `NoopJmsFactory`, `FailingJmsFactory`, `JmsFactoryResolutionTest`.
+- New jakarta twins in `communication/jms/`: `JmsSenderTest`, `JmsReceiverTest`, `SharedJmsReceiverTest`, `JmsReceiverMock`, `JmsFactoryTest`, `JmsFactoryUnavailableLoggingTest`, `JndiJmsFactoryTest`, `ActiveMqSslJmsFactoryTest`, `AzureServiceBusJmsFactoryTest`, `JmsFactoryResolutionTest`, `WorkingJmsFactory`, `NoopJmsFactory`, `FailingJmsFactory`.
+- New `njams-sdk/src/test/resources/META-INF/services/com.im.njams.sdk.communication.jms.JmsFactory`.
+
 **New modules**
 - `njams-sdk-jms-namespace-tests/` (aggregator) with `njams-sdk-jms-javax-test/`, `njams-sdk-jms-jakarta-test/`, `njams-sdk-jms-mixed-test/`.
 
@@ -633,9 +638,9 @@ pre-existing and symmetric: the javax SPI type behaves identically with `javax.j
 **Also carried in: the bare name `JmsFactory` is now ambiguous inside `com.im.njams.sdk.communication.jms`.**
 `FailingJmsFactory`, `NoopJmsFactory`, `WorkingJmsFactory` and `JmsFactoryResolutionTest` each rely on an
 explicit single-type import of `…jms.factory.JmsFactory` to keep meaning the javax type (JLS 6.4.1). They
-compile and are green, but their correctness now rests on an import line that reads like boilerplate. Either
-comment each import or move the three helpers and the test under `…jms.javax` — §6.5's migration touches them
-anyway.
+compile and are green, but their correctness now rests on an import line that reads like boilerplate. **Leave
+them alone in this task** — Task 12 moves all four under `…jms.javax`, which resolves the ambiguity rather than
+documenting around it. Do not add disambiguating comments that Task 12 would immediately delete.
 
 **Carried in from Task 9.** The seven class-level `@deprecated` tags on the relocated javax classes name their jakarta replacement in `{@code …}`, not `{@link …}`, because the targets did not exist yet and a `{@link}` to a missing type is a hard Javadoc error. Once the three classes above (and Task 10's factories) exist, upgrade those seven references to real `{@link}`s and re-run `mvn javadoc:javadoc -pl njams-sdk`.
 
@@ -661,7 +666,125 @@ git commit -m "SDK-495 add the jakarta JMS sender and receivers and register the
 
 ---
 
-### Task 12: The two single-namespace test modules
+### Task 12: Mirror the JMS unit tests onto the jakarta tree
+
+Every JMS unit test currently exercises the `javax` tree only. Task 10's four factories and Task 11's three
+sender/receiver classes ship with **no** tests of their own. This task closes that: each mocked JMS unit test
+gets a jakarta twin, so both namespaces carry identical coverage rather than one tree being covered and the
+other riding on the claim that it is a faithful copy.
+
+**This reverses the spec's original §6.1 decision** ("No jakarta mirrors of the JMS unit tests", confirmed
+2026-10-28). The user reverted it on 2026-10-30: duplicated tests are preferred over leaving either variant
+uncovered, deprecated or not. §6.1, §6.3 and §6.5 have been rewritten accordingly — read them before starting.
+
+**Files:**
+- Move (`git mv`, javax-bound test helpers and the javax resolution test, so `…jms` is free for the jakarta
+  twins): `communication/jms/{WorkingJmsFactory,NoopJmsFactory,FailingJmsFactory,JmsFactoryResolutionTest}.java`
+  → `communication/jms/javax/`
+- Create (jakarta twins, all in `njams-sdk/src/test/java/com/im/njams/sdk/communication/jms/`):
+  `JmsSenderTest.java`, `JmsReceiverTest.java`, `SharedJmsReceiverTest.java`, `JmsReceiverMock.java`,
+  `JmsFactoryTest.java`, `JmsFactoryUnavailableLoggingTest.java`, `JndiJmsFactoryTest.java`,
+  `ActiveMqSslJmsFactoryTest.java`, `AzureServiceBusJmsFactoryTest.java`, `JmsFactoryResolutionTest.java`,
+  `WorkingJmsFactory.java`, `NoopJmsFactory.java`, `FailingJmsFactory.java`
+- Create: `njams-sdk/src/test/resources/META-INF/services/com.im.njams.sdk.communication.jms.JmsFactory`
+- Modify: `njams-sdk/src/test/resources/META-INF/services/com.im.njams.sdk.communication.jms.factory.JmsFactory`
+  (the two moved helper FQCNs), `communication/CommunicationFactoryTest.java`,
+  `utils/ServiceLoaderSupportTest.java`, `communication/jms/factory/JmsFactoryUnavailableLoggingTest.java`
+  (imports of the moved helpers)
+
+**Interfaces:**
+- Consumes: the jakarta `JmsFactory` and its three implementations (Task 10); the jakarta `JmsSender`,
+  `JmsReceiver`, `SharedJmsReceiver` (Task 11); `ScopedSpiRule` (already in `src/test`).
+- Produces: nothing other tasks build on — this task is pure coverage.
+
+**Source of each twin.** The mirror is mechanical: copy the javax test, change the `javax.jms.*` imports to
+`jakarta.jms.*`, and point the type under test at the jakarta class. **`javax.naming.*` does NOT change** —
+JNDI is a JDK API, exactly as in the production classes. Assertions, test names and test counts stay identical;
+that parity is what makes the twin evidence rather than decoration.
+
+| javax source | tests | jakarta twin lands in |
+|---|---|---|
+| `communication/jms/javax/JmsSenderTest.java` | 11 | `communication/jms/JmsSenderTest.java` |
+| `communication/jms/javax/JmsReceiverTest.java` | 21 | `communication/jms/JmsReceiverTest.java` |
+| `communication/jms/javax/SharedJmsReceiverTest.java` | 2 | `communication/jms/SharedJmsReceiverTest.java` |
+| `communication/jms/javax/JmsReceiverMock.java` | — (helper) | `communication/jms/JmsReceiverMock.java` |
+| `communication/jms/javax/factory/JndiJmsFactoryTest.java` | 7 | `communication/jms/JndiJmsFactoryTest.java` |
+| `communication/jms/javax/factory/ActiveMqSslJmsFactoryTest.java` | 3 | `communication/jms/ActiveMqSslJmsFactoryTest.java` |
+| `communication/jms/javax/factory/AzureServiceBusJmsFactoryTest.java` | 3 | `communication/jms/AzureServiceBusJmsFactoryTest.java` |
+| `communication/jms/factory/JmsFactoryTest.java` | 10 | `communication/jms/JmsFactoryTest.java` |
+| `communication/jms/factory/JmsFactoryUnavailableLoggingTest.java` | 2 | `communication/jms/JmsFactoryUnavailableLoggingTest.java` |
+| `communication/jms/JmsFactoryResolutionTest.java` (after the Step 1 move) | 18 | `communication/jms/JmsFactoryResolutionTest.java` |
+
+That is **77 mirrored tests**. `JmsFactoryResolutionTest` is included deliberately: `resolveFactory` is the one
+method §5.2 accepts as hand-copied per namespace, so the jakarta copy is exactly the kind of untested duplicate
+this task exists to cover.
+
+**The Azure twin must pin the reflective class names.** Task 10's review established that the javax
+`AzureServiceBusJmsFactoryTest` never reaches a reflective name — its three tests cover identity, the
+not-initialized guard and a bad provider URL — so a pure mirror of it would have stayed green against a wrong
+Azure package. Add one test to the jakarta twin asserting the three strings
+(`com.azure.servicebus.jms.{ConnectionStringBuilder,ServiceBusJmsConnectionFactorySettings,ServiceBusJmsConnectionFactory}`)
+are the ones the factory actually reflects on, and the matching test to the javax one for
+`com.microsoft.azure.servicebus.jms.*`. These are the only two tests in this task that are not a straight copy.
+Adding a test to an existing javax test class is additive and authorised by this reversal, so no further
+permission is needed — but do not alter any existing assertion.
+
+- [ ] **Step 1: Move the four javax-bound test files into `…jms.javax`**
+
+Use `git mv` so history follows. Fix the `package` declaration in each, then fix every referencing import:
+`CommunicationFactoryTest`, `ServiceLoaderSupportTest`, `communication/jms/factory/JmsFactoryUnavailableLoggingTest`,
+and the two helper FQCNs inside
+`src/test/resources/META-INF/services/com.im.njams.sdk.communication.jms.factory.JmsFactory`
+(`EmbeddedActiveMqJmsFactory` is javax-bound and stays registered there unchanged).
+
+This also discharges Task 11's carried-in ambiguity hazard: with the javax helpers gone from `…jms`, the bare
+name `JmsFactory` inside that test package unambiguously means the jakarta one.
+
+- [ ] **Step 2: Run the suite to confirm the move alone changed nothing**
+
+Run: `mvn -o test -pl njams-sdk`
+Expected: the same figure as at the end of Task 11, 0 failures, 0 errors. A move with identical assertions must
+not move the count.
+
+- [ ] **Step 3: Write the thirteen jakarta files**
+
+Ten twins from the table, plus jakarta `WorkingJmsFactory`, `NoopJmsFactory` and `FailingJmsFactory`
+implementing the **jakarta** `com.im.njams.sdk.communication.jms.JmsFactory`. Keep the simple names identical
+to their javax counterparts — the package is what distinguishes them now.
+
+- [ ] **Step 4: Register the two jakarta SPI helpers**
+
+Create `src/test/resources/META-INF/services/com.im.njams.sdk.communication.jms.JmsFactory` listing the jakarta
+`NoopJmsFactory` and `WorkingJmsFactory`. There is no jakarta `EmbeddedActiveMqJmsFactory` — `activemq-broker`
+is javax-only (§6.5), so the jakarta file has two entries where the javax one has three.
+
+- [ ] **Step 5: Verify**
+
+Run: `mvn -o test -pl njams-sdk`
+Expected: PASS, with the test count up by **79** over Step 2's figure (77 mirrored + the two Azure
+reflective-name tests). Read the figure from Maven's own summary line, not by summing
+`target/surefire-reports/TEST-*.xml`.
+
+Then confirm the new jakarta SPI registrations did not disturb the javax path, which now discovers them on
+every JMS `find`: they must land in the *not-applicable* bucket, `hasUnavailable()` must stay false, and no
+`JmsFactory.find` WARN may appear in a healthy javax startup (Review Focus 5).
+
+Run: `mvn -o test -Dtest=JmsSenderBaselineIT -pl njams-sdk` and inspect the log.
+Expected: PASS with no WARN from `JmsFactory.find`.
+Run: `mvn -o validate -Pcheckstyle -pl njams-sdk && mvn -o javadoc:javadoc -pl njams-sdk`
+Expected: BUILD SUCCESS for both. (Checkstyle does not scan test sources, but the production Javadoc is
+untouched and must stay clean.)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add njams-sdk/src/test/java/com/im/njams/sdk/communication/ njams-sdk/src/test/java/com/im/njams/sdk/utils/ njams-sdk/src/test/resources/META-INF/services/
+git commit -m "SDK-495 mirror the JMS unit tests onto the jakarta tree and move the javax-bound test helpers"
+```
+
+---
+
+### Task 13: The two single-namespace test modules
 
 **Files:**
 - Create: `njams-sdk-jms-namespace-tests/pom.xml` (aggregator, `packaging=pom`, parent = root pom)
@@ -710,13 +833,13 @@ git commit -m "SDK-495 add broker-less modules proving namespace selection on ea
 
 ---
 
-### Task 13: The mixed-classpath module
+### Task 14: The mixed-classpath module
 
 **Files:**
 - Create: `njams-sdk-jms-namespace-tests/njams-sdk-jms-mixed-test/{pom.xml,src/test/java/…/MixedNamespaceSelectionTest.java}`
 
 **Interfaces:**
-- Consumes: Task 12's aggregator; Tasks 5, 10, 11.
+- Consumes: Task 13's aggregator; Tasks 5, 10, 11.
 - Produces: proof that §5.4's candidate loop picks the tree the configured connection factory belongs to, on a classpath carrying both.
 
 - [ ] **Step 1: Confirm the Artemis pairing, or substitute**
@@ -754,7 +877,7 @@ git commit -m "SDK-495 prove namespace selection on a classpath carrying both AP
 
 ---
 
-### Task 14: Documentation and rules
+### Task 15: Documentation and rules
 
 **Files:**
 - Modify: `wiki/FAQ.md`, `CLAUDE.md`, `.claude/rules/public-api-design.md`, `.claude/rules/communication-layer.md`

@@ -623,10 +623,23 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
   failing for any other reason lands in "genuinely unavailable" and makes it **true**; and
   `describeAvailability` reports both buckets, labelled, so the neither-API-present message still names the
   missing API.
-- **No jakarta mirrors of the JMS unit tests.** The suite is not duplicated — it migrates wholesale in §6.5, so
-  mirroring now would produce tests that are thrown away. Until then the jakarta subclasses have only the
-  classloading-and-selection coverage of §6.2/§6.2.1, which is the gap §6.3 records. Confirmed with the user on
-  2026-10-28.
+- **Every mocked JMS unit test is mirrored onto the jakarta tree.** Each test class under
+  `communication/jms/javax/` and `communication/jms/factory/` gets a jakarta twin under `communication/jms/`,
+  with identical test names and identical assertions — only the `javax.jms.*` imports become `jakarta.jms.*`
+  and the type under test changes. `javax.naming.*` does not change, exactly as in the production classes. The
+  javax-bound test helpers (`WorkingJmsFactory`, `NoopJmsFactory`, `FailingJmsFactory`) and
+  `JmsFactoryResolutionTest` move into `communication/jms/javax/` so the test tree mirrors the production tree
+  and the bare name `JmsFactory` is unambiguous in each package.
+
+  **This reverses the decision originally recorded here.** Until 2026-10-30 this bullet read "No jakarta mirrors
+  of the JMS unit tests", on the reasoning that §6.5 migrates the suite wholesale and a mirror written now would
+  be thrown away. The user reverted that on 2026-10-30: duplicated tests are preferred over leaving either
+  variant uncovered, deprecated or not. The consequence is that §6.5 is no longer a migration — see there.
+
+  The only two non-copied tests are the Azure reflective-class-name assertions, one per namespace. Task 10's
+  review established that the existing `AzureServiceBusJmsFactoryTest` never reaches a reflective name, so a
+  straight mirror of it would have stayed green against a wrong Azure package — which is precisely the one thing
+  Task 10 changed rather than copied.
 - Existing test cases must not be modified without explicit user permission.
 
 ### 6.2 Three namespace modules — no broker, no Docker, default build
@@ -722,25 +735,32 @@ Assertions, all broker-less and without connecting:
 ### 6.3 What is deliberately not covered, and what carries it instead
 
 The ticket's acceptance criterion *"with only `jakarta.jms` and a jakarta broker client present, send and receive
-work equivalently, including chunked messages"* has **no automated coverage in this repository**. That is an
-accepted, deliberate gap, not an oversight. What stands in for it:
+work equivalently, including chunked messages"* is covered **at the unit and selection level but not against a
+real broker**. The §6.1 mirroring gives every jakarta class the same mocked coverage its javax twin has, and
+§6.2/§6.2.1 prove selection on real single-namespace and mixed classpaths. What remains uncovered is the
+end-to-end send/receive/chunking path on a jakarta broker — an accepted, deliberate gap, not an oversight,
+because it cannot be closed in this repository today. What stands in for it:
 
-- The jakarta subclasses are faithful hand-copies of javax code that keeps its full coverage, and all
-  namespace-free logic is shared, not copied (§5.2). That coverage is more than unit tests: `njams-sdk`'s own
-  suite runs real end-to-end JMS tests against an **in-process** ActiveMQ broker — `EmbeddedActiveMqBroker`
+- **The broker-backed tests cannot be mirrored, and the obstacle is structural rather than effort.** `njams-sdk`'s
+  own suite runs real end-to-end JMS tests against an **in-process** ActiveMQ broker — `EmbeddedActiveMqBroker`
   starts a non-persistent broker on `vm://` (with stop/start to simulate outages), driving
   `JmsSenderBaselineIT`, `JmsClientEndToEndBaselineIT` and `HarnessSmokeIT`. These run in the normal build:
   failsafe is declared in the parent pom's `<build><plugins>`, so it is active for every module.
-  `njams-sdk-communication-it` adds fault-injection scenarios on top of that.
+  `njams-sdk-communication-it` adds fault-injection scenarios on top of that. None of it has a jakarta
+  equivalent: `activemq-broker` is javax-only, `activemq-client-jakarta` is client-only with no embedded broker
+  and no `vm://` (finding 7), ActiveMQ's jakarta broker is 6.x and needs Java 17 against this project's Java 11,
+  and `activemq-client` and `activemq-client-jakarta` collide on identical class names so they cannot share one
+  module's classpath. §6.5 is where that gets solved.
 - The Camel showcase (NJAC-56) exercises the jakarta path end to end against a real broker.
 - §6.5 closes the gap properly, later.
 
-### 6.4 Existing suites stay on javax, for now
+### 6.4 The broker-backed suites stay on javax, for now
 
-`njams-sdk`'s own JMS unit tests and `njams-sdk-communication-it`'s resilience suite continue to run against the
-`javax` tree — which this change makes the deprecated one. Most of what they exercise now lives in the shared
-bases, so the common path stays covered either way; only the jakarta subclasses' own connect/close plumbing is
-untested by them.
+`njams-sdk`'s JMS **unit** tests no longer stay javax-only — §6.1 mirrors them onto both trees. What does stay
+javax is everything that needs a real broker: `njams-sdk`'s own `EmbeddedActiveMqBroker`-driven end-to-end tests
+and `njams-sdk-communication-it`'s resilience suite, for the structural reasons §6.3 lists. Most of what they
+exercise lives in the shared bases, so the common path stays covered either way; what they leave untested on the
+jakarta side is its own connect/close plumbing against a live broker.
 
 One mechanical fix is required:
 `njams-sdk-communication-it/src/test/java/com/im/njams/sdk/it/jms/JndiJmsFactorySmokeIT.java` imports
@@ -748,34 +768,45 @@ One mechanical fix is required:
 classpath and scenario catalog are otherwise unchanged — `communication-it-module.md` makes that catalog stable
 by default.
 
-### 6.5 Postponed: migrate the test suites from javax to jakarta
+### 6.5 Postponed: jakarta broker-backed end-to-end coverage
 
-Once this ticket ships, the SDK's test suites will be exercising the **deprecated** tree while the primary one
-gets only classloading-level coverage. The correct end state is the reverse: `njams-sdk`'s JMS unit tests and
-`njams-sdk-communication-it`'s resilience suite move to `jakarta`, testing the current and future variant. That
-also closes §6.3's gap, since the resilience suite already covers send, receive and chunked messages.
+Once this ticket ships, the only JMS coverage still bound to one namespace is the part that needs a live broker:
+`njams-sdk`'s `EmbeddedActiveMqBroker` end-to-end tests and `njams-sdk-communication-it`'s resilience suite, both
+javax-only. The jakarta tree then has full mocked unit coverage (§6.1) and real classpath-selection coverage
+(§6.2/§6.2.1), but nothing that actually sends and receives a chunked message over a jakarta broker. Closing
+that is what remains, and it closes §6.3's gap, since the resilience suite already covers send, receive and
+chunked messages.
+
+**This section used to describe a *migration*** — moving the suites off javax onto jakarta — on the assumption
+that the unit tests would not be duplicated. The user's 2026-10-30 reversal (§6.1) removed that assumption, so
+the end state is now **addition, not replacement**: jakarta broker-backed tests join the javax ones rather than
+displacing them. That is strictly better here, because the javax tree remains the configuration every current
+production deployment runs, and it removes the "decide whether that is enough" question this section used to
+leave open.
 
 This is deliberately **not** part of the implementation described here, but it **is** part of SDK-495.
 
 > **Scope note.** Under `jira-workflow.md`'s test — "would this still need fixing if the current ticket did not
-> exist?", and the answer is no, since it exists only because this ticket deprecates the javax tree — the
-> migration is reframed sub-scope of SDK-495, not a separate ticket. It therefore gets its own spec and plan
-> under `docs/superpowers/`, keeps referencing `SDK-495` on its commits, and **SDK-495 is not complete, and must
-> not be resolved, until it is done.** Confirmed with the user on 2026-10-28.
+> exist?", and the answer is no, since it exists only because this ticket adds a second namespace — this phase is
+> reframed sub-scope of SDK-495, not a separate ticket. It therefore gets its own spec and plan under
+> `docs/superpowers/`, keeps referencing `SDK-495` on its commits, and **SDK-495 is not complete, and must not be
+> resolved, until it is done.** Confirmed with the user on 2026-10-28, when this phase was still framed as a
+> migration; the 2026-10-30 reversal changed what the phase *does* (add, not replace) but not that it is in
+> SDK-495's scope or that it gates resolution.
 
 **It will not be mechanical, and the obstacle is known now.** `njams-sdk`'s JMS end-to-end tests run against
 `EmbeddedActiveMqBroker`, which uses `activemq-broker`'s `BrokerService` on the `vm://` transport — and
 `activemq-broker` is javax-only. `activemq-client-jakarta` is client-only: no embedded broker, no `vm://`
-(finding 7), and ActiveMQ's jakarta broker is 6.x, which needs Java 17. So those tests cannot simply be pointed
-at the jakarta tree. The migration will need either a jakarta-capable embedded broker that runs on the project's
-JDK — Artemis embedded (`artemis-server`) is the candidate, and its Java baseline is the same open question as
-§8's Artemis item — or a move to Docker, which would also pull `njams-sdk`'s JMS end-to-end tests out of the
-default build. Settle that when the migration is specced, not before.
+(finding 7), and ActiveMQ's jakarta broker is 6.x, which needs Java 17. A jakarta twin of those tests therefore
+needs either a jakarta-capable embedded broker that runs on the project's JDK — Artemis embedded
+(`artemis-server`) is the candidate, and its Java baseline is the same open question as §8's Artemis item — or a
+move to Docker. It also needs its own module, because `activemq-client` and `activemq-client-jakarta` cannot
+share a classpath, which makes §6.2's aggregator the natural home. Settle that when the phase is specced, not
+before.
 
-When that phase is planned, note its other consequence: migrating the suite *instead of* duplicating it leaves the
-`javax` tree without unit or resilience coverage, while it remains the configuration every current production
-deployment runs. What continues to guard it is §6.2's javax namespace module and the fact that the `javax` tree
-is a frozen hand-copy nobody is expected to change. Decide then whether that is enough.
+When that phase is planned, note what the reversal already settled for it: because the jakarta work is additive,
+the `javax` broker-backed suites stay exactly where they are and keep their coverage. The open question is
+therefore only *how* to run a jakarta broker in-build, not *what to give up* to do it.
 
 Moving `njams-sdk-communication-it` to jakarta additionally requires updating
 `docs/superpowers/specs/2026-09-28-sdk-483-communication-it-module-design.md` first, per
