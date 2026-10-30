@@ -503,6 +503,14 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   internal infrastructure, so nothing existing is broken.
 - `ServiceLoaderSupport.isNotApplicable(Throwable)` is a **new `public static` method** on an existing public
   class (Task 8) — additive, and the shared classifier §5.4 bullet 3 and §5.5 both use.
+- `com.im.njams.sdk.communication.jms.JmsFactory` is a **new registered SPI type** (Task 10, §5.6), shipped with
+  its own `META-INF/services/com.im.njams.sdk.communication.jms.JmsFactory` file registering the jakarta
+  `JndiJmsFactory`, `ActiveMqSslJmsFactory` and `AzureServiceBusJmsFactory`. Purely additive: it is a distinct
+  type from the javax `…jms.factory.JmsFactory`, resolved through a separate services file, so existing
+  third-party javax implementations are neither recompiled nor re-resolved. The three jakarta implementations
+  are **not** deprecated and reuse the javax `getName()` values (`JNDI`, `ActiveMQSslConnectionFactory`,
+  `AzureServiceBusPremium`) — no collision follows, because each tree's `find(...)` only ever loads its own
+  services file.
 - `JmsReceiver.JMS_TIMESTAMP_PROPERTY` (`protected static final String`) is **removed** — it had no reference
   anywhere in the repo. Removal rather than deprecation was the user's explicit instruction; it is in any case
   weaker than the FQCN re-pointing this section already accepts for the same class.

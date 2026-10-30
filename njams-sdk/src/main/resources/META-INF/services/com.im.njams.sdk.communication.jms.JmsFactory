@@ -1,0 +1,3 @@
+com.im.njams.sdk.communication.jms.ActiveMqSslJmsFactory
+com.im.njams.sdk.communication.jms.AzureServiceBusJmsFactory
+com.im.njams.sdk.communication.jms.JndiJmsFactory

@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) 2026 Salesfive Integration Services GmbH
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+ * the Software.
+ *
+ * The Software shall be used for Good, not Evil.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+package com.im.njams.sdk.communication.jms;
+
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
+import jakarta.jms.Queue;
+import jakarta.jms.Session;
+import jakarta.jms.Topic;
+import javax.naming.NamingException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.im.njams.sdk.Njams;
+import com.im.njams.sdk.NjamsSettings;
+import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.ServiceLoaderSupport;
+import com.im.njams.sdk.utils.StringUtils;
+
+/**
+ * A named factory loaded via SPI for creating JMS related instances.<br>
+ * Use {@link #find(ClientSettings)} for getting an instance.<br>
+ * <br>
+ * <b>Implementation Notes:</b> Make sure that implementations use the
+ * {@link Thread#getContextClassLoader() context classloader} like JNDI or SPI does for looking up JMS implementations
+ * which may be provided by external classpath that is only accessible via this {@link ClassLoader}.
+ * <br>
+ * This is the {@code jakarta.jms} variant of this SPI. The {@code javax.jms} variant is the deprecated
+ * {@link com.im.njams.sdk.communication.jms.factory.JmsFactory}, which has its own SPI registration.
+ */
+public interface JmsFactory extends AutoCloseable {
+    /** Logger for static and default implementations */
+    static final Logger LOG = LoggerFactory.getLogger(JmsFactory.class);
+
+    /**
+     * Tries to find a {@link JmsFactory} from SPI according to the given settings and using
+     * the following steps. Matches on {@link JmsFactory#getName()} (ignoring case),
+     * simple class name or full-qualified class name.
+     * <ol>
+     * <li>Use key {@value NjamsSettings#PROPERTY_JMS_JMSFACTORY} for SPI lookup</li>
+     * <li>Use key {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY} for SPI lookup</li>
+     * <li>Use {@link JndiJmsFactory} as default.</li>
+     * </ol>
+     *
+     * In the traditional scenario where only {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY} is configured
+     * and is expected to be used for JNDI lookup for a {@link ConnectionFactory} instance, no additional
+     * configuration is necessary since the lookup done here will not find any matching {@link JmsFactory}
+     * and will use {@link JndiJmsFactory} as default, which works as before.
+     * <br><br>
+     * When needing a non-JNDI implementation like {@link ActiveMqSslJmsFactory} or {@link AzureServiceBusJmsFactory}
+     * it's sufficient to specify the according SPI name in {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY}.
+     * <br><br>
+     * The new {@value NjamsSettings#PROPERTY_JMS_JMSFACTORY} key is only needed, when implementing a different JNDI
+     * {@link JmsFactory} that still needs the common {@value NjamsSettings#PROPERTY_JMS_CONNECTION_FACTORY} key
+     * for looking the {@link ConnectionFactory} in the JNDI context as second step.
+     *
+     * @param settings Settings specifying what provider to use.
+     * @return Found instance or {@link JndiJmsFactory} as a default, initialized with the given settings.
+     */
+    public static JmsFactory find(ClientSettings settings) {
+        return find(settings, true);
+    }
+
+    /**
+     * Variant of {@link #find(ClientSettings)} that allows getting an uninitialized instance.
+     * This is only needed in rare cases. Most common cases should use {@link #find(ClientSettings)} instead.
+     *
+     * @param settings Settings specifying what provider to use.
+     * @param init     Whether to initialize the returned instance by calling {@link #init(ClientSettings)}.
+     *                 If {@code false}, the returned instance still needs to be initialized before using.
+     * @return Found instance or {@link JndiJmsFactory} as a default.
+     */
+    public static JmsFactory find(ClientSettings settings, boolean init) {
+        String toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_JMSFACTORY);
+        JmsFactory found = find(NjamsSettings.PROPERTY_JMS_JMSFACTORY, toFind);
+        if (found == null) {
+            toFind = settings.getProperty(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY);
+            found = find(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, toFind);
+        }
+        if (found == null) {
+            found = new JndiJmsFactory();
+            LOG.debug("Using default JMS factory implementation: {}", found);
+        }
+        if (init) {
+            initFactory(found, settings);
+        }
+        return found;
+    }
+
+    private static JmsFactory find(final String settingKey, final String toFind) {
+        if (StringUtils.isBlank(toFind)) {
+            return null;
+        }
+        final ServiceLoaderSupport<JmsFactory> spiLoader = new ServiceLoaderSupport<>(JmsFactory.class);
+        final JmsFactory factory =
+                spiLoader.find(j -> toFind.equalsIgnoreCase(j.getName()) || j.getClass().getSimpleName().equals(toFind)
+                        || j.getClass().getName().equals(toFind));
+        if (factory != null) {
+            LOG.debug("Found JMS factory implementation {} for key {}", factory, toFind);
+            return factory;
+        }
+        if (spiLoader.hasUnavailable()) {
+            // not finding a factory is normal when the value is a JNDI name; but it matters when the value is the
+            // name of an implementation that could not be loaded
+            LOG.warn("No JMS factory implementation found for '{}' (setting {}). This is expected if that value "
+                + "is not the name of an implementation, e.g., a JNDI name. Otherwise, the intended implementation "
+                + "could not be loaded.{}{}", toFind, settingKey,
+                System.lineSeparator(), spiLoader.describeAvailability(JmsFactory::getName));
+        }
+        return null;
+    }
+
+    private static void initFactory(JmsFactory factory, ClientSettings settings) {
+        try {
+            LOG.trace("Init {} with {}", factory, factory.getClass().getClassLoader());
+            factory.init(settings);
+        } catch (Throwable e) {
+            // could be an Error, for example when required libs are missing
+            LOG.error("Could not initialize {}", factory, e);
+            throw new IllegalStateException("Could not initialize: " + factory, e);
+        }
+    }
+
+    /**
+     * Has to return a unique implementation name that is used for SPI lookup.
+     * @return Unique implementation name.
+     */
+    public String getName();
+
+    /**
+     * Is called to initialize this factory. After calling this, the factory is usable until {@link #close()} is
+     * called.<br>
+     * Implementations have to handle that this method could be invoked multiple times.
+     * @param settings The settings of the {@link Njams} instance using this factory.
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
+     */
+    public void init(ClientSettings settings) throws JMSException, NamingException;
+
+    /**
+     * Is called for obtaining a {@link ConnectionFactory} instance. Once created, a factory should be reusable.
+     * So, it should be ok the return always the same instance.
+     * @return Has to return a {@link ConnectionFactory} instance.
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
+     */
+    public ConnectionFactory createConnectionFactory() throws JMSException, NamingException;
+
+    /**
+     * Creates a topic for the given name. The default simply calls {@link Session#createTopic(String)}.
+     * @param session The session to be used for creating the topic.
+     * @param topicName The name of the topic to create.
+     * @return The created topic.
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
+     */
+    public default Topic createTopic(Session session, String topicName) throws JMSException, NamingException {
+        return session.createTopic(topicName);
+    }
+
+    /**
+     * Creates a queue for the given name. The default simply calls {@link Session#createQueue(String)}.
+     * @param session The session to be used for creating the queue.
+     * @param queueName The name of the queue to create.
+     * @return The created queue.
+     * @throws JMSException If creating a JMS object failed
+     * @throws NamingException If a JNDI related error occurred
+     */
+    public default Queue createQueue(Session session, String queueName) throws JMSException, NamingException {
+        return session.createQueue(queueName);
+    }
+
+    /**
+     * Is called when the factory is no longer used. Before using the same instance again, {@link #init(ClientSettings)}
+     * has to be called again.<br>
+     * The default does nothing.
+     */
+    @Override
+    public default void close() {
+        // nothing
+    }
+}
