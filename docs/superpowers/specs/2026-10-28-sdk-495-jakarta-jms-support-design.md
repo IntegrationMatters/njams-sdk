@@ -533,6 +533,13 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   wire. The base is documented internal infrastructure and this is accepted, but it is a surface that did not
   exist before.
 
+- `communication.jms.JmsFactory` (jakarta) implicitly publishes `public static final org.slf4j.Logger LOG`,
+  because interface fields are implicitly public. This is exact parity with the javax interface and breaks no
+  rule (slf4j is not relocated), but a brand-new SPI type is the only moment it could have been avoided —
+  Java forbids private interface *fields*, so avoiding it would need a package-private holder class and would
+  create a javax/jakarta asymmetry against §5.2's near-identical-copy invariant. **Left as-is deliberately;
+  flagged here so the `breaking-change` decision sees it rather than discovering it later.**
+
 Current expectation: **yes**, the label applies.
 
 **The three sender/receiver FQCNs are not merely vacated — they are re-pointed.** `communication.jms.JmsSender`,

@@ -573,7 +573,11 @@ git commit -m "SDK-495 move the javax JMS implementation into its own package an
 
 - [ ] **Step 1: Confirm the Azure jakarta class name**
 
-The jakarta variant is `com.azure:azure-servicebus-jms:2.x`, not `com.microsoft.azure:azure-servicebus-jms:1.0.x`. Confirm against the actual artifact whether `ServiceBusJmsConnectionFactory` still sits at `com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactory`. The SDK addresses it reflectively by string, so this is a one-line difference — but it must be the right line.
+**Done — answered against the real artifacts in the local m2 repo (`com.azure:azure-servicebus-jms:2.1.0` and `com.microsoft.azure:azure-servicebus-jms:1.0.2`), so the implementer does not need to repeat it.**
+
+It is **not** a one-line difference, as this step assumed. The whole package moved: `com.microsoft.azure.servicebus.jms.*` → `com.azure.servicebus.jms.*`, so **all three** reflective strings in `AzureServiceBusJmsFactory` change — `ConnectionStringBuilder`, `ServiceBusJmsConnectionFactorySettings` and `ServiceBusJmsConnectionFactory`.
+
+Everything the SDK reflects on is otherwise identical, verified with `javap -p`: the two artifacts' `ConnectionStringBuilder` constructor sets match exactly (including the `(URI, String, String, String)` one this code uses), `ServiceBusJmsConnectionFactorySettings` has the same no-arg constructor and the same four setters, and `ServiceBusJmsConnectionFactory(ConnectionStringBuilder, ServiceBusJmsConnectionFactorySettings)` still exists. 2.1.0 declares `jakarta.jms:jakarta.jms-api` and its factory implements `jakarta.jms.ConnectionFactory`, confirming it is the jakarta variant.
 
 - [ ] **Step 2: Create the four classes as jakarta-typed copies**
 
@@ -616,6 +620,22 @@ git commit -m "SDK-495 add the jakarta JmsFactory SPI and its three implementati
 Same bases, same hooks, same `resolveFactory` contract from Task 8 — only the JMS imports and the `JmsFactory` reference differ. `librariesToCheck()` lists the `jakarta.jms.*` names; `javax.naming.*` entries stay as they are. `SharedJmsReceiver implements ShareableReceiver<jakarta.jms.Message>` — `ShareableReceiver<T>` is generic and erased, so `CommunicationFactory`'s `instanceof ShareableReceiver` check is unaffected.
 
 These are **not** deprecated.
+
+**Carried in from Task 10's review — `resolveFactory` must `catch (Throwable)`.** Mirror the javax shape at
+`communication/jms/javax/JmsSender.java` exactly: `catch (Throwable e)` and then
+`ServiceLoaderSupport.isNotApplicable(e)`. On a javax-only classpath the jakarta `JndiJmsFactory` still *loads*
+successfully through SPI — lazy resolution never touches its jakarta method descriptors during instantiation —
+so the decline comes from *using* the factory, not from looking it up. The discriminating throwable is then a
+`NoClassDefFoundError: jakarta/jms/ConnectionFactory` raised by `initFactory`'s cast, i.e. an **`Error`**. A
+`catch (Exception)` would let it escape and break the candidate fall-through. (Verified by the reviewer to be
+pre-existing and symmetric: the javax SPI type behaves identically with `javax.jms-api` removed.)
+
+**Also carried in: the bare name `JmsFactory` is now ambiguous inside `com.im.njams.sdk.communication.jms`.**
+`FailingJmsFactory`, `NoopJmsFactory`, `WorkingJmsFactory` and `JmsFactoryResolutionTest` each rely on an
+explicit single-type import of `…jms.factory.JmsFactory` to keep meaning the javax type (JLS 6.4.1). They
+compile and are green, but their correctness now rests on an import line that reads like boilerplate. Either
+comment each import or move the three helpers and the test under `…jms.javax` — §6.5's migration touches them
+anyway.
 
 **Carried in from Task 9.** The seven class-level `@deprecated` tags on the relocated javax classes name their jakarta replacement in `{@code …}`, not `{@link …}`, because the targets did not exist yet and a `{@link}` to a missing type is a hard Javadoc error. Once the three classes above (and Task 10's factories) exist, upgrade those seven references to real `{@link}`s and re-run `mvn javadoc:javadoc -pl njams-sdk`.
 
