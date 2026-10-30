@@ -66,17 +66,27 @@ public class JmsSenderTest {
     private static final LocalDateTime JOBEND = LocalDateTime.of(2018, 11, 20, 14, 59, 58, 856000000);
     private static final LocalDateTime SENTAT = LocalDateTime.of(2018, 11, 20, 15, 00, 01, 213000000);
 
-    private JmsSender sender = null;
+    /**
+     * Stubs serialization and exposes the inherited {@code isCongestion}, which is declared protected in the
+     * base class's package and so is not reachable from this one except from inside a subclass body.
+     */
+    public static class TestJmsSender extends JmsSender {
+        @Override
+        protected String serialize(CommonMessage msg) {
+            return "dummy data";
+        }
+
+        boolean congestion(Throwable failure) {
+            return isCongestion(failure);
+        }
+    }
+
+    private TestJmsSender sender = null;
 
     @Before
     public void beforeEach() {
         WorkingJmsFactory.reset();
-        sender = spy(new JmsSender() {
-            @Override
-            protected String serialize(CommonMessage msg) {
-                return "dummy data";
-            }
-        });
+        sender = spy(new TestJmsSender());
 
         Properties props = new Properties();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, JmsSender.COMMUNICATION_NAME);
@@ -217,27 +227,27 @@ public class JmsSenderTest {
 
     @Test
     public void isCongestionTrueForResourceAllocationException() {
-        assertTrue(sender.isCongestion(new ResourceAllocationException("full")));
+        assertTrue(sender.congestion(new ResourceAllocationException("full")));
     }
 
     @Test
     public void isCongestionTrueWhenResourceAllocationExceptionIsNested() {
-        assertTrue(sender.isCongestion(
+        assertTrue(sender.congestion(
             new NjamsSdkRuntimeException("Unable to send LogMessage", new ResourceAllocationException("full"))));
     }
 
     @Test
     public void isCongestionFalseForOtherJmsException() {
-        assertFalse(sender.isCongestion(new InvalidDestinationException("bad destination")));
+        assertFalse(sender.congestion(new InvalidDestinationException("bad destination")));
     }
 
     @Test
     public void isCongestionFalseForUnrecognisedFailure() {
-        assertFalse(sender.isCongestion(new RuntimeException("socket closed")));
+        assertFalse(sender.congestion(new RuntimeException("socket closed")));
     }
 
     @Test
     public void isCongestionFalseForNull() {
-        assertFalse(sender.isCongestion(null));
+        assertFalse(sender.congestion(null));
     }
 }

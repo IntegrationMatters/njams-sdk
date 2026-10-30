@@ -519,7 +519,7 @@ git commit -m "SDK-495 resolve the JMS factory during init and decline on a name
 **Interfaces:**
 - Consumes: Tasks 6–8.
 
-**Carried in from Task 8.** `JmsSender` and `JmsReceiver` each hold a byte-identical copy of `resolveFactory` and its `isOtherJmsNamespace`/`MAX_CAUSE_DEPTH` helper. Both are namespace-free, so they were deliberately *not* hoisted in Task 8: a package-private helper is the right shape while the two classes share `communication/jms/`, and the wrong one once this task moves them to `communication/jms/javax/`. Hoist them onto `AbstractJmsSender`/`AbstractJmsReceiver` (or a shared package-private type) as part of this move, before Task 11 turns two copies into four. Any new `protected` member this creates goes into spec §5.8's inventory.
+**Carried in from Task 8 — corrected.** An earlier note here said to hoist `resolveFactory` onto the bases. **Do not.** Its body names `communication.jms.factory.JmsFactory`, whose own public signatures carry five `javax.jms` types, so referencing it from `AbstractJmsSender`/`AbstractJmsReceiver` would put javax descriptors back on the namespace-free bases. The genuinely shareable part — the cause-chain classifier — already moved to `ServiceLoaderSupport.isNotApplicable(Throwable)` in Task 8. What remains duplicated is the ~22-line probe skeleton, which is namespace-*bound*: it names the javax `JmsFactory` and its message says `javax.jms`. Task 11's jakarta copy names the jakarta `JmsFactory` instead. That is the duplication §5.2 already accepts.
 - Produces: `com.im.njams.sdk.communication.jms.javax.JmsSender` (carrying `COMMUNICATION_NAME` via the base), `…javax.JmsReceiver`, `…javax.SharedJmsReceiver`, `…javax.factory.{JndiJmsFactory, ActiveMqSslJmsFactory, AzureServiceBusJmsFactory}`; `…jms.factory.JmsFactory` unchanged but deprecated.
 
 - [ ] **Step 1: Move the six classes and their tests, updating only package and import statements**
@@ -547,8 +547,10 @@ Run: `mvn validate -Pcheckstyle -pl njams-sdk`
 Expected: PASS.
 Run: `rm -rf njams-sdk/target/reports/apidocs && mvn javadoc:javadoc -pl njams-sdk`
 Expected: BUILD SUCCESS. Then open the generated page for `JmsSender` and confirm it renders as deprecated — the source alone does not prove it.
-Run: `mvn test-compile -pl njams-sdk-communication-it -Pdocker-it`
-Expected: BUILD SUCCESS.
+Run: `mvn test-compile -pl njams-sdk-communication-it -am -Pdocker-it`
+Expected: BUILD SUCCESS. The `-am` is required: without it the module resolves the *installed* SNAPSHOT, which still holds the pre-move classes, and the check passes for the wrong reason. Clear `target/test-classes` first — a warm incremental build also reports SUCCESS falsely.
+
+**Task 1 left this module behind.** It added the explicit `javax.jms-api` and the `jakarta.jms-api` exclusions to `njams-sdk/pom.xml` only, while raising the managed `jakarta.jms-api` to 3.1.0. This module declared no JMS API of its own and had been getting `javax.jms` transitively from `activemq-client`'s 2.0.3, so it stopped compiling at Task 1 and nothing noticed until here. A test-scoped `javax.jms:javax.jms-api` is added to its pom as part of this task.
 
 - [ ] **Step 5: Commit**
 
@@ -614,6 +616,8 @@ git commit -m "SDK-495 add the jakarta JmsFactory SPI and its three implementati
 Same bases, same hooks, same `resolveFactory` contract from Task 8 — only the JMS imports and the `JmsFactory` reference differ. `librariesToCheck()` lists the `jakarta.jms.*` names; `javax.naming.*` entries stay as they are. `SharedJmsReceiver implements ShareableReceiver<jakarta.jms.Message>` — `ShareableReceiver<T>` is generic and erased, so `CommunicationFactory`'s `instanceof ShareableReceiver` check is unaffected.
 
 These are **not** deprecated.
+
+**Carried in from Task 9.** The seven class-level `@deprecated` tags on the relocated javax classes name their jakarta replacement in `{@code …}`, not `{@link …}`, because the targets did not exist yet and a `{@link}` to a missing type is a hard Javadoc error. Once the three classes above (and Task 10's factories) exist, upgrade those seven references to real `{@link}`s and re-run `mvn javadoc:javadoc -pl njams-sdk`.
 
 - [ ] **Step 2: Register them first in the services files**
 

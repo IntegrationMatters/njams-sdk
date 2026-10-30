@@ -300,7 +300,7 @@ public abstract class AbstractJmsSender extends AbstractSender {
      * @return {@code true} only if the cause chain contains a resource-allocation exception.
      */
     @Override
-    public boolean isCongestion(Throwable failure) {
+    protected boolean isCongestion(Throwable failure) {
         final Class<?> congestionType = congestionExceptionType();
         Throwable current = failure;
         for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {

@@ -513,10 +513,17 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   - `serialize(CommonMessage)` widened package-private → `protected`. `JmsSenderTest`'s three anonymous
     `JmsSender` subclasses override it with `@Override`; a package-private method declared in `…jms` is not
     inherited across the package boundary, so the overrides would not compile. Decided by the repository owner.
-  - `isCongestion(Throwable)` widened `protected` → `public`. `JmsSenderTest` asserts on it directly and also
-    needs `JmsSender`'s own protected `session`/`eventProducer`/`sendMessage`, so the test has to live in
-    `…jms.javax`; from there the base's protected method is unreachable. Widening this one read-only predicate
-    was preferred over making `JmsSender`'s two mutable producer/session fields public.
+  - `isCongestion(Throwable)` was briefly widened `protected` → `public` for the same reason and has been
+    **reverted** (Task 9 review). `AbstractSender:412` declares it `protected abstract`, so a public override
+    widens an SPI Contract template method, can never be narrowed, diverges from `HttpSender`/`KafkaSender`,
+    and would force every out-of-tree subclass to declare its own override public. `JmsSenderTest` reaches it
+    through a named subclass instead, which may call an inherited protected member from any package (JLS
+    6.6.2). **No API change.**
+
+  Consequence worth stating for `serialize`: JSON serialization of a `CommonMessage` is now an overridable
+  hook on a public class, adjacent to the Wire Contract. An out-of-tree subclass could change what goes on the
+  wire. The base is documented internal infrastructure and this is accepted, but it is a surface that did not
+  exist before.
 
 Current expectation: **yes**, the label applies.
 

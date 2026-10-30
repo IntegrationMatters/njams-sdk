@@ -20,6 +20,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+// NOTE: this test stays in ...jms because it reads protected members of the two base classes. The
+// single-type imports below keep naming the javax classes once Task 11 puts jakarta types of the same
+// simple name into this very package (JLS 6.4.1) - do not turn them into an on-demand import.
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
