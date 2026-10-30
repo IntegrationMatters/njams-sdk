@@ -1,11 +1,20 @@
 package com.im.njams.sdk.communication.jms.javax.factory;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.jms.JMSException;
 
@@ -48,5 +57,40 @@ public class AzureServiceBusJmsFactoryTest {
         } catch (JMSException expected) {
             // expected: the malformed URI is wrapped into a JMSException
         }
+    }
+
+    /**
+     * Pins the provider class names this factory reflects on. They are plain strings, so nothing but this
+     * test notices when they drift to the other Azure package: the jakarta client lives in
+     * {@code com.azure.servicebus.jms}, the javax one in {@code com.microsoft.azure.servicebus.jms}.
+     */
+    @Test
+    public void reflectsOnExactlyTheExpectedAzureClassNames() throws Exception {
+        Set<String> expected = new TreeSet<>(Arrays.asList(
+            "com.microsoft.azure.servicebus.jms.ConnectionStringBuilder",
+            "com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactory",
+            "com.microsoft.azure.servicebus.jms.ServiceBusJmsConnectionFactorySettings"));
+
+        assertEquals(expected, serviceBusClassNamesReferencedBy(AzureServiceBusJmsFactory.class));
+    }
+
+    /**
+     * Collects every {@code com.*.servicebus.jms.*} string constant from the given class's class file.
+     * The constant pool stores no terminator, so the match is anchored on {@code com} to keep a
+     * preceding length byte that happens to be printable out of the result.
+     */
+    private static Set<String> serviceBusClassNamesReferencedBy(Class<?> type) throws IOException {
+        byte[] classFile;
+        try (InputStream in = type.getResourceAsStream(type.getSimpleName() + ".class")) {
+            assertNotNull("class file of " + type.getName(), in);
+            classFile = in.readAllBytes();
+        }
+        Matcher matcher = Pattern.compile("com[A-Za-z0-9_.$]*servicebus\\.jms\\.[A-Za-z0-9_$]+")
+            .matcher(new String(classFile, StandardCharsets.ISO_8859_1));
+        Set<String> found = new TreeSet<>();
+        while (matcher.find()) {
+            found.add(matcher.group());
+        }
+        return found;
     }
 }

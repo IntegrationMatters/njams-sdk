@@ -23,11 +23,10 @@
  */
 package com.im.njams.sdk.communication.jms;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
 import javax.naming.NamingException;
 
-import com.im.njams.sdk.communication.jms.factory.JmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class FailingJmsFactory implements JmsFactory {

@@ -36,7 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.im.njams.sdk.communication.jms.FailingJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.FailingJmsFactory;
 import com.im.njams.sdk.communication.jms.javax.factory.ActiveMqSslJmsFactory;
 import com.im.njams.sdk.communication.jms.javax.factory.AzureServiceBusJmsFactory;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
@@ -55,9 +55,11 @@ public class ServiceLoaderSupportTest {
         // FailingJmsFactory is registered by the rule above and always fails to construct, so it is
         // filtered out of every lookup here. There is no test for the failing instance itself since the
         // internal iterator skips that entry except for the very first access.
-        // That leaves: NoopJmsFactory,
+        // That leaves, all of them javax-tree implementations of this SPI interface: NoopJmsFactory,
         // WorkingJmsFactory, and EmbeddedActiveMqJmsFactory (test), plus JndiJmsFactory,
-        // ActiveMqSslJmsFactory, and AzureServiceBusJmsFactory (production).
+        // ActiveMqSslJmsFactory, and AzureServiceBusJmsFactory (production). The jakarta tree's
+        // same-named factories implement com.im.njams.sdk.communication.jms.JmsFactory instead and are
+        // therefore not discovered here.
         toTest = new ServiceLoaderSupport<>(JmsFactory.class);
     }
 
@@ -83,7 +85,8 @@ public class ServiceLoaderSupportTest {
         // Assert the production JmsFactory implementations are discovered. The discovered set also
         // includes test-only factories (e.g. NoopJmsFactory and EmbeddedActiveMqJmsFactory registered
         // under src/test), so verify the required implementations are present rather than an exact
-        // count, which would break whenever a test-only SPI factory is added.
+        // count, which would break whenever a test-only SPI factory is added. Every class named here is
+        // the javax one; the jakarta tree implements a different SPI interface.
         Set<Class<?>> discovered = all.stream().map(Object::getClass).collect(Collectors.toSet());
         assertTrue(discovered.contains(JndiJmsFactory.class));
         assertTrue(discovered.contains(ActiveMqSslJmsFactory.class));

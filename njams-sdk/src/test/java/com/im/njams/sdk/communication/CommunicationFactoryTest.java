@@ -49,7 +49,7 @@ import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.http.HttpSseReceiver;
-import com.im.njams.sdk.communication.jms.FailingJmsFactory;
+import com.im.njams.sdk.communication.jms.javax.FailingJmsFactory;
 import com.im.njams.sdk.settings.ClientSettings;
 
 public class CommunicationFactoryTest {

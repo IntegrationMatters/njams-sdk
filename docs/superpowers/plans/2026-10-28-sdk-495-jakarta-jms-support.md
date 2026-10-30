@@ -799,6 +799,26 @@ Run: `mvn -o validate -Pcheckstyle -pl njams-sdk && mvn -o javadoc:javadoc -pl n
 Expected: BUILD SUCCESS for both. (Checkstyle does not scan test sources, but the production Javadoc is
 untouched and must stay clean.)
 
+**Three forced deviations, found during implementation on 2026-10-30.**
+
+1. **The moved `JmsFactoryResolutionTest` needs accessor subclasses.** Its own NOTE predicted this: it read
+   `AbstractJmsSender.isUseProjectQueue()` and `AbstractJmsReceiver.topicName`/`.useMessageselector`, all
+   `protected`, off a non-subclass reference — which stops compiling once the file leaves `…jms`. Widening them
+   is a production change, so two tests now reach the same state through named subclasses
+   (`StateReadingJmsSender`/`StateReadingJmsReceiver`), the pattern this ticket already chose in `91364d60`
+   rather than widening `isCongestion`. Test names and asserted values unchanged; the jakarta twin uses the
+   same shape so the two files stay mirror images.
+2. **`ActiveMqSslJmsFactoryTest.initCreatesActiveMqSslConnectionFactory` is `@Ignore`d on the jakarta side.**
+   Structurally unrunnable here — see spec §6.1's documented exception. User's decision on 2026-10-30: keep the
+   ignored mirror with its body intact and hand the assertion to Task 13. Not caused by the
+   no-production-changes rule; it could not be made green with a production change either.
+3. **The jakarta `JndiJmsFactoryTest` supplies its own JNDI provider.** `initIsIdempotent` as a pure mirror hit
+   the same javax-ActiveMQ cast failure, but there the provider is named by a *setting* rather than hardcoded,
+   so a nested `JakartaInitialContextFactory` returning a mocked `jakarta.jms.ConnectionFactory` fixes it
+   test-only. Opens no socket. Test name and assertion unchanged.
+
+Expected suite after this task: **1728 run / 0 failures / 0 errors / 2 skipped** — the second skip is item 2.
+
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -819,6 +839,13 @@ git commit -m "SDK-495 mirror the JMS unit tests onto the jakarta tree and move 
 **Interfaces:**
 - Consumes: Tasks 10–11.
 - Produces: proof that each single-namespace classpath selects its own tree.
+
+**Carried in from Task 12.** `njams-sdk-jms-jakarta-test` is the only place on this plan with
+`activemq-client-jakarta`, so it also picks up the one assertion Task 12 had to ignore: that the jakarta
+`ActiveMqSslJmsFactory` really does produce an ActiveMQ SSL connection factory. Copy the body from
+`njams-sdk/src/test/java/com/im/njams/sdk/communication/jms/ActiveMqSslJmsFactoryTest.java`'s `@Ignore`d
+`initCreatesActiveMqSslConnectionFactory`; it is intact and needs only the right classpath. Until this lands,
+the jakarta `ActiveMqSslJmsFactory.createConnectionFactory()` path has no executing coverage (spec §6.1).
 
 - [ ] **Step 1: Create the aggregator and both children**
 

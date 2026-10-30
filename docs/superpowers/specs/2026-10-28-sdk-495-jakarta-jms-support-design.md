@@ -675,7 +675,20 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
   The only two non-copied tests are the Azure reflective-class-name assertions, one per namespace. Task 10's
   review established that the existing `AzureServiceBusJmsFactoryTest` never reaches a reflective name, so a
   straight mirror of it would have stayed green against a wrong Azure package — which is precisely the one thing
-  Task 10 changed rather than copied.
+  Task 10 changed rather than copied. They pin the names by scanning the compiled class file's constant pool,
+  because neither Azure client is on the classpath and `init` aborts at the first reflective lookup.
+
+  **One documented exception to the identical counts** (found in Task 12, 2026-10-30):
+  `ActiveMqSslJmsFactoryTest.initCreatesActiveMqSslConnectionFactory` cannot run on the jakarta side inside
+  `njams-sdk`. Both namespaces' `ActiveMqSslJmsFactory` reflect on the *same* class name
+  `org.apache.activemq.ActiveMQSslConnectionFactory`, and only the javax `activemq-client` is on this module's
+  test classpath, so the jakarta factory always receives a `javax.jms` factory and its cast throws — the decline
+  mechanism of §5.4 working exactly as designed. `activemq-client-jakarta` has colliding package names and
+  cannot share the classpath, the same constraint §6.5 records for `activemq-broker`. The jakarta twin keeps the
+  test with its body intact under `@Ignore`, and **§6.2's `njams-sdk-jms-jakarta-test` carries the assertion
+  instead** — that module is specified to have `activemq-client-jakarta`. Consequence to keep in view: the
+  jakarta `ActiveMqSslJmsFactory.createConnectionFactory()` path has no executing coverage until that module
+  exists.
 - Existing test cases must not be modified without explicit user permission.
 
 ### 6.2 Three namespace modules — no broker, no Docker, default build

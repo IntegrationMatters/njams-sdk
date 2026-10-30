@@ -9,8 +9,8 @@ import static org.mockito.Mockito.mock;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.JMSException;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 import javax.naming.NoInitialContextException;
@@ -20,14 +20,11 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-// NOTE: this test stays in ...jms because it reads protected members of the two base classes. The
-// single-type imports below keep naming the javax classes once Task 11 puts jakarta types of the same
-// simple name into this very package (JLS 6.4.1) - do not turn them into an on-demand import.
+// NOTE: JmsSender and JmsReceiver are this package's jakarta classes; the javax twin of this test names the
+// javax ones the same way. The protected state the last two tests read lives in the shared base classes, so
+// both copies reach it through the named subclasses below rather than directly.
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
-import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.javax.JmsReceiver;
-import com.im.njams.sdk.communication.jms.javax.JmsSender;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ScopedSpiRule;
 
@@ -78,7 +75,7 @@ public class JmsFactoryResolutionTest {
         @Override
         public void init(ClientSettings settings) {
             throw new ClassCastException(
-                "class jakarta.jms.ConnectionFactory cannot be cast to class javax.jms.ConnectionFactory");
+                "class javax.jms.ConnectionFactory cannot be cast to class jakarta.jms.ConnectionFactory");
         }
 
         @Override
@@ -145,7 +142,7 @@ public class JmsFactoryResolutionTest {
         public void init(ClientSettings settings) throws JMSException {
             final JMSException wrapper = new JMSException("Failed to setup the connection factory");
             wrapper.initCause(new ClassCastException(
-                "class jakarta.jms.ConnectionFactory cannot be cast to class javax.jms.ConnectionFactory"));
+                "class javax.jms.ConnectionFactory cannot be cast to class jakarta.jms.ConnectionFactory"));
             throw wrapper;
         }
 
@@ -239,6 +236,24 @@ public class JmsFactoryResolutionTest {
         @Override
         public ConnectionFactory createConnectionFactory() {
             return mock(ConnectionFactory.class);
+        }
+    }
+
+    /** Exposes the protected sender state the base class keeps, which is not visible from this package. */
+    public static class StateReadingJmsSender extends JmsSender {
+        boolean useProjectQueue() {
+            return isUseProjectQueue();
+        }
+    }
+
+    /** Exposes the protected receiver state the base class keeps, which is not visible from this package. */
+    public static class StateReadingJmsReceiver extends JmsReceiver {
+        String topic() {
+            return topicName;
+        }
+
+        boolean messageSelector() {
+            return useMessageselector;
         }
     }
 
@@ -375,11 +390,11 @@ public class JmsFactoryResolutionTest {
     public void init_stillAppliesEverySettingAfterTheFactoryResolves() {
         final ClientSettings settings = settings(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY,
             RecordingJmsFactory.NAME, NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR, "false");
-        final JmsSender sender = new JmsSender();
+        final StateReadingJmsSender sender = new StateReadingJmsSender();
 
         sender.init(settings);
 
-        assertTrue("project queue setting applied", sender.isUseProjectQueue());
+        assertTrue("project queue setting applied", sender.useProjectQueue());
         assertEquals(1, RecordingJmsFactory.INITIALIZED.get());
     }
 
@@ -388,12 +403,12 @@ public class JmsFactoryResolutionTest {
         final ClientSettings settings = settings(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY,
             RecordingJmsFactory.NAME, NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.resolution",
             NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR, "false");
-        final JmsReceiver receiver = new JmsReceiver();
+        final StateReadingJmsReceiver receiver = new StateReadingJmsReceiver();
 
         receiver.init(settings);
 
-        assertEquals("njams4.resolution.commands", receiver.topicName);
-        assertTrue("message selector setting applied", !receiver.useMessageselector);
+        assertEquals("njams4.resolution.commands", receiver.topic());
+        assertTrue("message selector setting applied", !receiver.messageSelector());
         assertEquals(1, RecordingJmsFactory.INITIALIZED.get());
     }
 
@@ -402,7 +417,7 @@ public class JmsFactoryResolutionTest {
             init.run();
             fail("expected the implementation to decline with a " + TransportNotApplicableException.class.getName());
         } catch (TransportNotApplicableException e) {
-            assertTrue(e.getMessage(), e.getMessage().contains("javax.jms"));
+            assertTrue(e.getMessage(), e.getMessage().contains("jakarta.jms"));
             assertTrue("cause chain must keep the original failure: " + e.getCause(),
                 chainContains(e.getCause(), expectedCause));
         }

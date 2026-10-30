@@ -47,7 +47,6 @@ import org.junit.Test;
 import com.faizsiegeln.njams.messageformat.v4.common.CommonMessage;
 import com.faizsiegeln.njams.messageformat.v4.logmessage.LogMessage;
 import com.im.njams.sdk.NjamsSettings;
-import com.im.njams.sdk.communication.jms.WorkingJmsFactory;
 import com.im.njams.sdk.utils.JsonUtils;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
