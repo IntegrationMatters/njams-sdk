@@ -20,6 +20,7 @@
         <module>njams-sdk-jms-javax-test</module>
         <module>njams-sdk-jms-jakarta-test</module>
         <module>njams-sdk-jms-absent-test</module>
+        <module>njams-sdk-jms-mixed-test</module>
     </modules>
 
     <properties>
