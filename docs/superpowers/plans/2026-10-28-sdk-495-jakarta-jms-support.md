@@ -882,6 +882,24 @@ git add pom.xml njams-sdk-jms-namespace-tests/
 git commit -m "SDK-495 add broker-less modules proving namespace selection on each single-namespace classpath"
 ```
 
+**Implemented 2026-11-02.** Three children, not two: Step 4's neither-API case became
+`njams-sdk-jms-absent-test` (spec §6.2 left this to the builder; `njams-sdk` itself compiles against both
+APIs, so its own suite cannot arrange that classpath). The aggregator carries the `njams-sdk` dependency,
+JUnit, Mockito, slf4j-api + slf4j-simple and `maven.deploy.skip`; no surefire configuration had to be added,
+since the root pom's `argLine` property already applies. Each child declares only its own JMS API and broker
+client, and the javax child excludes `activemq-client`'s transitive `jakarta.jms:jakarta.jms-api:2.0.3`.
+
+**Finding, not fixed (no production change in this task):** `describeAvailability` identifies the skipped
+tree by the **missing JMS API only**, never by the provider class. Loading e.g.
+`…communication.jms.JmsSender` on a javax classpath fails on its `jakarta.jms` superinterface with a raw
+`NoClassDefFoundError`; `ServiceLoader` wraps only `ClassNotFoundException` into a
+`ServiceConfigurationError`, and that wrapper is the only place `ServiceLoaderSupport.addUnavailable` can read
+a provider name from — so every skipped provider is reported as "Unidentified provider", and two providers
+failing on the same type collapse into one line (the two jakarta receivers both fail on
+`jakarta.jms.MessageListener`). §5.4 bullet 7 ("the text actually identifies the missing JMS API") does hold;
+the provider name does not. The Task 13 tests assert what is true, with the reason in their Javadoc.
+Recorded permanently in spec §5.5, since this plan file is deleted when SDK-495 resolves.
+
 ---
 
 ### Task 14: The mixed-classpath module

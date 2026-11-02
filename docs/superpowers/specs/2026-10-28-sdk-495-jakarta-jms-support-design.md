@@ -452,6 +452,18 @@ trees' `find(...)`.
 bullet 7: when neither JMS API is present, every entry is "not applicable", `hasUnavailable()` is false, and that
 text is the only thing that tells the user which API is missing.
 
+**Limitation, measured 2026-11-02 (Task 13):** that text names the missing **JMS API**, but never the
+skipped **provider class**. Loading e.g. `…communication.jms.JmsSender` on a javax classpath fails on its
+`jakarta.jms` superinterface with a raw `NoClassDefFoundError`, and `ServiceLoader` wraps only
+`ClassNotFoundException` into a `ServiceConfigurationError` — the one message `addUnavailable` can read a
+provider name from — so every skipped provider reads `Unidentified provider - ClassNotFoundException:
+jakarta.jms.ExceptionListener`. Providers failing on the same type also collapse into a single line, both
+buckets being `LinkedHashSet<String>`: the javax receiver report shows **one** entry for `JmsReceiver` and
+`SharedJmsReceiver` together. §5.4 bullet 7's requirement is still met, and bullet 6 is unaffected — the
+combined "no candidate is applicable" error is built by `CommunicationFactory.selectApplicable` from its own
+per-candidate `declined` list plus suppressed causes, and covers only providers that did load. Whether
+`ServiceLoaderSupport` should also recover the provider name from a raw linkage error is left open.
+
 Scope note: the classification covers the two JMS namespaces, which is what the SDK ships. It is not a general
 extension point, and third-party providers failing for their own reasons stay in the "genuinely unavailable"
 bucket, which is correct.
@@ -746,6 +758,9 @@ Consequences:
 with a message that names the missing API, and nothing escapes. It needs no broker and no client, so it can live
 in `njams-sdk`'s own suite if a classpath without either API can be arranged there; otherwise it is a third tiny
 module. Builder's call.
+
+**Resolved 2026-11-02 (Task 13):** a fourth module, `njams-sdk-jms-absent-test`, carrying no JMS API and no
+broker client. `njams-sdk`'s own suite cannot host it, because that module compiles against both APIs.
 
 ### 6.2.1 A third module for the mixed classpath
 

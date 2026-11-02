@@ -17,8 +17,10 @@ pipeline {
 
     stages {
         // Build the whole reactor once. This also compiles the sample modules,
-        // which is what verifies they still build against the current SDK. The
-        // samples are not published (maven.deploy.skip=true in their POMs).
+        // which is what verifies they still build against the current SDK, and runs the
+        // njams-sdk-jms-namespace-tests modules, which check JMS implementation selection on
+        // classpaths carrying only one of the two JMS APIs. Neither group is published
+        // (maven.deploy.skip=true in their POMs).
         stage('Build') {
             steps {
                 // Branch, commit and build number are resolved by git-commit-id-maven-plugin from the
@@ -87,8 +89,8 @@ pipeline {
         // also match a feature branch like 'foo-dev').
         // Matched:     master, 5.0.X, 6.1.X (maintenance), 6.0-dev, 6.0.1-dev (development)
         // Not matched: fix123, SDK-375, bug-SDK-415, PR-12
-        // Only njams-sdk and the root POM are published; the sample modules are
-        // skipped via maven.deploy.skip in their POMs.
+        // Only njams-sdk and the root POM are published; the sample modules and the
+        // njams-sdk-jms-namespace-tests modules are skipped via maven.deploy.skip in their POMs.
         stage('Deploy to Nexus') {
             when {
                 branch pattern: '^(master|[0-9]+\\.[0-9]+\\.X|[0-9]+\\.[0-9]+(\\.[0-9]+)?-dev)$',

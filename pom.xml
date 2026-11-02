@@ -438,5 +438,6 @@
         <module>njams-sdk</module>
         <module>njams-sdk-sample-client</module>
         <module>njams-sdk-sample-app</module>
+        <module>njams-sdk-jms-namespace-tests</module>
     </modules>
 </project>
