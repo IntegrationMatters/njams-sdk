@@ -47,9 +47,11 @@ import com.im.njams.sdk.settings.ClientSettings;
  * that is registered via {@code META-INF/services} and used by the SDK to receive server commands.
  * <p>
  * {@linkplain #getName() Names need not be unique}: when several receivers report the same name, the SDK tries
- * them in the order their {@code META-INF/services} entries are listed and uses the first one that initializes
- * successfully. An implementation that is not applicable in the current environment declines by throwing
- * {@link TransportNotApplicableException} from {@link #init(ClientSettings)}, leaving the next one to be tried.
+ * all of them and uses the first one that initializes successfully. Those matching the configured wish for a
+ * shared receiver are tried first; within that grouping the order is the order of the
+ * {@code META-INF/services} entries. An implementation that is not applicable in the current environment
+ * declines by throwing {@link TransportNotApplicableException} from {@link #init(ClientSettings)}, leaving the
+ * next one to be tried.
  *
  * @author pnientiedt/krautenberg
  * @version 4.0.6

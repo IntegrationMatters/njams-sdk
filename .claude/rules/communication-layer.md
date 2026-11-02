@@ -45,7 +45,10 @@ Four properties of this arrangement are load-bearing — a change to the selecti
   communication type, not just the first one found.
 - **Candidates are tried in services-file order.** The jakarta entries are listed first in
   `META-INF/services/com.im.njams.sdk.communication.AbstractSender` and `…AbstractReceiver`, which is what makes
-  jakarta the one chosen when both would work. Reordering those files changes the selection.
+  jakarta the one chosen when both would work. Reordering those files changes the selection. Senders use that
+  order as-is; **receivers are grouped first** by whether they match the configured wish for a shared receiver
+  (`CommunicationFactory.findReceiverCandidates`), and services-file order applies only *within* each group —
+  jakarta still wins because it is first in both groups, but a change here must preserve the grouping too.
 - **An implementation declines by throwing `TransportNotApplicableException` from `init`.** Any `init` failure
   makes the SDK skip to the next candidate; the marker type is what keeps the reporting honest — "not this
   namespace" instead of a real error. Only all candidates failing is an error, and that error names every cause.
