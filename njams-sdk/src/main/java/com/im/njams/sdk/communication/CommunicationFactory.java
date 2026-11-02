@@ -71,11 +71,13 @@ public class CommunicationFactory {
     }
 
     ServiceLoaderSupport<AbstractReceiver> getReceiverLoader() {
-        return new ServiceLoaderSupport<>(AbstractReceiver.class);
+        return new ServiceLoaderSupport<>(AbstractReceiver.class,
+            TransportNotApplicableException::isNotApplicable, TransportNotApplicableException.NOT_APPLICABLE_REASON);
     }
 
     ServiceLoaderSupport<AbstractSender> getSenderLoader() {
-        return new ServiceLoaderSupport<>(AbstractSender.class);
+        return new ServiceLoaderSupport<>(AbstractSender.class,
+            TransportNotApplicableException::isNotApplicable, TransportNotApplicableException.NOT_APPLICABLE_REASON);
     }
 
     /**
@@ -186,8 +188,8 @@ public class CommunicationFactory {
 
     /**
      * Tries the given candidates in order and returns the first that can be created and initialized. Any candidate
-     * that fails is skipped, whatever the reason: the list holds one implementation per JMS namespace, so a failure
-     * is normally just the namespace that does not fit the classpath. Only all candidates failing is final, and the
+     * that fails is skipped, whatever the reason, because several implementations may share one name and only the
+     * candidate itself can tell whether it fits this classpath. Only all candidates failing is final, and the
      * combined failure then names every cause. The candidates must not be empty.
      */
     private <T> T selectApplicable(String kind, String name, List<Class<? extends T>> candidates,

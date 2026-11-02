@@ -32,6 +32,71 @@ public class TransportNotApplicableException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
+    private static final int MAX_CAUSE_DEPTH = 10;
+
+    /**
+     * Why an implementation classified by {@link #isNotApplicable(Throwable)} was skipped, for reporting.
+     */
+    public static final String NOT_APPLICABLE_REASON = "required JMS API not present";
+
+    /**
+     * Whether the given failure says that a transport implementation is not applicable on this classpath rather
+     * than broken. Two things say so, and both must name a type of one of the two JMS APIs: a failed cast, which
+     * is what a connection factory of the other JMS namespace produces, and a missing type. The whole cause chain
+     * is examined, because an implementation may wrap the failure into an exception of its own.
+     * <p>
+     * Deliberately narrow in both directions: a type that is missing for any other reason, such as a broker client
+     * library that was not deployed, is a real error, and so is a failed cast anywhere else — this classification
+     * is applied to every transport's providers, not only to the JMS ones.
+     *
+     * @param failure the failure to classify.
+     * @return whether the failure means "not applicable here" rather than "broken".
+     */
+    public static boolean isNotApplicable(final Throwable failure) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (isJmsNamespaceCastFailure(current) || isMissingJmsApi(current)) {
+                return true;
+            }
+            final Throwable cause = current.getCause();
+            if (cause == current) {
+                return false;
+            }
+            current = cause;
+        }
+        return false;
+    }
+
+    /**
+     * Whether the given throwable is a cast failure between the two JMS namespaces, which is what looking up a
+     * connection factory of the other namespace produces. The message names both the source and the target class,
+     * so the JMS API type appears anywhere in it rather than at the start. A cast failure that names no JMS API
+     * type belongs to some other transport's provider and is a real defect.
+     */
+    private static boolean isJmsNamespaceCastFailure(final Throwable throwable) {
+        if (!(throwable instanceof ClassCastException)) {
+            return false;
+        }
+        final String message = throwable.getMessage();
+        return message != null && (message.contains("javax.jms.") || message.contains("jakarta.jms."));
+    }
+
+    /**
+     * Whether the given throwable means that a type of one of the two JMS APIs (<code>javax.jms</code> or
+     * <code>jakarta.jms</code>) is not on the classpath. The SDK ships implementations for both, so one of them
+     * is always expected to fail like this. A {@link NoClassDefFoundError} reports the internal class name (with
+     * slashes), a {@link ClassNotFoundException} the dotted one. A missing type of a JMS API that is present but
+     * incomplete is classified the same way.
+     */
+    private static boolean isMissingJmsApi(final Throwable throwable) {
+        if (!(throwable instanceof NoClassDefFoundError) && !(throwable instanceof ClassNotFoundException)) {
+            return false;
+        }
+        final String message = throwable.getMessage();
+        return message != null && (message.startsWith("javax.jms.") || message.startsWith("jakarta.jms.")
+            || message.startsWith("javax/jms/") || message.startsWith("jakarta/jms/"));
+    }
+
     /**
      * @param message Describes why the transport is not applicable.
      */

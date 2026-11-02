@@ -50,7 +50,6 @@ import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.utils.ClasspathValidator;
-import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -84,26 +83,7 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
      */
     @Override
     protected void resolveFactory(ClientSettings settings) {
-        JmsFactory probe = null;
-        try {
-            probe = JmsFactory.find(settings, false);
-            try (JmsFactory jmsFactory = probe) {
-                jmsFactory.init(settings);
-                LOG.debug("Resolved JMS factory {}", jmsFactory);
-            }
-        } catch (Throwable e) {
-            if (ServiceLoaderSupport.isNotApplicable(e)) {
-                throw new TransportNotApplicableException(
-                    "The configured JMS factory is not a jakarta.jms implementation.", e);
-            }
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            }
-            if (e instanceof Error) {
-                throw (Error) e;
-            }
-            throw new IllegalStateException("Could not initialize: " + probe, e);
-        }
+        JmsFactoryProbe.probe(settings, LOG);
     }
 
     @Override

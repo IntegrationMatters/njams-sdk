@@ -20,6 +20,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
@@ -76,9 +77,9 @@ public class NoJmsApiPresentTest {
 
     @Test
     public void bothTreesAreSkippedRatherThanBroken() {
-        final ServiceLoaderSupport<AbstractSender> senders = new ServiceLoaderSupport<>(AbstractSender.class);
+        final ServiceLoaderSupport<AbstractSender> senders = loaderFor(AbstractSender.class);
         senders.getAll();
-        final ServiceLoaderSupport<AbstractReceiver> receivers = new ServiceLoaderSupport<>(AbstractReceiver.class);
+        final ServiceLoaderSupport<AbstractReceiver> receivers = loaderFor(AbstractReceiver.class);
         receivers.getAll();
 
         assertFalse("senders: " + senders.describeAvailability(AbstractSender::getName), senders.hasUnavailable());
@@ -88,9 +89,9 @@ public class NoJmsApiPresentTest {
 
     @Test
     public void describeAvailabilityNamesBothMissingApis() {
-        final ServiceLoaderSupport<AbstractSender> senders = new ServiceLoaderSupport<>(AbstractSender.class);
+        final ServiceLoaderSupport<AbstractSender> senders = loaderFor(AbstractSender.class);
         final String senderReport = senders.describeAvailability(AbstractSender::getName);
-        final ServiceLoaderSupport<AbstractReceiver> receivers = new ServiceLoaderSupport<>(AbstractReceiver.class);
+        final ServiceLoaderSupport<AbstractReceiver> receivers = loaderFor(AbstractReceiver.class);
         final String receiverReport = receivers.describeAvailability(AbstractReceiver::getName);
 
         for (String report : new String[] { senderReport, receiverReport }) {
@@ -118,14 +119,20 @@ public class NoJmsApiPresentTest {
      */
     @Test
     public void noJmsImplementationIsRegistered() {
-        assertEquals(0, new ServiceLoaderSupport<>(AbstractSender.class).stream()
+        assertEquals(0, loaderFor(AbstractSender.class).stream()
             .filter(s -> "JMS".equalsIgnoreCase(s.getName())).count());
-        assertEquals(0, new ServiceLoaderSupport<>(AbstractReceiver.class).stream()
+        assertEquals(0, loaderFor(AbstractReceiver.class).stream()
             .filter(r -> "JMS".equalsIgnoreCase(r.getName())).count());
     }
 
     /** A linkage error names the missing type with slashes, a ClassNotFoundException with dots. */
     private static boolean names(String report, String namespace) {
         return report.contains(namespace + ".jms.") || report.contains(namespace + "/jms/");
+    }
+
+    /** Builds a loader the way {@code CommunicationFactory} does, with the transport not-applicable classifier. */
+    private static <S> ServiceLoaderSupport<S> loaderFor(Class<S> type) {
+        return new ServiceLoaderSupport<>(type, TransportNotApplicableException::isNotApplicable,
+            TransportNotApplicableException.NOT_APPLICABLE_REASON);
     }
 }

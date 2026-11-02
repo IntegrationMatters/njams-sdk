@@ -63,8 +63,10 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     private final ServiceLoader<S> serviceLoader;
     // descriptions of the implementations that could not be loaded; filled when they are first encountered
     private final Set<String> unavailable = Collections.synchronizedSet(new LinkedHashSet<>());
-    // descriptions of the implementations that cannot be loaded because the JMS API they need is not present
+    // descriptions of the implementations the caller's classifier recognized as merely not applicable here
     private final Set<String> notApplicable = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Predicate<Throwable> notApplicableClassifier;
+    private final String notApplicableReason;
 
     /**
      * Iterates over all implementations that can be loaded. Implementations that cannot be loaded are skipped, but
@@ -125,51 +127,7 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
         final Throwable root = rootCause(cause);
         final String description = root == null ? text : text + " - " + root.getClass().getSimpleName()
             + (root.getMessage() == null ? "" : ": " + root.getMessage());
-        (isNotApplicable(cause) ? notApplicable : unavailable).add(description);
-    }
-
-    /**
-     * Whether the given failure says that an implementation is not applicable on this classpath rather than
-     * broken. Two things say so: a {@link ClassCastException}, which is what casting a connection factory of the
-     * other JMS namespace produces, and a missing type of one of the two JMS APIs. The whole cause chain is
-     * examined, because an implementation may wrap the failure into an exception of its own.
-     * <p>
-     * Deliberately narrow: a type that is missing for any other reason, such as a broker client library that was
-     * not deployed, is a real error and must not be classified as merely not applicable.
-     *
-     * @param failure the failure to classify.
-     * @return whether the failure means "not applicable here" rather than "broken".
-     */
-    public static boolean isNotApplicable(final Throwable failure) {
-        Throwable current = failure;
-        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
-            if (current instanceof ClassCastException || isMissingJmsApi(current)) {
-                return true;
-            }
-            final Throwable cause = current.getCause();
-            if (cause == current) {
-                return false;
-            }
-            current = cause;
-        }
-        return false;
-    }
-
-    /**
-     * Whether the given throwable means that a type of one of the two JMS APIs (<code>javax.jms</code> or
-     * <code>jakarta.jms</code>) is not on the classpath. The SDK ships implementations for both, so one of them
-     * is always expected to fail like this. This is not a general extension point. A {@link NoClassDefFoundError}
-     * reports the internal class name (with slashes), a {@link ClassNotFoundException} the dotted one.
-     * A missing type of a JMS API that is present but incomplete is classified the same way; it surfaces through
-     * {@link #describeAvailability(Function)} rather than {@link #hasUnavailable()}.
-     */
-    private static boolean isMissingJmsApi(final Throwable throwable) {
-        if (!(throwable instanceof NoClassDefFoundError) && !(throwable instanceof ClassNotFoundException)) {
-            return false;
-        }
-        final String message = throwable.getMessage();
-        return message != null && (message.startsWith("javax.jms.") || message.startsWith("jakarta.jms.")
-            || message.startsWith("javax/jms/") || message.startsWith("jakarta/jms/"));
+        (notApplicableClassifier.test(cause) ? notApplicable : unavailable).add(description);
     }
 
     private static Throwable rootCause(final Throwable throwable) {
@@ -181,11 +139,31 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     }
 
     /**
-     * Constructor that initializes this instance with the given SPI interface.
+     * Constructor that initializes this instance with the given SPI interface. Every implementation that cannot be
+     * loaded counts as unavailable; use {@link #ServiceLoaderSupport(Class, Predicate, String)} where some failures
+     * are an expected property of the classpath rather than a defect.
      * @param serviceInterface The interface (or class) for that services should be looked up.
      */
     public ServiceLoaderSupport(final Class<S> serviceInterface) {
+        this(serviceInterface, failure -> false, null);
+    }
+
+    /**
+     * Constructor that also takes the caller's classification of a load failure. An implementation whose failure
+     * the classifier accepts is reported as merely not applicable instead of unavailable, so that
+     * {@link #hasUnavailable()} keeps meaning "something is broken". Only the caller knows which failures are
+     * expected for its service type, so this class makes no such assumption of its own.
+     * @param serviceInterface The interface (or class) for that services should be looked up.
+     * @param notApplicableClassifier Decides whether a load failure means the implementation does not fit this
+     * classpath rather than being broken. Receives the failure itself, unwrapped from a
+     * {@link ServiceConfigurationError} but not resolved to its root cause, so it has to walk the cause chain.
+     * @param notApplicableReason Names, for the availability report, why such implementations were skipped.
+     */
+    public ServiceLoaderSupport(final Class<S> serviceInterface,
+        final Predicate<Throwable> notApplicableClassifier, final String notApplicableReason) {
         serviceType = serviceInterface;
+        this.notApplicableClassifier = Objects.requireNonNull(notApplicableClassifier);
+        this.notApplicableReason = notApplicableReason;
         serviceLoader = ServiceLoader.load(serviceInterface);
         debugLog();
     }
@@ -233,8 +211,8 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     /**
      * Returns whether implementations have been encountered that could not be loaded. Implementations that cannot
      * be loaded are skipped silently, so this only covers the part of the lookup that has been done so far.
-     * Implementations that are merely not applicable because the JMS API (<code>javax.jms</code> or
-     * <code>jakarta.jms</code>) they need is not present are expected and not counted here.
+     * Implementations the caller's classifier recognized as merely not applicable on this classpath are expected
+     * and not counted here.
      * @return <code>true</code> if at least one implementation could not be loaded for any other reason.
      */
     public boolean hasUnavailable() {
@@ -249,8 +227,8 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      * being logged when a lookup fails, so that it is visible whether the wanted implementation does not exist, or
      * could not be loaded. Since failing implementations are encountered only when iterating, call this
      * <em>after</em> the lookup that failed.
-     * Implementations that are not applicable because of a missing JMS API are listed separately, since that
-     * is the only hint about a missing API when no implementation is available at all.
+     * Implementations the caller's classifier recognized as not applicable are listed separately, since that is
+     * the only hint about what the classpath is missing when no implementation is available at all.
      * <br>
      * Names are listed once each: implementations may share a name, and this description says what is
      * available rather than how many provide it.
@@ -270,7 +248,7 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
             failed.forEach(f -> description.append(NEW_LINE).append("  - ").append(f));
         }
         if (!skipped.isEmpty()) {
-            description.append(NEW_LINE).append("Not applicable (required JMS API not present):");
+            description.append(NEW_LINE).append("Not applicable (").append(notApplicableReason).append("):");
             skipped.forEach(f -> description.append(NEW_LINE).append("  - ").append(f));
         }
         return description.toString();

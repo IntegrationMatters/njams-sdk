@@ -18,6 +18,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.im.njams.sdk.communication.TransportNotApplicableException;
+
 /**
  * Verifies that {@link ServiceLoaderSupport} tells a provider that is merely not applicable on this classpath (it
  * needs a JMS API that is absent) from one that is genuinely unavailable, and that {@code findAll} keeps order.
@@ -118,7 +120,8 @@ public class ServiceLoaderSupportAvailabilityTest {
         Files.write(servicesFile.toPath(), String.join("\n", entries).getBytes(StandardCharsets.UTF_8));
         Thread.currentThread().setContextClassLoader(
             new TestClassLoader(getClass().getClassLoader(), servicesFile.toURI().toURL()));
-        return new ServiceLoaderSupport<>(Spi.class);
+        return new ServiceLoaderSupport<>(Spi.class,
+            TransportNotApplicableException::isNotApplicable, TransportNotApplicableException.NOT_APPLICABLE_REASON);
     }
 
     @Test

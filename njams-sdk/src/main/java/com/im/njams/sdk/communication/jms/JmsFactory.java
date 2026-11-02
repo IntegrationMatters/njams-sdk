@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 import com.im.njams.sdk.utils.StringUtils;
 
@@ -113,7 +114,8 @@ public interface JmsFactory extends AutoCloseable {
         if (StringUtils.isBlank(toFind)) {
             return null;
         }
-        final ServiceLoaderSupport<JmsFactory> spiLoader = new ServiceLoaderSupport<>(JmsFactory.class);
+        final ServiceLoaderSupport<JmsFactory> spiLoader = new ServiceLoaderSupport<>(JmsFactory.class,
+            TransportNotApplicableException::isNotApplicable, TransportNotApplicableException.NOT_APPLICABLE_REASON);
         final JmsFactory factory =
                 spiLoader.find(j -> toFind.equalsIgnoreCase(j.getName()) || j.getClass().getSimpleName().equals(toFind)
                         || j.getClass().getName().equals(toFind));

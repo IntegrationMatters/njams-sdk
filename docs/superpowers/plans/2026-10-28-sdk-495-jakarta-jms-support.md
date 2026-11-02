@@ -33,6 +33,8 @@ Five failure modes the spec implies that no task would otherwise exercise. Each 
 4. **A provider message class that is package-private but implements a public interface** makes a `Method` resolved on the concrete class fail at `invoke` with `IllegalAccessException`. Pinned to Task 2.
 5. **A healthy single-namespace startup must log no warning.** After this change the other tree always fails to load, so `hasUnavailable()` would be permanently true and `JmsFactory.find` would warn on every normal JMS start. Pinned to Task 4.
 
+**Relocated 2026-11-02, after the compliance review (applies to Tasks 4, 8 and 11).** Wherever a task below says `ServiceLoaderSupport.isNotApplicable(Throwable)`, the shared classifier now lives on the marker type as `TransportNotApplicableException.isNotApplicable(Throwable)`, with `NOT_APPLICABLE_REASON` beside it. `ServiceLoaderSupport` takes the classification from its caller through a second constructor and keeps no JMS knowledge of its own, because `utils/` serves every SPI type and a JMS-specific test there reclassified unrelated providers' failures as expected. The tasks' instructions are otherwise unchanged; see spec §5.5 and §5.8.
+
 ---
 
 ## File Map

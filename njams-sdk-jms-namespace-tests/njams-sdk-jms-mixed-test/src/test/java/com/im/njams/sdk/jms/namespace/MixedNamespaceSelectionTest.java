@@ -20,6 +20,7 @@ import com.im.njams.sdk.Path;
 import com.im.njams.sdk.communication.AbstractReceiver;
 import com.im.njams.sdk.communication.AbstractSender;
 import com.im.njams.sdk.communication.CommunicationFactory;
+import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
@@ -70,7 +71,7 @@ public class MixedNamespaceSelectionTest {
      * already proves. Checked before each test rather than asserted in one, so no test can pass vacuously.
      */
     private static void requireBothTreesOnTheClasspath() {
-        final ServiceLoaderSupport<AbstractSender> senders = new ServiceLoaderSupport<>(AbstractSender.class);
+        final ServiceLoaderSupport<AbstractSender> senders = loaderFor(AbstractSender.class);
         final String report = senders.describeAvailability(AbstractSender::getName);
         assertEquals("both JMS senders must load on this classpath: " + report, 2,
             senders.stream().filter(s -> "JMS".equalsIgnoreCase(s.getName())).count());
@@ -196,5 +197,11 @@ public class MixedNamespaceSelectionTest {
         } catch (IllegalStateException expected) {
             return expected;
         }
+    }
+
+    /** Builds a loader the way {@code CommunicationFactory} does, with the transport not-applicable classifier. */
+    private static <S> ServiceLoaderSupport<S> loaderFor(Class<S> type) {
+        return new ServiceLoaderSupport<>(type, TransportNotApplicableException::isNotApplicable,
+            TransportNotApplicableException.NOT_APPLICABLE_REASON);
     }
 }

@@ -349,13 +349,17 @@ no candidate left → one error naming every cause
    **Two refinements from implementation (Task 8). First, the whole cause chain is examined, not just the top
    frame: `ActiveMqSslJmsFactory` and `AzureServiceBusJmsFactory` both catch and rethrow wrapped into a
    `JMSException` of their own, so the discriminating throwable sits a level below what the factory hands out.
-   Second, a `NoClassDefFoundError`/`ClassNotFoundException` counts only when the missing type's own name is a
-   JMS API type (`javax.jms.`/`jakarta.jms.`, in either the dotted or the slash spelling); a `ClassCastException`
-   always counts. Type alone is too coarse — `ReflectionWrapper` raises a `ClassNotFoundException` for a broker
-   class when a client library is simply not deployed, and classifying that as a namespace mismatch would make
-   the SDK silently skip to another transport over a deployment error, which is this document's own §2
-   anti-goal. The name test is exactly the one §5.5 already needs, so the two share one implementation:
-   `ServiceLoaderSupport.isNotApplicable(Throwable)`.** `CommunicationFactory`
+   Second, each of the three must name a JMS API type (`javax.jms.`/`jakarta.jms.`) to count — a
+   `NoClassDefFoundError`/`ClassNotFoundException` at the start of its message, since it reports the missing
+   type's bare name in either the dotted or the slash spelling, and a `ClassCastException` anywhere in its
+   message, since that names both the source and the target class. Type alone is too coarse —
+   `ReflectionWrapper` raises a `ClassNotFoundException` for a broker class when a client library is simply not
+   deployed, and classifying that as a namespace mismatch would make the SDK silently skip to another transport
+   over a deployment error, which is this document's own §2 anti-goal. The same applies to a failed cast: the
+   classification is applied to every transport's providers, so an unrelated `ClassCastException` in an HTTP or
+   Kafka provider must stay a defect (narrowed 2026-11-02, after the compliance review — it previously counted
+   any cast failure). The name test is exactly the one §5.5 already needs, so the two share one
+   implementation.** `CommunicationFactory`
    still raises the marker for **that type only**, which is what keeps the *reporting* precise — a declined
    candidate says "not this namespace", a failed one says what actually went wrong. Since 2026-10-30 the marker
    is no longer what *enables* fall-through: `CommunicationFactory` tries the next candidate on any failure
@@ -411,7 +415,9 @@ no cross-wiring between the sender's and the receiver's decision.
   unavailable" (§5.5). Internal, free to change.
 - `CommunicationFactory` — the candidate loop, the marker-exception handling, and the memo field. Internal, free
   to change.
-- The new marker exception type itself — SDK-internal, in `communication/`.
+- The new marker exception type itself, in `communication/`. It starts out as plumbing, but since an
+  implementation declines by throwing it from `init`, it is named in the `AbstractSender`/`AbstractReceiver`
+  Javadoc and is therefore part of the SPI Contract surface, not Internal — see §5.8.
 
 No change to `AbstractSender`/`AbstractReceiver` beyond Javadoc. **The SPI gains no new method.**
 
@@ -435,18 +441,18 @@ In the most common configuration — `njams.sdk.communication.jms.connection.fac
 which matches no SPI provider — that condition would become permanently true, so **every healthy JMS startup
 would emit a spurious warning**.
 
-**Fix it in `ServiceLoaderSupport`, using the §5.4 marker type.** That type is therefore not only an `init`
-signal; it is the SDK's general "this implementation is not applicable on this classpath" classification, used
-at two different points:
+**Fix it centrally, using the §5.4 marker type.** That type is therefore not only an `init` signal; it is the
+SDK's general "this implementation is not applicable on this classpath" classification, used at two different
+points:
 
 1. **Thrown** by the SDK's JMS `init` when factory resolution fails on a namespace mismatch (§5.4 bullet 3).
 2. **Assigned** by `SaveIterator` when a provider fails to *load* and the root cause is a missing
    `javax.jms.*` or `jakarta.jms.*` type. The missing type's own name is the evidence, and
    `addUnavailable(...)` already walks to the root cause, so the information is in hand.
 
-Both points therefore call the same public helper, `ServiceLoaderSupport.isNotApplicable(Throwable)`, which
-walks the cause chain (bounded, with a self-reference guard) and applies the JMS-API name test described in §5.4
-bullet 3. `ServiceLoaderSupport` then keeps two buckets instead of one:
+Both points therefore call the same public helper, which walks the cause chain (bounded, with a self-reference
+guard) and applies the JMS-API name test described in §5.4 bullet 3. `ServiceLoaderSupport` then keeps two
+buckets instead of one:
 
 - **not applicable** — classified as above; expected, not a problem;
 - **genuinely unavailable** — everything else: a broken provider, a `ServiceConfigurationError`, a missing
@@ -455,6 +461,13 @@ bullet 3. `ServiceLoaderSupport` then keeps two buckets instead of one:
 `hasUnavailable()` reports only the second bucket, so `JmsFactory.find`'s warning needs no change and fires only
 when something is really wrong. Fixing it centrally is also why this does **not** have to be duplicated in both
 trees' `find(...)`.
+
+**Resolved 2026-11-02 (compliance review):** the shared helper lives on the §5.4 marker type as
+`TransportNotApplicableException.isNotApplicable(Throwable)`, not on `ServiceLoaderSupport`, which takes the
+classification from its caller instead — see §5.8. `utils/ServiceLoaderSupport` serves every SPI type, so a
+JMS-specific test there made any provider of any service type that fails on a missing `javax.jms.*`/`jakarta.jms.*`
+class count as expected rather than broken. The classification is still not a general extension point: only the
+transport lookups and the two `JmsFactory.find(...)` implementations pass it.
 
 `describeAvailability(...)` must keep reporting **both** buckets, clearly labelled. This matters for §5.4
 bullet 7: when neither JMS API is present, every entry is "not applicable", `hasUnavailable()` is false, and that
@@ -547,8 +560,21 @@ Not decided here — `njams-ticket-finish` decides against the real diff — but
   (Tasks 6–8) — a new member of a public class's protected surface, and an abstract one, so any out-of-tree
   subclass of these bases must implement it. Both bases are themselves new in this ticket and documented as
   internal infrastructure, so nothing existing is broken.
-- `ServiceLoaderSupport.isNotApplicable(Throwable)` is a **new `public static` method** on an existing public
-  class (Task 8) — additive, and the shared classifier §5.4 bullet 3 and §5.5 both use.
+- `TransportNotApplicableException.isNotApplicable(Throwable)` and `NOT_APPLICABLE_REASON` are **new `public
+  static` members** (Task 8) — additive. This is the shared classifier §5.4 bullet 3 and §5.5 both use. It lives
+  on the marker exception in `communication/`, not on `ServiceLoaderSupport`: `utils/` is the generic SPI helper
+  serving every service type, and a JMS-specific test there would have made *any* provider that fails on a
+  missing `javax.jms.*`/`jakarta.jms.*` class count as "expected" rather than broken, SDK-wide.
+- `ServiceLoaderSupport` gains a **second constructor** taking the caller's not-applicable classifier and the
+  reason to name in the availability report (Task 8) — additive; the one-argument constructor keeps counting
+  every load failure as unavailable, which is the right default for a service type with no such expectation.
+- `communication.TransportNotApplicableException` is a **new public type on the SPI Contract surface** (§5.4.2).
+  Additive, but not internal: throwing it from `init` is how an implementation declines, so it is named in the
+  `AbstractSender`/`AbstractReceiver` Javadoc and an out-of-tree transport may both throw and catch it.
+- `AbstractJmsReceiver.getInstruction(Object)` replaces the former `JmsReceiver.getInstruction(Message)` (Task 7,
+  hoisted whole rather than as the `deserializeInstruction(RawMessage)` the plan named). The parameter retype is
+  the same source-breaking shape as `createMessageFilter()` above; the method stays non-`final`, so the override
+  point the old signature offered is preserved.
 - `com.im.njams.sdk.communication.jms.JmsFactory` is a **new registered SPI type** (Task 10, §5.6), shipped with
   its own `META-INF/services/com.im.njams.sdk.communication.jms.JmsFactory` file registering the jakarta
   `JndiJmsFactory`, `ActiveMqSslJmsFactory` and `AzureServiceBusJmsFactory`. Purely additive: it is a distinct
@@ -641,7 +667,10 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
 
 ### 5.10 Build
 
-- No new dependency, no new build plugin.
+- No new dependency, no new build plugin. One checkstyle **rule** was added while this ticket ran: a
+  `LineLength` module with `max=120` in `njams-sdk/src/main/resources/checkstyle.xml`, plus the one-off wrapping
+  of the production lines that exceeded it. Unrelated to jakarta support and recorded here only so the reformat
+  noise in this ticket's diff has an explanation.
 - **Both namespaces come from two dependencies with different coordinates, on one classpath.** The jakarta tree
   is hand-written, so `javac` needs the real `jakarta.jms` 3.x API; the javax tree needs the `javax.jms` one.
   Today both would come from `jakarta.jms:jakarta.jms-api` (2.0.3 ships `javax.jms`, 3.x ships `jakarta.jms` —
@@ -673,7 +702,7 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
   the change, but it is not expected to block (the user assessed it as cosmetic).
 - Both APIs stay `provided` and never become transitive, so consumers inherit neither.
 - The root pom's **default** `<modules>` list gains one entry, the `njams-sdk-jms-namespace-tests` aggregator
-  (§6.2); its three children need no broker and no Docker, so they run on every build. They are not added to
+  (§6.2); its four children need no broker and no Docker, so they run on every build. They are not added to
   the `docker-it` profile, and `njams-sdk-communication-it` stays where it is.
 
 ## 6. Testing
@@ -727,23 +756,25 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
   exists.
 - Existing test cases must not be modified without explicit user permission.
 
-### 6.2 Three namespace modules — no broker, no Docker, default build
+### 6.2 Four namespace modules — no broker, no Docker, default build
 
 The purpose of these modules is **classloading and selection**, nothing else: on a given classpath, does the SDK
 hand back a working sender and receiver, and are they the right implementation type? Two cover a single
-namespace each; the third (§6.2.1) covers a genuinely mixed classpath.
+namespace each; the third (§6.2.1) covers a genuinely mixed classpath, and the fourth a classpath with neither
+API (added by Task 13, see the resolution note below).
 
-They live under one aggregator, so the root pom gains a single `<module>` entry and the three share their build
+They live under one aggregator, so the root pom gains a single `<module>` entry and the four share their build
 setup in one place:
 
 ```
 njams-sdk-jms-namespace-tests/            aggregator, packaging=pom, parent = root pom
 ├── njams-sdk-jms-javax-test/
 ├── njams-sdk-jms-jakarta-test/
-└── njams-sdk-jms-mixed-test/
+├── njams-sdk-jms-mixed-test/
+└── njams-sdk-jms-absent-test/
 ```
 
-Directory names match artifact IDs, as everywhere else in this repo. The aggregator carries what all three share
+Directory names match artifact IDs, as everywhere else in this repo. The aggregator carries what all four share
 — the `njams-sdk` dependency, the JUnit/Mockito test stack, surefire configuration — leaving each child to
 declare only its own JMS API and broker client, which is the one thing that must differ. `dependencyManagement`
 still reaches the children through the parent chain.
@@ -786,10 +817,10 @@ module. Builder's call.
 **Resolved 2026-11-02 (Task 13):** a fourth module, `njams-sdk-jms-absent-test`, carrying no JMS API and no
 broker client. `njams-sdk`'s own suite cannot host it, because that module compiles against both APIs.
 
-### 6.2.1 A third module for the mixed classpath
+### 6.2.1 A module for the mixed classpath
 
 The §6.1 unit tests cover the candidate loop's *branches* with stubs. They do not prove that selection works on a
-real mixed classpath, which is the configuration §2 promises to support. A third module does:
+real mixed classpath, which is the configuration §2 promises to support. A dedicated module does:
 
 **`njams-sdk-jms-mixed-test`** — both APIs and **two different broker products** present at once:
 
@@ -852,9 +883,10 @@ jakarta side is its own connect/close plumbing against a live broker.
 
 One mechanical fix is required:
 `njams-sdk-communication-it/src/test/java/com/im/njams/sdk/it/jms/JndiJmsFactorySmokeIT.java` imports
-`…communication.jms.factory.JndiJmsFactory`, which relocates to `…communication.jms.javax.factory`. The module's
-classpath and scenario catalog are otherwise unchanged — `communication-it-module.md` makes that catalog stable
-by default.
+`…communication.jms.factory.JndiJmsFactory`, which relocates to `…communication.jms.javax.factory`. The module
+also needs an explicit test-scoped `javax.jms:javax.jms-api` dependency, because it used to get `javax.jms`
+transitively from `activemq-client` and §5.10 removes that path. Its scenario catalog is unchanged —
+`communication-it-module.md` makes that catalog stable by default.
 
 ### 6.5 Postponed: jakarta broker-backed end-to-end coverage
 
@@ -918,7 +950,7 @@ under-tested because it is "the existing behaviour". JMS is the primary producti
   its classpath. No setting changed, so `settings_full.properties` needs no update.
 - `.claude/rules/public-api-design.md`: add the jakarta `JmsFactory` to the registered-SPI list.
 - `.claude/rules/communication-layer.md`: note the two-tree arrangement and the non-unique provider names.
-- `CLAUDE.md`'s project structure section: the `njams-sdk-jms-namespace-tests` aggregator and its three children
+- `CLAUDE.md`'s project structure section: the `njams-sdk-jms-namespace-tests` aggregator and its four children
   (§6.2, §6.2.1).
 - Javadoc: the base classes' "not an extension point" note, the frozen `JmsFactory`'s "must never move" note, the
   `AbstractSender`/`AbstractReceiver` uniqueness contract, and the whole deprecation set.
