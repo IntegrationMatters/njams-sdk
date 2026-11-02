@@ -62,6 +62,12 @@ Multi-module Maven project (`com.salesfive.njams`, version 6.1.0-SNAPSHOT):
 - `njams-sdk/` — Core SDK library (primary development target)
 - `njams-sdk-sample-client/` — Usage examples demonstrating all SDK features (looser standards — see `.claude/rules/sample-modules.md`)
 - `njams-sdk-sample-app/` — Additional sample application (looser standards — see `.claude/rules/sample-modules.md`)
+- `njams-sdk-communication-it/` — Docker-based communication resilience tests; manual/on-demand only, bound to the non-default `docker-it` profile (see `.claude/rules/communication-it-module.md`)
+- `njams-sdk-jms-namespace-tests/` — Aggregator of four broker-less harnesses proving that the SDK selects the JMS implementation matching the JMS API actually on the classpath; built and run on every build:
+  - `njams-sdk-jms-javax-test/` — only `javax.jms` plus a javax ActiveMQ client
+  - `njams-sdk-jms-jakarta-test/` — only `jakarta.jms` plus a jakarta ActiveMQ client
+  - `njams-sdk-jms-absent-test/` — neither JMS API and no broker client at all
+  - `njams-sdk-jms-mixed-test/` — both JMS APIs with two broker products at once (ActiveMQ Classic on javax, Artemis on jakarta)
 
 All source code is under `com.im.njams.sdk` (despite the `com.faizsiegeln` groupId).
 

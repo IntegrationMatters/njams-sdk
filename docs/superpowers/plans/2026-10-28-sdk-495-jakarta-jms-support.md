@@ -963,6 +963,8 @@ git commit -m "SDK-495 prove namespace selection on a classpath carrying both AP
 
 A new `wiki/FAQ.md` entry covering: the SDK serves both namespaces from one artifact; which one is chosen and how; `javax` is the legacy path; what a client on Camel 4 / Spring 6 / Quarkus 3 needs on its classpath; and the one silent degradation — a settings value naming a relocated factory by **fully-qualified** class name no longer matches and falls through to `JndiJmsFactory`, while `getName()` and simple-class-name matching still work. No setting changed, so `settings_full.properties` needs no update.
 
+**Scoped down 2026-11-02, on the user's instruction:** *"FAQ should be plain just stating that both is supported now. No technical details."* The delivered entry is the two-sentence paragraph under `### JMS` in `wiki/FAQ.md`; none of the technical detail listed above was written, and no further jakarta/javax content belongs in the FAQ. This difference from the plan is a decision, not an omission.
+
 - [ ] **Step 2: Update the rules**
 
 `public-api-design.md`: add `communication.jms.JmsFactory` to the registered-SPI list, and note that `communication.jms.factory.JmsFactory` is its deprecated predecessor that can never move.

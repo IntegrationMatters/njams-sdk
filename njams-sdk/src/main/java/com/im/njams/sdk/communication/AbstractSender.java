@@ -51,6 +51,11 @@ import com.im.njams.sdk.settings.ClientSettings;
  * <p>
  * Senders are internal SDK infrastructure, not part of the user-facing API — client applications must not use
  * this class or obtain a sender instance directly.
+ * <p>
+ * {@linkplain #getName() Names need not be unique}: when several senders report the same name, the SDK tries
+ * them in the order their {@code META-INF/services} entries are listed and uses the first one that initializes
+ * successfully. An implementation that is not applicable in the current environment declines by throwing
+ * {@link TransportNotApplicableException} from {@link #init(ClientSettings)}, leaving the next one to be tried.
  *
  * @author hsiegeln
  * @version 4.0.6
@@ -73,7 +78,9 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Initializes this sender via the given settings.
+     * Initializes this sender via the given settings. An implementation that is not applicable in the current
+     * environment declines here by throwing {@link TransportNotApplicableException}, so that another
+     * implementation sharing its name can be tried instead.
      *
      * @param settings the settings to be used for initialization
      */
@@ -83,7 +90,9 @@ public abstract class AbstractSender {
     }
 
     /**
-     * Each implementation must provide a unique name identifying this sender.
+     * Each implementation must provide a name identifying this sender; it is matched against the configured
+     * communication type. The name need not be unique — see the class documentation for how one of several
+     * implementations sharing a name is chosen.
      *
      * @return this implementation's name
      */

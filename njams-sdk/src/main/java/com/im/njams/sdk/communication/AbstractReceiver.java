@@ -45,6 +45,11 @@ import com.im.njams.sdk.settings.ClientSettings;
 /**
  * This class must be extended when implementing a new Receiver for a new communication type. It is the SPI type
  * that is registered via {@code META-INF/services} and used by the SDK to receive server commands.
+ * <p>
+ * {@linkplain #getName() Names need not be unique}: when several receivers report the same name, the SDK tries
+ * them in the order their {@code META-INF/services} entries are listed and uses the first one that initializes
+ * successfully. An implementation that is not applicable in the current environment declines by throwing
+ * {@link TransportNotApplicableException} from {@link #init(ClientSettings)}, leaving the next one to be tried.
  *
  * @author pnientiedt/krautenberg
  * @version 4.0.6
@@ -102,14 +107,18 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
      * identified. This name will be used as value in the
      * CommunicationConfiguration via the Key
      * {@value NjamsSettings#PROPERTY_COMMUNICATION} (or its alternative
-     * {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE})
+     * {@value NjamsSettings#PROPERTY_COMMUNICATION_TYPE}). The name need not be
+     * unique — see the class documentation for how one of several
+     * implementations sharing a name is chosen.
      *
      * @return the name of the receiver implementation
      */
     public abstract String getName();
 
     /**
-     * Initializes this receiver with the given settings.
+     * Initializes this receiver with the given settings. An implementation that is not applicable in the current
+     * environment declines here by throwing {@link TransportNotApplicableException}, so that another
+     * implementation sharing its name can be tried instead.
      *
      * @param settings the settings to be used for initialization
      */
