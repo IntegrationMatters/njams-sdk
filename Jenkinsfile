@@ -18,8 +18,9 @@ pipeline {
     stages {
         // Build the whole reactor once. This also compiles the sample modules,
         // which is what verifies they still build against the current SDK, and runs the
-        // njams-sdk-jms-namespace-tests modules, which check JMS implementation selection on
-        // classpaths carrying only one of the two JMS APIs. Neither group is published
+        // njams-sdk-jms-namespace-tests modules, which check that the SDK selects the JMS
+        // implementation matching the JMS API actually on the classpath (javax only, jakarta
+        // only, both at once, and neither). Neither group is published
         // (maven.deploy.skip=true in their POMs).
         stage('Build') {
             steps {

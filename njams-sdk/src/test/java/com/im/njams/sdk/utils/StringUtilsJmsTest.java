@@ -91,6 +91,27 @@ public class StringUtilsJmsTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
+    public void messageToString_deprecatedFormRendersPropertiesAndBody() throws Exception {
+        final javax.jms.TextMessage m = org.mockito.Mockito.mock(javax.jms.TextMessage.class);
+        org.mockito.Mockito.when(m.getPropertyNames())
+            .thenReturn(Collections.enumeration(Collections.singletonList("k1")));
+        org.mockito.Mockito.when(m.getObjectProperty("k1")).thenReturn("v1");
+        org.mockito.Mockito.when(m.getText()).thenReturn("body");
+        assertEquals(m.getClass().getName() + "[properties={k1=v1}; body=body]", StringUtils.messageToString(m));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void headersToString_deprecatedFormRendersPropertiesOnly() throws Exception {
+        final javax.jms.TextMessage m = org.mockito.Mockito.mock(javax.jms.TextMessage.class);
+        org.mockito.Mockito.when(m.getPropertyNames())
+            .thenReturn(Collections.enumeration(Collections.singletonList("k1")));
+        org.mockito.Mockito.when(m.getObjectProperty("k1")).thenReturn("v1");
+        assertEquals(m.getClass().getName() + "[properties={k1=v1}]", StringUtils.headersToString(m));
+    }
+
+    @Test
     public void messageToString_rendersNullForAPropertyThatFailsToRead() {
         final FakeNonTextMessage m = new FakeNonTextMessage() {
             @Override

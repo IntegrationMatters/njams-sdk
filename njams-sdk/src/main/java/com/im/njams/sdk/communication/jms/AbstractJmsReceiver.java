@@ -288,7 +288,7 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
      * @return the {@link Instruction} object that was extracted or <code>null</code>, if the instruction was not yet
      * complete or it was not valid.
      */
-    protected final Instruction getInstruction(Object message) {
+    protected Instruction getInstruction(Object message) {
         if (!JmsMessageAccess.isTextMessage(message)) {
             LOG.debug("Unexpected message type: {}", message.getClass());
             return null;

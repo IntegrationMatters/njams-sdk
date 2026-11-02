@@ -62,6 +62,7 @@ public class JndiJmsFactory implements JmsFactory {
      */
     public static final String NAME = "JNDI";
 
+    /** The connection factory obtained by the JNDI lookup; <code>null</code> until initialization has run. */
     protected ConnectionFactory factory = null;
     private Context context = null;
 

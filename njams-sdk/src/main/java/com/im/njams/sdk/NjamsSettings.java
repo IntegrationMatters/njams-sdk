@@ -23,13 +23,10 @@
  */
 package com.im.njams.sdk;
 
-import javax.jms.ConnectionFactory;
 import javax.naming.Context;
 
 import com.im.njams.sdk.communication.fragments.SplitSupport;
 import com.im.njams.sdk.communication.http.HttpSender;
-import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.communication.jms.javax.factory.JndiJmsFactory;
 import com.im.njams.sdk.communication.kafka.KafkaUtil;
 import com.im.njams.sdk.settings.ClientSettings;
 
@@ -467,21 +464,25 @@ public class NjamsSettings {
     public static final String PROPERTY_JMS_DELIVERY_MODE = "njams.sdk.communication.jms.delivery.mode";
 
     /**
-     * This is for determining which {@link ConnectionFactory} to use.<br>
-     * Since 5.0.3 this property is used for a two-step lookup. At first, the value is used to lookup a
-     * {@link JmsFactory} implementation which defaults to {@link JndiJmsFactory}
-     * if no match was found. In the second step, the {@link JndiJmsFactory} uses the value
-     * for a JNDI lookup to obtain a {@link ConnectionFactory}.
-     * @see JmsFactory#find(ClientSettings)
+     * This is for determining which connection factory to use.<br>
+     * Since 5.0.3 this property is used for a two-step lookup. At first, the value is used to lookup a JMS factory
+     * implementation, which defaults to the JNDI one if no match was found. In the second step, that JNDI factory
+     * uses the value for a JNDI lookup to obtain the connection factory.<br>
+     * Since 6.1.0 the lookup runs per JMS namespace, each with its own services file and its own JNDI default:
+     * {@link com.im.njams.sdk.communication.jms.JmsFactory} for <code>jakarta.jms</code>, and the deprecated
+     * {@link com.im.njams.sdk.communication.jms.factory.JmsFactory} for <code>javax.jms</code>.
+     * @see com.im.njams.sdk.communication.jms.JmsFactory#find(ClientSettings)
      * @see #PROPERTY_JMS_JMSFACTORY
      */
     public static final String PROPERTY_JMS_CONNECTION_FACTORY = "njams.sdk.communication.jms.connectionFactory";
 
     /**
-     * This property allows specifying a {@link JmsFactory} to be loaded via SPI. This property is usually not
+     * This property allows specifying a JMS factory to be loaded via SPI. This property is usually not
      * necessary since the the {@value #PROPERTY_JMS_CONNECTION_FACTORY} property is used for the same. I.e., this
-     * separate property is only needed when a specific {@link JmsFactory} is needed that also uses the
-     * {@value #PROPERTY_JMS_CONNECTION_FACTORY} key, e.g., when implementing a different JNDI lookup mechanism.
+     * separate property is only needed when a specific factory is needed that also uses the
+     * {@value #PROPERTY_JMS_CONNECTION_FACTORY} key, e.g., when implementing a different JNDI lookup mechanism.<br>
+     * The SPI type is {@link com.im.njams.sdk.communication.jms.JmsFactory} for <code>jakarta.jms</code> and the
+     * deprecated {@link com.im.njams.sdk.communication.jms.factory.JmsFactory} for <code>javax.jms</code>.
      * @since 5.0.3
      */
     public static final String PROPERTY_JMS_JMSFACTORY = "njams.sdk.communication.jms.jmsFactory";

@@ -28,9 +28,10 @@ Changed behavior:
 - Data masking is scoped to the `Njams` instance. With a single instance nothing changes; the static
   `DataMasking` API no longer sees the patterns from settings and configuration. Use
   `njams.configuration().dataMasking()`.
-- A JMS factory named by its fully qualified class name in `njams.sdk.communication.jms.jmsFactory` or
-  `njams.sdk.communication.jms.connectionFactory` is no longer found, because the built-in implementations moved
-  to other packages. Name it by its SPI name or its simple class name instead.
+- The built-in JMS factories moved to new packages. A setting that names one of them by its fully qualified class
+  name in `njams.sdk.communication.jms.jmsFactory` or `njams.sdk.communication.jms.connectionFactory` no longer
+  matches; name it by its SPI name or its simple class name instead. A factory of your own is unaffected — a
+  fully qualified name still matches.
 
 ### Deprecations in 6.1
 

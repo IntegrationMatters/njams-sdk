@@ -327,8 +327,8 @@ public class SplitSupport {
      * @param sequence The next data sequence to check.
      * @param startPos The start index that is used for calculating the next chunk end index.
      * @return The next endIndex for calling {@link String#substring(int, int)}, i.e., the returned value is exclusive.
-     * @see <a href="https://stackoverflow.com/questions/8511490">
-     * Implementation adapted from Stackoverflow</a>
+     * @see <a href="https://stackoverflow.com/questions/8511490">Stackoverflow: Calculating length in UTF-8 of
+     * Java String without actually encoding it</a>
      * @see <a href="https://www.rfc-editor.org/rfc/rfc3629#section-3">UTF-8 Specification</a>
      */
     private int nextChunkEnd(CharSequence sequence, int startPos) {
