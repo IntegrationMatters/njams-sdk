@@ -27,26 +27,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.im.njams.sdk.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.im.njams.sdk.common.DateTimeUtility;
 import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.PropertyUtil;
+import com.im.njams.sdk.utils.StringUtils;
 
 /**
  * Owns the identifying metadata of an {@link Njams} client: path, category, versions,
@@ -56,7 +54,22 @@ public class NjamsMetadata {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsMetadata.class);
 
-    private static final String[] VERSION_FILES = { "njams.version", "msg.version", "client.version" };
+    /**
+     * The only version file a client implementation is meant to ship. The other version files are internal:
+     * they are shipped by the SDK and the message format, and never provide the client's version.
+     */
+    private static final String CLIENT_VERSION_FILE = "client.version";
+
+    private static final String[] VERSION_FILES = { "sdk.version", "msg.version", CLIENT_VERSION_FILE };
+
+    /**
+     * Former spelling of {@link Njams#CLIENT_VERSION_KEY}, still accepted in version files.
+     *
+     * @deprecated Has to be removed together with the fallback it backs in
+     *             {@link #resolveClientVersion(Properties, String)}.
+     */
+    @Deprecated(since = "6.1.0", forRemoval = true)
+    private static final String DEPRECATED_CLIENT_VERSION_KEY = "clientVersion";
 
     /** Regex for the simple pattern {@code njams.*.debug.*} (literal dots, {@code *} matches any characters). */
     private static final Pattern DEBUG_SETTING_KEY_PATTERN = Pattern.compile("njams\\..*\\.debug\\..*");
@@ -112,7 +125,7 @@ public class NjamsMetadata {
     }
 
     /**
-     * Returns the version of the nJAMS client implementation.
+     * Returns the version of the nJAMS client implementation, never <code>null</code> or empty.
      *
      * @return the clientVersion
      */
@@ -168,42 +181,91 @@ public class NjamsMetadata {
     }
 
     /**
-     * Read the versions from njams.version files. Set the SDK-Version and the
-     * Client-Version if found.
+     * Reads all version files found on the classpath into the versions announced to the nJAMS server, and
+     * resolves the client version from the client's own {@value #CLIENT_VERSION_FILE} files only.
      *
-     * @param version
+     * @param version the client version passed to the {@link Njams} constructor
+     * @throws NjamsSdkRuntimeException if no client version can be resolved
      */
     private void readVersionsFromVersionFile(String version) {
-        final Collection<URL> urls =
-            Arrays.stream(VERSION_FILES)
-                .map(v -> {
-                    try {
-                        return Collections.list(getClass().getClassLoader().getResources(v));
-                    } catch (IOException e) {
-                        LOG.error("Unable to list version files: {}", v, e);
-                        return null;
-                    }
-                }).filter(Objects::nonNull)
-                .flatMap(Collection::stream).collect(Collectors.toList());
-        for (URL url : urls) {
-            LOG.debug("Reading {}", url);
-            final Properties prop = new Properties();
-            try (InputStream is = url.openStream()) {
-                prop.load(is);
+        final Properties clientVersionProperties = new Properties();
+        for (String versionFile : VERSION_FILES) {
+            for (URL url : findVersionFiles(versionFile)) {
+                LOG.debug("Reading {}", url);
+                final Properties prop = new Properties();
+                try (InputStream is = url.openStream()) {
+                    prop.load(is);
+                } catch (Exception e) {
+                    LOG.error("Unable to load versions from {}", url, e);
+                    continue;
+                }
                 prop.forEach((k, v) -> versions.put(String.valueOf(k), String.valueOf(v)));
-            } catch (Exception e) {
-                LOG.error("Unable to load versions from {}", url, e);
+                if (CLIENT_VERSION_FILE.equals(versionFile)) {
+                    copyUsableValues(prop, clientVersionProperties);
+                }
             }
         }
-        if (version != null && !versions.containsKey(Njams.CLIENT_VERSION_KEY) && !versions.containsKey(
-            "clientVersion")) {
-            LOG.debug("No version file for {} found!", Njams.CLIENT_VERSION_KEY);
-            versions.put(Njams.CLIENT_VERSION_KEY, StringUtils.isBlank(version) ? UNKNOWN : version);
-        }
+        final String clientVersion = resolveClientVersion(clientVersionProperties, version);
+        versions.remove(DEPRECATED_CLIENT_VERSION_KEY);
+        versions.put(Njams.CLIENT_VERSION_KEY, clientVersion);
         if (!versions.containsKey(Njams.SDK_VERSION_KEY)) {
             LOG.debug("No version file for {} found!", Njams.SDK_VERSION_KEY);
             versions.put(Njams.SDK_VERSION_KEY, UNKNOWN);
         }
+    }
+
+    /**
+     * Lists all classpath resources with the given version file name.
+     *
+     * @param versionFile the resource name to look for
+     * @return the resources found, empty if none exists or the lookup failed
+     */
+    private Collection<URL> findVersionFiles(String versionFile) {
+        try {
+            return Collections.list(getClass().getClassLoader().getResources(versionFile));
+        } catch (IOException e) {
+            LOG.error("Unable to list version files: {}", versionFile, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Copies only entries that carry a usable value, so that a blank entry cannot shadow a usable one found
+     * under the other spelling.
+     *
+     * @param source the properties read from a version file
+     * @param target the properties to add the usable entries to
+     */
+    private static void copyUsableValues(Properties source, Properties target) {
+        source.forEach((k, v) -> {
+            final String value = String.valueOf(v);
+            if (StringUtils.isNotBlank(value)) {
+                target.setProperty(String.valueOf(k), value);
+            }
+        });
+    }
+
+    /**
+     * Resolves the client version from the client's own version file, falling back to the version passed to the
+     * {@link Njams} constructor. The version file wins over the constructor argument.
+     *
+     * @param clientVersionProperties the entries read from the {@value #CLIENT_VERSION_FILE} files
+     * @param version the client version passed to the {@link Njams} constructor, may be <code>null</code>
+     * @return the effective client version, never <code>null</code> or empty
+     * @throws NjamsSdkRuntimeException if neither the version file nor the constructor provides a version
+     */
+    private String resolveClientVersion(Properties clientVersionProperties, String version) {
+        final String fromVersionFile = PropertyUtil.getPropertyWithDeprecationWarning(
+            clientVersionProperties, Njams.CLIENT_VERSION_KEY, DEPRECATED_CLIENT_VERSION_KEY);
+        if (StringUtils.isNotBlank(fromVersionFile)) {
+            return fromVersionFile;
+        }
+        if (StringUtils.isNotBlank(version)) {
+            return version;
+        }
+        throw new NjamsSdkRuntimeException("No client version found. Either provide it as property '"
+            + Njams.CLIENT_VERSION_KEY + "' in a " + CLIENT_VERSION_FILE
+            + " file on the classpath, or pass it to the Njams constructor.");
     }
 
     void printStartupBanner(ClientSettings settings) {

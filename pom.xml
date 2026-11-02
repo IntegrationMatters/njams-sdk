@@ -37,7 +37,7 @@
         <argLine>${xmArguments}</argLine>
         <surefire.java.io.tmpdir>${project.build.directory}/tmp</surefire.java.io.tmpdir>
 
-        <!-- Fallbacks for the Git/build metadata filtered into njams.version. The git-commit-id plugin
+        <!-- Fallbacks for the Git/build metadata filtered into sdk.version. The git-commit-id plugin
              overwrites branch and commit from the local .git; Jenkins additionally supplies the build
              number via BUILD_NUMBER. These values only survive where that information does not exist,
              e.g. a build from a source archive without .git. -->

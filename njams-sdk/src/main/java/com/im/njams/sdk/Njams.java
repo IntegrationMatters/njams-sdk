@@ -121,7 +121,8 @@ public class Njams {
     }
 
     /**
-     * Key for clientVersion
+     * Key for clientVersion, read from a <code>client.version</code> resource on the classpath. The former
+     * spelling <code>clientVersion</code> is still accepted there, but logs a deprecation warning.
      */
     public static final String CLIENT_VERSION_KEY = "client.version";
     /**
@@ -179,10 +180,13 @@ public class Njams {
      * Create a nJAMS client.
      *
      * @param path     the path in the tree
-     * @param version  the version of the nNJAMS client
+     * @param version  the version of the nJAMS client; may be <code>null</code> only if a
+     *                 <code>client.version</code> resource on the classpath provides the version, which takes
+     *                 precedence over this argument
      * @param category the category of the nJAMS client, should describe the
      *                 technology
      * @param settings needed settings for client eg. for communication
+     * @throws NjamsSdkRuntimeException if neither this argument nor a version file provides a client version
      */
     public Njams(Path path, String version, String category, ClientSettings settings) {
         this.settings = settings;

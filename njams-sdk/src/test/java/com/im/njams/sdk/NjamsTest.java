@@ -75,7 +75,7 @@ public class NjamsTest {
 
     @Before
     public void createNewInstance() {
-        instance = new Njams(Path.of(), "", "", TestReceiver.getSettings());
+        instance = new Njams(Path.of(), "1.0", "", TestReceiver.getSettings());
     }
 
     /**
@@ -95,7 +95,7 @@ public class NjamsTest {
     @Test
     public void equalsAndHashCodeAreBasedOnClientPath() {
         Njams samePath = new Njams(Path.of(), "9.9", "other", TestReceiver.getSettings());
-        Njams otherPath = new Njams(Path.of("OTHER"), "", "", TestReceiver.getSettings());
+        Njams otherPath = new Njams(Path.of("OTHER"), "1.0", "", TestReceiver.getSettings());
         assertEquals(instance, instance);
         assertEquals(instance, samePath);
         assertEquals(instance.hashCode(), samePath.hashCode());

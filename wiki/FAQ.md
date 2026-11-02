@@ -32,6 +32,9 @@ Changed behavior:
   name in `njams.sdk.communication.jms.jmsFactory` or `njams.sdk.communication.jms.connectionFactory` no longer
   matches; name it by its SPI name or its simple class name instead. A factory of your own is unaffected — a
   fully qualified name still matches.
+- A client version is mandatory. `Njams` now fails to start when neither a version file nor the constructor
+  argument provides one, instead of reporting `unknown` or no version at all — see
+  [Where does the client version come from](#where-does-the-client-version-come-from).
 
 ### Deprecations in 6.1
 
@@ -124,6 +127,28 @@ njams.stop();
 
 See the [sample client](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test)
 for complete, runnable examples covering all SDK features.
+
+## Where does the client version come from
+
+The client version is reported to nJAMS Server in every project, log and trace message. It comes from one of two
+sources:
+
+1. An optional **`client.version`** on the classpath. At startup the SDK reads the resource if it's present and takes 
+   the client version from the property `client.version`. A client implementation
+   can add a `client.version` whose values are filled in by its build:
+
+   ```properties
+   client.version=${project.version}
+   ```
+   This information and additional lines are printed in the SDK's startup banner for information only.
+
+2. The **`version` argument** of the `Njams` constructor.
+
+A version file wins over the constructor argument. If neither provides a non-empty value, `Njams` fails to start
+with an `NjamsSdkRuntimeException` — the version is mandatory.
+
+The former property spelling `clientVersion` is still read, so existing version files keep working, but it logs a
+deprecation warning at startup. Rename it to `client.version` to get rid of the warning.
 
 ## How to provide startup settings to nJAMS
 
