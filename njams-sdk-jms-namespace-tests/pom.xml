@@ -28,6 +28,23 @@
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
+    <build>
+        <!-- Inherited by the children. The first entry repeats the root pom's own test resources, which
+             declaring this element here would otherwise replace; the second adds this aggregator's shared
+             simplelogger.properties, so the JMS logging configuration lives in one place instead of being
+             copied into every child. The path is relative to each child's own directory, which is why it
+             starts with "..": Maven does not interpolate ${project.parent.basedir} inside <directory>. -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+            <testResource>
+                <directory>../src/test/resources-shared</directory>
+            </testResource>
+        </testResources>
+    </build>
+
     <dependencies>
         <!-- The artifact under test. Deliberately NOT its test-jar: that would register additional senders,
              receivers and JmsFactory fixtures via SPI and so corrupt the very lookup these modules measure. -->
