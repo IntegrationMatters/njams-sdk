@@ -380,6 +380,14 @@ no candidate left → one error naming every cause
 7. **Neither API present:** no candidate loads at all, `SaveIterator` skips both trees (finding 2), and
    `CommunicationFactory.getSender`/`getReceiver` throw `IllegalStateException` after logging
    `describeAvailability(...)`. Verify the text actually identifies the missing JMS API.
+8. **The selected implementation is reported at INFO.** *(Added 2026-11-02, at the user's request.)* Once a
+   candidate initialises cleanly, `selectApplicable` logs
+   `Using <kind> implementation <FQCN> for communication type '<name>'.` The name is fully qualified because
+   both trees share the simple names, so nothing shorter says which one is running. It sits at the single point
+   `getSender` and `getReceiver` both funnel through, which is what keeps it to one line per resolution rather
+   than one per instance: §5.4.1's memo means the 2nd..Nth pooled sender never reaches it, and the receiver
+   resolves once per client. Declining candidates stay at DEBUG (bullet 3) — the success line says what is
+   used, not what was skipped.
 
 #### 5.4.1 Memoization
 
@@ -474,6 +482,11 @@ actionable, because it says which API is missing, which is the fix. Everywhere e
 from elsewhere: `JmsFactory.find` logs the setting value it searched for, and §5.4's combined error lists the
 `declined` candidates by class. Treated as a cosmetic limitation of a diagnostic message, recorded here and
 not pursued.
+
+Not to be confused with §5.4 bullet 8, added the same day: that INFO line names the implementation that **was**
+selected, which `CommunicationFactory` holds as a `Class` and can therefore always name. The limitation here is
+about the providers that never loaded, whose names no longer exist anywhere by the time the failure is
+reported. The two cover opposite halves of the same selection and neither supersedes the other.
 
 Scope note: the classification covers the two JMS namespaces, which is what the SDK ships. It is not a general
 extension point, and third-party providers failing for their own reasons stay in the "genuinely unavailable"

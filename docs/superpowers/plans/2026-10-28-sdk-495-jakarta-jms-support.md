@@ -339,6 +339,10 @@ git add njams-sdk/src/main/java/com/im/njams/sdk/communication/CommunicationFact
 git commit -m "SDK-495 try every transport candidate matching the communication type, memoizing the winner"
 ```
 
+**Added after this task, on 2026-11-02 at the user's request:** `selectApplicable` now also reports the
+selected implementation at INFO, by fully-qualified name. Recorded permanently in spec §5.4 bullet 8, since
+this plan file is deleted when SDK-495 resolves; covered by two new tests in `CommunicationFactoryCandidateTest`.
+
 ---
 
 ### Task 6: Hoist the sender's namespace-free logic into `AbstractJmsSender`

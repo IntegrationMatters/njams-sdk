@@ -196,7 +196,10 @@ public class CommunicationFactory {
         final List<Exception> causes = new ArrayList<>();
         for (Class<? extends T> candidate : candidates) {
             try {
-                return factory.create(candidate);
+                final T applicable = factory.create(candidate);
+                LOG.info("Using {} implementation {} for communication type '{}'.", kind, candidate.getName(),
+                    name);
+                return applicable;
             } catch (Exception e) {
                 LOG.debug("The {} {} is not usable.", kind, candidate.getName(), e);
                 declined.add(candidate.getName() + ": " + e.getMessage());

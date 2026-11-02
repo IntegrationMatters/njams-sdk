@@ -19,6 +19,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,6 +32,7 @@ import com.im.njams.sdk.NjamsMetadata;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.Path;
 import com.im.njams.sdk.settings.ClientSettings;
+import com.im.njams.sdk.utils.CapturingLogAppender;
 import com.im.njams.sdk.utils.ScopedSpiRule;
 
 /**
@@ -242,6 +245,52 @@ public class CommunicationFactoryCandidateTest {
             assertEquals(WorkingSender.class, sender.getClass());
             assertEquals(List.of("WorkingSender"), INITIALISED);
         }, WorkingSender.class, OtherWorkingSender.class);
+    }
+
+    @Test
+    public void theSelectedSenderIsReportedAtInfo_byFullyQualifiedName() throws Throwable {
+        withSenders(() -> {
+            CapturingLogAppender appender = CapturingLogAppender.attach(CommunicationFactory.class);
+            try {
+                CommunicationFactory factory = new CommunicationFactory(settings(CANDIDATE_NAME));
+                factory.getSender();
+
+                List<LoggingEvent> infos = appender.events(Level.INFO);
+                assertEquals(1, infos.size());
+                String message = infos.get(0).getRenderedMessage();
+                assertTrue(message, message.contains(WorkingSender.class.getName()));
+                assertTrue(message, message.contains("sender"));
+                assertTrue(message, message.contains(CANDIDATE_NAME));
+                // the candidate that declined is a debug-level detail, not part of the success report
+                assertTrue(message, !message.contains(DecliningSender.class.getName()));
+
+                // the resolution is memoized, so a second sender must not repeat the report: the pool creates
+                // one sender per thread and this would otherwise be logged once per thread
+                factory.getSender();
+                assertEquals(1, appender.events(Level.INFO).size());
+            } finally {
+                appender.detach();
+            }
+        }, DecliningSender.class, WorkingSender.class);
+    }
+
+    @Test
+    public void theSelectedReceiverIsReportedAtInfo_byFullyQualifiedName() throws Throwable {
+        withReceivers(() -> {
+            CapturingLogAppender appender = CapturingLogAppender.attach(CommunicationFactory.class);
+            try {
+                new CommunicationFactory(settings(CANDIDATE_NAME)).getReceiver(njams);
+
+                List<LoggingEvent> infos = appender.events(Level.INFO);
+                assertEquals(1, infos.size());
+                String message = infos.get(0).getRenderedMessage();
+                assertTrue(message, message.contains(WorkingReceiver.class.getName()));
+                assertTrue(message, message.contains("receiver"));
+                assertTrue(message, message.contains(CANDIDATE_NAME));
+            } finally {
+                appender.detach();
+            }
+        }, DecliningReceiver.class, WorkingReceiver.class);
     }
 
     @Test
