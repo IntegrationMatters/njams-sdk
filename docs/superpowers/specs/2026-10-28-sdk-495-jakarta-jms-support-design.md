@@ -461,8 +461,19 @@ jakarta.jms.ExceptionListener`. Providers failing on the same type also collapse
 buckets being `LinkedHashSet<String>`: the javax receiver report shows **one** entry for `JmsReceiver` and
 `SharedJmsReceiver` together. §5.4 bullet 7's requirement is still met, and bullet 6 is unaffected — the
 combined "no candidate is applicable" error is built by `CommunicationFactory.selectApplicable` from its own
-per-candidate `declined` list plus suppressed causes, and covers only providers that did load. Whether
-`ServiceLoaderSupport` should also recover the provider name from a raw linkage error is left open.
+per-candidate `declined` list plus suppressed causes, and covers only providers that did load.
+
+The name is not merely missing from the summary: it is absent from the output entirely. The class being
+defined is not a stack frame, and `ServiceLoader.LazyClassPathLookupIterator.nextProviderClass` holds it in a
+local, so the DEBUG stack trace logged beside the report does not carry it either. Recovering it would mean
+`ServiceLoaderSupport` reading the services files itself instead of relying on `ServiceLoader`'s iterator.
+
+**Decided 2026-11-02, with the user: not worth doing.** The only path where this report stands alone, with no
+surrounding context naming the candidate, is "neither JMS API present" — and there the message is still
+actionable, because it says which API is missing, which is the fix. Everywhere else the candidate is named
+from elsewhere: `JmsFactory.find` logs the setting value it searched for, and §5.4's combined error lists the
+`declined` candidates by class. Treated as a cosmetic limitation of a diagnostic message, recorded here and
+not pursued.
 
 Scope note: the classification covers the two JMS namespaces, which is what the SDK ships. It is not a general
 extension point, and third-party providers failing for their own reasons stay in the "genuinely unavailable"
