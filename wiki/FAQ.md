@@ -4,41 +4,33 @@
 
 6.1 removes everything that was marked deprecated in 6.0 or earlier, or reduces it in visibility. Code that
 already uses the replacements listed under "Deprecations and replacements" in
-[What changed in 6.0](#what-changed-in-60) needs no change. The main areas affected:
+[What changed in 6.0](#what-changed-in-60) needs no change.
 
-- The flat `Njams` facade members and the flat `Job` getters/setters/factory methods, including `Job.end()`
-  (use `Job.end(boolean)`), and `Njams.getSender()`, in favor of the facet accessors.
+Removed, or reduced to SDK-internal visibility:
+
+- The flat `Njams` facade members and the flat `Job` getters/setters/factory methods, including `Job.end()` and
+  `Njams.getSender()`. Use the facet accessors and `Job.end(boolean)`.
 - The settings provider/factory layer (`SettingsProviderFactory`, `SettingsProvider`, `Settings`).
 - The legacy `com.im.njams.sdk.common.Path` API.
-- `AbstractReplayHandler`: the two-argument overloads were removed; the three-argument variants are now abstract.
-- The implementation class `JobImpl` is no longer usable as a type: its public helpers were either removed or
-  reduced to SDK-internal visibility, `flush()`/`timerFlush(...)` among them. Use the `Job` interface.
-- The constructor `Njams(Path, String, String, String, ClientSettings)` (with a separate runtime version) was
-  removed; use `Njams(Path, String, String, ClientSettings)`.
-- A job that ends after `Njams.stop()` is now dropped with a warning. Previously its log message was sent through
-  a lazily re-created sender.
+- `AbstractReplayHandler`'s two-argument overloads; the three-argument variants are now abstract.
+- The constructor `Njams(Path, String, String, String, ClientSettings)`. Use
+  `Njams(Path, String, String, ClientSettings)`.
+- The public helpers on the implementation class `JobImpl`. Use the `Job` interface.
+- The `JsonSerializerFactory` methods exposing Jackson types. Use `JsonUtils`.
 - `ArgosCollector.collect()`, `ShareableReceiver.onInstruction(Instruction, Njams)`,
   `DataMasking.addPatterns(Properties)` and `JsonSerializerFactory.addLocalDateTimeSerializer`.
-- The `JsonSerializerFactory` methods that expose Jackson types are no longer part of its regular public surface:
-  `getFastMapper()`, `getDefaultMapper()`, `getMapper(...)` and `createWriter(...)` moved behind the SDK-internal
-  `JsonSerializerFactory._internal()` (not for client code; use `JsonUtils` instead), and `createDefaultMapper(...)`,
-  `createDefaultWriter()`, `propertiesToJsonString(...)` and the `addSerializer(...)` overloads taking Jackson
-  serializers were removed or made private.
-- The receiver SPI interface `Receiver` was removed; `AbstractReceiver` is now the only receiver SPI type, and
-  its `start()` method was removed (the SDK connects receivers through `connect()`). A custom transport receiver
-  must extend `AbstractReceiver`, and its `META-INF/services` file must be named
-  `com.im.njams.sdk.communication.AbstractReceiver` (was `...communication.Receiver`). `CommunicationFactory.getReceiver(...)`
-  now returns `AbstractReceiver`.
-- The built-in JMS factory implementations moved packages, so a `njams.sdk.communication.jms.jmsFactory` or
-  `njams.sdk.communication.jms.connectionFactory` value that names one by its **fully qualified class name** no
-  longer matches and silently falls back to the JNDI lookup. The `javax.jms` implementations are now in
-  `com.im.njams.sdk.communication.jms.javax.factory`, the `jakarta.jms` ones in
-  `com.im.njams.sdk.communication.jms`. Values naming a factory by its SPI name or simple class name are
-  unaffected and are the recommended spelling.
-- Data masking is scoped to the `Njams` instance: patterns from an instance's settings and configuration mask only
-  that instance's data. With a single instance, the SDK masks exactly as before. Code calling the deprecated static
-  `DataMasking.maskString(...)` or `DataMasking.getPatterns()` directly no longer gets the patterns from settings or
-  configuration there; use `njams.configuration().dataMasking()` instead.
+- The receiver SPI interface `Receiver`, including its `start()` method. A custom transport receiver has to
+  extend `AbstractReceiver` and register under that name in `META-INF/services`.
+
+Changed behavior:
+
+- A job that ends after `Njams.stop()` is dropped with a warning instead of being sent.
+- Data masking is scoped to the `Njams` instance. With a single instance nothing changes; the static
+  `DataMasking` API no longer sees the patterns from settings and configuration. Use
+  `njams.configuration().dataMasking()`.
+- A JMS factory named by its fully qualified class name in `njams.sdk.communication.jms.jmsFactory` or
+  `njams.sdk.communication.jms.connectionFactory` is no longer found, because the built-in implementations moved
+  to other packages. Name it by its SPI name or its simple class name instead.
 
 ### Deprecations in 6.1
 
