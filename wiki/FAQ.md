@@ -38,6 +38,12 @@ already uses the replacements listed under "Deprecations and replacements" in
   must extend `AbstractReceiver`, and its `META-INF/services` file must be named
   `com.im.njams.sdk.communication.AbstractReceiver` (was `...communication.Receiver`). `CommunicationFactory.getReceiver(...)`
   now returns `AbstractReceiver`.
+- The built-in JMS factory implementations moved packages, so a `njams.sdk.communication.jms.jmsFactory` or
+  `njams.sdk.communication.jms.connectionFactory` value that names one by its **fully qualified class name** no
+  longer matches and silently falls back to the JNDI lookup. The `javax.jms` implementations are now in
+  `com.im.njams.sdk.communication.jms.javax.factory`, the `jakarta.jms` ones in
+  `com.im.njams.sdk.communication.jms`. Values naming a factory by its SPI name or simple class name are
+  unaffected and are the recommended spelling.
 - Data masking is scoped to the `Njams` instance: patterns from an instance's settings and configuration mask only
   that instance's data. With a single instance, the SDK masks exactly as before. Code calling the deprecated static
   `DataMasking.maskString(...)` or `DataMasking.getPatterns()` directly no longer gets the patterns from settings or
