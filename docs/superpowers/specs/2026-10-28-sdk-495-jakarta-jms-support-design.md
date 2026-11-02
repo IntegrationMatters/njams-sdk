@@ -872,15 +872,20 @@ displacing them. That is strictly better here, because the javax tree remains th
 production deployment runs, and it removes the "decide whether that is enough" question this section used to
 leave open.
 
-This is deliberately **not** part of the implementation described here, but it **is** part of SDK-495.
+**Decided 2026-11-02, with the user: this phase does not gate SDK-495, and the broker-backed suites stay on
+javax.** These suites exist to exercise the communication **lifecycle**, which is independent of the transport
+underneath: §5.2 hoisted everything namespace-free into `AbstractJmsSender`/`AbstractJmsReceiver`, which both
+trees extend and which the javax suites already drive, so no divergence between the trees is expected here.
+They move to jakarta when the deprecated javax tree is removed — at which point it is a migration again, with
+nothing left to run in parallel.
 
-> **Scope note.** Under `jira-workflow.md`'s test — "would this still need fixing if the current ticket did not
-> exist?", and the answer is no, since it exists only because this ticket adds a second namespace — this phase is
-> reframed sub-scope of SDK-495, not a separate ticket. It therefore gets its own spec and plan under
-> `docs/superpowers/`, keeps referencing `SDK-495` on its commits, and **SDK-495 is not complete, and must not be
-> resolved, until it is done.** Confirmed with the user on 2026-10-28, when this phase was still framed as a
-> migration; the 2026-10-30 reversal changed what the phase *does* (add, not replace) but not that it is in
-> SDK-495's scope or that it gates resolution.
+> **Scope note, superseded.** This section previously read: "**SDK-495 is not complete, and must not be
+> resolved, until it is done**", confirmed with the user on 2026-10-28. That was decided when the phase was
+> still framed as a *migration* and the jakarta tree was going to ship with **no** coverage at all, which made
+> a broker-backed suite the only thing that would ever test it. The 2026-10-30 reversal (§6.1) gave the jakarta
+> tree full mirrored unit coverage and §6.2/§6.2.1 added real classpath-selection coverage, removing the
+> premise the gate rested on. The 2026-11-02 decision above replaces it: **SDK-495 may be resolved without this
+> phase.** What remains below is a record of what a future migration faces, not work this ticket owes.
 
 **It will not be mechanical, and the obstacle is known now.** `njams-sdk`'s JMS end-to-end tests run against
 `EmbeddedActiveMqBroker`, which uses `activemq-broker`'s `BrokerService` on the `vm://` transport — and

@@ -251,11 +251,14 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
      * <em>after</em> the lookup that failed.
      * Implementations that are not applicable because of a missing JMS API are listed separately, since that
      * is the only hint about a missing API when no implementation is available at all.
+     * <br>
+     * Names are listed once each: implementations may share a name, and this description says what is
+     * available rather than how many provide it.
      * @param nameOf Provides the name of an available implementation.
      * @return A multi-line description.
      */
     public String describeAvailability(final Function<? super S, String> nameOf) {
-        final String available = stream().map(nameOf).filter(Objects::nonNull).sorted()
+        final String available = stream().map(nameOf).filter(Objects::nonNull).distinct().sorted()
             .collect(Collectors.joining(", ", "[", "]"));
         final List<String> failed = copyOf(unavailable);
         final List<String> skipped = copyOf(notApplicable);

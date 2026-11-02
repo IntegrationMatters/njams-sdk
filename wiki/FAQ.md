@@ -337,6 +337,9 @@ authentication (supported since nJAMS server 6.0.1).
 
 Set `njams.sdk.communication=JMS`.
 
+Both JMS API namespaces are supported: `javax.jms` and `jakarta.jms`. The SDK uses whichever of the two your
+application provides. There is nothing to configure for this, and all settings below apply either way.
+
 ```properties
 # Minimum settings to get started (standard JNDI lookup, e.g. ActiveMQ Classic)
 njams.sdk.communication=JMS

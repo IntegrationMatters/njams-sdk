@@ -45,6 +45,14 @@ public class ServiceLoaderSupportAvailabilityTest {
         }
     }
 
+    /** A second working implementation answering to the same name as {@link First}, as both JMS trees do. */
+    public static class AlsoFirst implements Spi {
+        @Override
+        public String name() {
+            return "first";
+        }
+    }
+
     /** Fails like a provider whose JMS API is missing, in the dotted spelling of a ClassNotFoundException. */
     public static class MissingJakartaDotted implements Spi {
         public MissingJakartaDotted() {
@@ -150,6 +158,19 @@ public class ServiceLoaderSupportAvailabilityTest {
         assertTrue(description, description.contains("javax/jms/Message"));
         assertTrue(description, description.contains("jakarta.jms.Message"));
         assertTrue(description, description.contains("Unavailable: none"));
+    }
+
+    @Test
+    public void describeAvailability_listsEachNameOnce_whenImplementationsShareOne() throws IOException {
+        ServiceLoaderSupport<Spi> loader =
+            loaderFor(First.class.getName(), AlsoFirst.class.getName(), Second.class.getName());
+        loader.getAll();
+
+        String description = loader.describeAvailability(Spi::name);
+
+        assertTrue(description, description.startsWith("Available: [first, second]"));
+        // the de-duplication is for the report only: the lookup still sees both implementations
+        assertEquals(2, loader.findAll(s -> "first".equals(s.name())).size());
     }
 
     @Test
