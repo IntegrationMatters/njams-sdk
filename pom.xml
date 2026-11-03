@@ -37,18 +37,18 @@
         <argLine>${xmArguments}</argLine>
         <surefire.java.io.tmpdir>${project.build.directory}/tmp</surefire.java.io.tmpdir>
 
-        <!-- Fallbacks for the Git/build metadata filtered into sdk.version. The git-commit-id plugin
-             overwrites branch and commit from the local .git; Jenkins additionally supplies the build
-             number via BUILD_NUMBER. These values only survive where that information does not exist,
-             e.g. a build from a source archive without .git. -->
+        <!-- Fallbacks for the Git metadata filtered into sdk.version. The git-commit-id plugin
+             overwrites these from the local .git, the branch on CI from GIT_LOCAL_BRANCH instead
+             (see the Jenkinsfile). They only survive where that information does not exist, e.g. a
+             build from a source archive without .git. -->
         <git.branch>unknown</git.branch>
         <git.commit.id>unknown</git.commit.id>
-        <git.build.number>snapshot</git.build.number>
 
         <!-- Maven plugin versions -->
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+        <build-helper-maven-plugin.version>3.6.2</build-helper-maven-plugin.version>
         <!-- Pinned below the latest 10.x, which requires Maven 3.9.0; the build runs on Maven 3.8.5. -->
         <git-commit-id-maven-plugin.version>9.2.0</git-commit-id-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
@@ -123,6 +123,11 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build-helper-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
                     <groupId>io.github.git-commit-id</groupId>
                     <artifactId>git-commit-id-maven-plugin</artifactId>
                     <version>${git-commit-id-maven-plugin.version}</version>
@@ -178,6 +183,56 @@
                                 is true
                             -->
                             <skipTests>${skip.integration.tests}</skipTests>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>build-time</id>
+                        <goals>
+                            <goal>timestamp-property</goal>
+                        </goals>
+                        <configuration>
+                            <!-- provides human-readable build timestamp -->
+                            <locale>en_US</locale>
+                            <name>build.time</name>
+                            <pattern>yyyy-MM-dd HH:mm</pattern>
+                            <timeSource>build</timeSource>
+                            <timeZone>UTC</timeZone>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>build-year</id>
+                        <goals>
+                            <goal>timestamp-property</goal>
+                        </goals>
+                        <configuration>
+                            <!-- provides the build year, e.g., for copyright notices -->
+                            <locale>en_US</locale>
+                            <name>build.year</name>
+                            <pattern>yyyy</pattern>
+                            <timeSource>build</timeSource>
+                            <timeZone>UTC</timeZone>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>build-id</id>
+                        <goals>
+                            <goal>timestamp-property</goal>
+                        </goals>
+                        <configuration>
+                            <!-- provides build ID based on build timestamp as replacement for
+                                 SVN commit number as monotonically increasing identifier.
+                                 Fixed size 10 chars and still somewhat readable -->
+                            <locale>en_US</locale>
+                            <name>build.id</name>
+                            <pattern>yyMMddHHmm</pattern>
+                            <timeSource>build</timeSource>
+                            <timeZone>UTC</timeZone>
                         </configuration>
                     </execution>
                 </executions>

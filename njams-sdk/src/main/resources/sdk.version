@@ -1,5 +1,5 @@
-sdk.version=${project.version} (${git.build.number})
+sdk.version=${project.version} (${build.id})
 sdk.scmBranch=${git.branch}
 sdk.scmCommit=${git.commit.id}
-sdk.buildYear=${current.year}
-sdk.buildTimestamp=${current.timestamp}
+sdk.buildYear=${build.year}
+sdk.buildTimestamp=${build.time}

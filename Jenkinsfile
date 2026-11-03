@@ -7,6 +7,14 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
+    environment {
+        // git-commit-id-maven-plugin resolves git.branch from a symbolic ref. A multibranch checkout
+        // leaves a detached HEAD, where there is none and the plugin falls back to the full commit SHA.
+        // Its CI rescue path reads GIT_LOCAL_BRANCH, which a declarative pipeline does not export by
+        // itself, so it is set here from the branch the pipeline already knows.
+        GIT_LOCAL_BRANCH = "${env.BRANCH_NAME}"
+    }
+
     // Triggering is handled by the (multibranch) job configuration via webhook /
     // branch indexing, so no explicit `triggers` block is required.
 
@@ -24,9 +32,9 @@ pipeline {
         // (maven.deploy.skip=true in their POMs).
         stage('Build') {
             steps {
-                // Branch, commit and build number are resolved by git-commit-id-maven-plugin from the
-                // checkout itself (and from BUILD_NUMBER/GIT_BRANCH when running here), so they need
-                // not be passed in and are no longer lost in the deploy stage below.
+                // Commit and branch are resolved by git-commit-id-maven-plugin from the checkout
+                // itself, the branch via the GIT_LOCAL_BRANCH set above. Neither needs to be passed
+                // in, so they are no longer lost in the deploy stage below.
                 sh 'mvn clean install -Pjenkins-cli'
             }
             post {
