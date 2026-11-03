@@ -31,6 +31,8 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
+import com.im.njams.sdk.utils.hidden.HiddenProviders;
+
 public class ReflectionWrapperTest {
 
     @Test
@@ -154,5 +156,20 @@ public class ReflectionWrapperTest {
         Object s = toTest.invoke("setAndGet", ReflectionWrapper.argsBuilder().addObject("qwert").addPrimitive(44));
         assertEquals("qwert44", s);
         verify(target, times(1)).setAndGet("qwert", 44);
+    }
+
+    @Test
+    public void testMethodDeclaredByANonPublicClassIsResolvedViaItsPublicInterface()
+            throws ReflectiveOperationException {
+        final Object provider = HiddenProviders.withPublicInterface();
+        final ReflectionWrapper toTest = new ReflectionWrapper(provider);
+        assertEquals("via-interface", toTest.invoke("value", ReflectionWrapper.argsBuilder()));
+    }
+
+    @Test
+    public void testMethodDeclaredByANonPublicClassStaysInaccessibleWithoutAPublicInterface() {
+        final Object provider = HiddenProviders.withoutPublicInterface();
+        final ReflectionWrapper toTest = new ReflectionWrapper(provider);
+        assertThrows(IllegalAccessException.class, () -> toTest.invoke("value", ReflectionWrapper.argsBuilder()));
     }
 }

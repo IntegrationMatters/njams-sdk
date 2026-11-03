@@ -23,19 +23,11 @@
  */
 package com.im.njams.sdk.utils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Reflective access to the parts of a JMS message the SDK needs outside the namespace-specific JMS code, so that
@@ -46,8 +38,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class JmsMessageAccess {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JmsMessageAccess.class);
-
     private static final ClassValue<Descriptor> DESCRIPTORS = new ClassValue<Descriptor>() {
         @Override
         protected Descriptor computeValue(Class<?> type) {
@@ -56,21 +46,20 @@ public final class JmsMessageAccess {
     };
 
     /**
-     * The accessors of one message class; a missing accessor is recorded as {@code null}. Also remembers whether an
-     * invocation failure was already reported for the class.
+     * The accessors of one message class, resolved on first contact so that reading one is a field access. A
+     * missing accessor is recorded as {@code null}.
      */
     private static final class Descriptor {
         private final Method getPropertyNames;
         private final Method getObjectProperty;
         private final Method setStringProperty;
         private final Method getText;
-        private final AtomicBoolean failureReported = new AtomicBoolean();
 
         private Descriptor(Class<?> type) {
-            getPropertyNames = find(type, "getPropertyNames");
-            getObjectProperty = find(type, "getObjectProperty", String.class);
-            setStringProperty = find(type, "setStringProperty", String.class, String.class);
-            getText = find(type, "getText");
+            getPropertyNames = ReflectionCache.findAccessible(type, "getPropertyNames");
+            getObjectProperty = ReflectionCache.findAccessible(type, "getObjectProperty", String.class);
+            setStringProperty = ReflectionCache.findAccessible(type, "setStringProperty", String.class, String.class);
+            getText = ReflectionCache.findAccessible(type, "getText");
         }
     }
 
@@ -99,8 +88,7 @@ public final class JmsMessageAccess {
      * @return The names of the message's properties; never <code>null</code>, empty on any failure.
      */
     public static Collection<String> propertyNames(Object msg) {
-        final Descriptor descriptor = msg == null ? null : descriptor(msg.getClass());
-        final Method method = descriptor == null ? null : descriptor.getPropertyNames;
+        final Method method = msg == null ? null : descriptor(msg.getClass()).getPropertyNames;
         if (method == null) {
             return Collections.emptyList();
         }
@@ -112,7 +100,7 @@ public final class JmsMessageAccess {
             }
             return result;
         } catch (Exception e) {
-            logFailure(descriptor, msg, "read property names", e);
+            ReflectionCache.reportFailure(msg, "read property names", e);
             return Collections.emptyList();
         }
     }
@@ -123,15 +111,14 @@ public final class JmsMessageAccess {
      * @return The property value, or <code>null</code> if absent or on any failure.
      */
     public static Object objectProperty(Object msg, String key) {
-        final Descriptor descriptor = msg == null ? null : descriptor(msg.getClass());
-        final Method method = descriptor == null ? null : descriptor.getObjectProperty;
+        final Method method = msg == null ? null : descriptor(msg.getClass()).getObjectProperty;
         if (method == null) {
             return null;
         }
         try {
             return method.invoke(msg, key);
         } catch (Exception e) {
-            logFailure(descriptor, msg, "read property '" + key + "'", e);
+            ReflectionCache.reportFailure(msg, "read property '" + key + "'", e);
             return null;
         }
     }
@@ -141,15 +128,14 @@ public final class JmsMessageAccess {
      * @return The text body, or <code>null</code> if the message has none or on any failure.
      */
     public static String text(Object msg) {
-        final Descriptor descriptor = msg == null ? null : descriptor(msg.getClass());
-        final Method method = descriptor == null ? null : descriptor.getText;
+        final Method method = msg == null ? null : descriptor(msg.getClass()).getText;
         if (method == null) {
             return null;
         }
         try {
             return (String) method.invoke(msg);
         } catch (Exception e) {
-            logFailure(descriptor, msg, "read text", e);
+            ReflectionCache.reportFailure(msg, "read text", e);
             return null;
         }
     }
@@ -162,15 +148,14 @@ public final class JmsMessageAccess {
      * @param value the property value
      */
     public static void setStringProperty(Object msg, String key, String value) {
-        final Descriptor descriptor = msg == null ? null : descriptor(msg.getClass());
-        final Method method = descriptor == null ? null : descriptor.setStringProperty;
+        final Method method = msg == null ? null : descriptor(msg.getClass()).setStringProperty;
         if (method == null) {
             return;
         }
         try {
             method.invoke(msg, key, value);
         } catch (Exception e) {
-            logFailure(descriptor, msg, "set property '" + key + "'", e);
+            ReflectionCache.reportFailure(msg, "set property '" + key + "'", e);
         }
     }
 
@@ -181,65 +166,5 @@ public final class JmsMessageAccess {
     // package-private so that the test can verify the one-shot probing
     static Object descriptorFor(Class<?> type) {
         return descriptor(type);
-    }
-
-    // package-private so that the test can verify which declaring type an accessor was resolved against
-    static Method getPropertyNamesMethod(Class<?> type) {
-        return descriptor(type).getPropertyNames;
-    }
-
-    // package-private so that the test can verify that an absent accessor is recorded as absent
-    static Method getTextMethod(Class<?> type) {
-        return descriptor(type).getText;
-    }
-
-    /**
-     * Reports a failed invocation once per message class at WARN, including the stack trace; repeats are logged at
-     * DEBUG without it. The fallback value is returned by the caller, so the failure is recoverable.
-     */
-    private static void logFailure(Descriptor descriptor, Object msg, String action, Exception e) {
-        final Throwable cause = e instanceof InvocationTargetException && e.getCause() != null ? e.getCause() : e;
-        if (descriptor.failureReported.compareAndSet(false, true)) {
-            LOG.warn("Failed to {} on JMS message of type {}; using fallback. Further failures for this type are "
-                + "logged at debug level.", action, msg.getClass().getName(), cause);
-        } else if (LOG.isDebugEnabled()) {
-            LOG.debug("Failed to {} on JMS message of type {}: {}", action, msg.getClass().getName(), cause.toString());
-        }
-    }
-
-    /**
-     * Resolves the method against the first interface of the type's transitive interface set that declares it,
-     * so that it stays invocable when the concrete class is not public; falls back to the concrete class.
-     */
-    private static Method find(Class<?> type, String name, Class<?>... parameters) {
-        final Set<Class<?>> interfaces = new LinkedHashSet<>();
-        collectInterfaces(type, interfaces);
-        for (Class<?> candidate : interfaces) {
-            if (!Modifier.isPublic(candidate.getModifiers())) {
-                continue;
-            }
-            try {
-                return candidate.getMethod(name, parameters);
-            } catch (NoSuchMethodException e) {
-                // try the next one
-            }
-        }
-        try {
-            final Method method = type.getMethod(name, parameters);
-            method.setAccessible(true);
-            return method;
-        } catch (NoSuchMethodException | RuntimeException e) {
-            return null;
-        }
-    }
-
-    private static void collectInterfaces(Class<?> type, Set<Class<?>> result) {
-        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-            for (Class<?> iface : current.getInterfaces()) {
-                if (result.add(iface)) {
-                    collectInterfaces(iface, result);
-                }
-            }
-        }
     }
 }

@@ -40,7 +40,9 @@ import org.slf4j.LoggerFactory;
  * Helper that wraps an object for execution functionality on it via reflection.<br>
  * Though using reflection, this implementation does not break accessibility to the target object. I.e., the
  * functionality here can only be used to call functions on the target object that are directly accessible
- * (<code>public</code>).
+ * (<code>public</code>). A method is resolved against the first public interface of the target's type that
+ * declares it, and against the target's own class otherwise, so that a method declared by a class that is not
+ * public remains callable when a public interface declares it as well.
  *
  * @author cwinkler
  *
@@ -262,7 +264,7 @@ public class ReflectionWrapper {
      */
     public Object invoke(final String method, final ArgsBuilder callArgs) throws ReflectiveOperationException {
         final Entry<Class<?>[], Object[]> args = callArgs.build();
-        final Method m = target.getClass().getMethod(method, args.getKey());
+        final Method m = ReflectionCache.require(target.getClass(), method, args.getKey());
         LOG.debug("Invoking: {}", m);
         return m.invoke(target, args.getValue());
     }
