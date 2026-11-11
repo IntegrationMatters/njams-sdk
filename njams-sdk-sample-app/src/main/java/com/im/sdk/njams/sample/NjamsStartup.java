@@ -30,7 +30,6 @@ public class NjamsStartup {
         String technology = "sdk4";
 
         ClientSettings settings = getFromFileWithClassloader("settings_activemq.properties");
-        //ClientSettings settings = getJmsPropertiesFromFile("settings.properties");
 
         // Specify a client path. This path specifies where your client instance will be visible in the object tree.
         Path clientPath = Path.of("SDK4", "Client", "Simple");
@@ -85,24 +84,6 @@ public class NjamsStartup {
 
         ClientSettings settings = ClientSettings.from(props);
         return settings;
-    }
-
-    private ClientSettings getEmsJmsProperties() {
-        ClientSettings communicationProperties = ClientSettings.from(new Properties());
-        communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://vslems01:7222");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams.endurance");
-        //optional: if you want to use a topic for commands not following the name of the other destinations, specify it here
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_COMMANDS_DESTINATION, "njams4.dev.bjoern.commands");
-
-        return communicationProperties;
     }
 
     private ClientSettings getActiveMqJmsProperties() {

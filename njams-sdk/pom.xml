@@ -59,7 +59,7 @@
                                         test
                                     </excludedScopes>
                                     <excludedGroups>
-                                        com.salesfive.njams|tibco
+                                        com.salesfive.njams
                                     </excludedGroups>
                                     <outputDirectory>
                                         ${project.build.directory}/../src/license

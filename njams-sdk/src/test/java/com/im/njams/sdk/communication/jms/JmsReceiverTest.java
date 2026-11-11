@@ -67,10 +67,10 @@ public class JmsReceiverTest {
         Properties props = jmsProps();
         props.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         props.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
+        props.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tcp://blablub:61616");
         props.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
         props.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
         props.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");
@@ -255,10 +255,10 @@ public class JmsReceiverTest {
         Properties p = jmsProps();
         p.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         p.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-            "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+            "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         p.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         p.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        p.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://blablub:7222");
+        p.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tcp://blablub:61616");
         p.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "NoopJmsFactory");
         p.put(NjamsSettings.PROPERTY_JMS_DESTINATION, "njams4.dev.kai");
         ClientSettings props = ClientSettings.from(p);
