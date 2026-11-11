@@ -55,6 +55,12 @@ currently installed, and assert on absolute values afterward rather than computi
 delta computation is a symptom of not trusting the starting state — fixing the setup is the correct response,
 not compensating for it in the assertion.
 
+## Waiting on asynchronous outcomes
+
+Waiting for a condition with a generous deadline (polling until it holds, a latch, Mockito's `timeout(...)`) is not a
+timing-based test and is fine, also where a spec says "no timing-based tests". Asserting on durations, or relying on
+a fixed sleep for the outcome to have happened, is timing-based and must be avoided.
+
 ## Coverage
 
 Cover all new/changed code with tests. For modifications to existing code, invoke the `njams-safe-modification` skill
