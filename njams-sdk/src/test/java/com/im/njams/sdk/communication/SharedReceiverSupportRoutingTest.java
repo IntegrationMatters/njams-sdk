@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.faizsiegeln.njams.messageformat.v4.command.Instruction;
@@ -129,7 +128,6 @@ public class SharedReceiverSupportRoutingTest {
         assertEquals(1, receiver.replies.size());
     }
 
-    @Ignore("MSG-32: Command.getFromInstruction throws an NPE for an instruction without a request")
     @Test
     public void instructionWithoutRequestGetsResultCode1() {
         receiver.path = first.path;
