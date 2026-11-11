@@ -53,7 +53,19 @@ import com.im.njams.sdk.utils.StringUtils;
 public class NjamsMetadata {
 
     private static final Logger LOG = LoggerFactory.getLogger(NjamsMetadata.class);
-
+    /**
+     * Key for clientVersion, read from a <code>client.version</code> resource on the classpath. The former
+     * spelling <code>clientVersion</code> is still accepted there, but logs a deprecation warning.
+     */
+    static final String CLIENT_VERSION_KEY = "client.version";
+    /**
+     * Key for sdkVersion
+     */
+    static final String SDK_VERSION_KEY = "sdk.version";
+    /**
+     * Key for build-year. Underscore prefix to avoid printing it in the startup banner.
+     */
+    private static final String BUILD_YEAR = "_sdk.buildYear";
     /**
      * The only version file a client implementation is meant to ship. The other version files are internal:
      * they are shipped by the SDK and the message format, and never provide the client's version.
@@ -63,7 +75,7 @@ public class NjamsMetadata {
     private static final String[] VERSION_FILES = { "sdk.version", "msg.version", CLIENT_VERSION_FILE };
 
     /**
-     * Former spelling of {@link Njams#CLIENT_VERSION_KEY}, still accepted in version files.
+     * Former spelling of {@link NjamsMetadata#CLIENT_VERSION_KEY}, still accepted in version files.
      *
      * @deprecated Has to be removed together with the fallback it backs in
      *             {@link #resolveClientVersion(Properties, String)}.
@@ -130,7 +142,7 @@ public class NjamsMetadata {
      * @return the clientVersion
      */
     public String getClientVersion() {
-        return versions.get(Njams.CLIENT_VERSION_KEY);
+        return versions.get(CLIENT_VERSION_KEY);
     }
 
     /**
@@ -139,7 +151,7 @@ public class NjamsMetadata {
      * @return the sdkVersion
      */
     public String getSdkVersion() {
-        return versions.get(Njams.SDK_VERSION_KEY);
+        return versions.get(SDK_VERSION_KEY);
     }
 
     /**
@@ -207,10 +219,10 @@ public class NjamsMetadata {
         }
         final String clientVersion = resolveClientVersion(clientVersionProperties, version);
         versions.remove(DEPRECATED_CLIENT_VERSION_KEY);
-        versions.put(Njams.CLIENT_VERSION_KEY, clientVersion);
-        if (!versions.containsKey(Njams.SDK_VERSION_KEY)) {
-            LOG.debug("No version file for {} found!", Njams.SDK_VERSION_KEY);
-            versions.put(Njams.SDK_VERSION_KEY, UNKNOWN);
+        versions.put(CLIENT_VERSION_KEY, clientVersion);
+        if (!versions.containsKey(SDK_VERSION_KEY)) {
+            LOG.debug("No version file for {} found!", SDK_VERSION_KEY);
+            versions.put(SDK_VERSION_KEY, UNKNOWN);
         }
     }
 
@@ -256,7 +268,7 @@ public class NjamsMetadata {
      */
     private String resolveClientVersion(Properties clientVersionProperties, String version) {
         final String fromVersionFile = PropertyUtil.getPropertyWithDeprecationWarning(
-            clientVersionProperties, Njams.CLIENT_VERSION_KEY, DEPRECATED_CLIENT_VERSION_KEY);
+            clientVersionProperties, CLIENT_VERSION_KEY, DEPRECATED_CLIENT_VERSION_KEY);
         if (StringUtils.isNotBlank(fromVersionFile)) {
             return fromVersionFile;
         }
@@ -264,17 +276,17 @@ public class NjamsMetadata {
             return version;
         }
         throw new NjamsSdkRuntimeException("No client version found. Either provide it as property '"
-            + Njams.CLIENT_VERSION_KEY + "' in a " + CLIENT_VERSION_FILE
+            + CLIENT_VERSION_KEY + "' in a " + CLIENT_VERSION_FILE
             + " file on the classpath, or pass it to the Njams constructor.");
     }
 
     void printStartupBanner(ClientSettings settings) {
         LOG.info("************************************************************");
         LOG.info("***      nJAMS SDK: Copyright (c) {} Salesfive Integration Services GmbH",
-            versions.get(Njams.BUILD_YEAR));
+            versions.get(BUILD_YEAR));
         LOG.info("*** ");
         LOG.info("***      Version Info:");
-        versions.entrySet().stream().filter(e -> !e.getKey().toLowerCase().contains("buildyear"))
+        versions.entrySet().stream().filter(e -> !e.getKey().startsWith("_"))
             .sorted(Comparator.comparing(Entry::getKey))
             .forEach(e -> LOG.info("***      {}: {}", e.getKey(), e.getValue()));
         LOG.info("*** ");

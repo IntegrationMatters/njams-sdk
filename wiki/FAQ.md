@@ -133,14 +133,15 @@ for complete, runnable examples covering all SDK features.
 The client version is reported to nJAMS Server in every project, log and trace message. It comes from one of two
 sources:
 
-1. An optional **`client.version`** on the classpath. At startup the SDK reads the resource if it's present and takes 
-   the client version from the property `client.version`. A client implementation
+1. An optional **`client.version`** file on the classpath. At startup the SDK reads the resource if it's present and 
+   takes the client version from the property `client.version`. A client implementation
    can add a `client.version` whose values are filled in by its build:
 
    ```properties
    client.version=${project.version}
    ```
-   This information and additional lines are printed in the SDK's startup banner for information only.
+   This information and all additional lines are printed in the SDK's startup banner for information only, except keys 
+   that start with an underscore (`_`) character.
 
 2. The **`version` argument** of the `Njams` constructor.
 

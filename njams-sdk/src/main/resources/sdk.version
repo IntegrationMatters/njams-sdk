@@ -1,5 +1,6 @@
 sdk.version=${project.version} (${build.id})
 sdk.scmBranch=${git.branch}
 sdk.scmCommit=${git.commit.id}
-sdk.buildYear=${build.year}
 sdk.buildTimestamp=${build.time}
+# not logged due to _ prefix
+_sdk.buildYear=${build.year}

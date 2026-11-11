@@ -120,19 +120,7 @@ public class Njams {
         }
     }
 
-    /**
-     * Key for clientVersion, read from a <code>client.version</code> resource on the classpath. The former
-     * spelling <code>clientVersion</code> is still accepted there, but logs a deprecation warning.
-     */
-    public static final String CLIENT_VERSION_KEY = "client.version";
-    /**
-     * Key for sdkVersion
-     */
-    public static final String SDK_VERSION_KEY = "sdk.version";
-    /**
-     * Key for build-year
-     */
-    public static final String BUILD_YEAR = "sdk.buildYear";
+
 
     // Synchronizes access to the project message resources:
     // process-models, images, global-variables, tree-elements

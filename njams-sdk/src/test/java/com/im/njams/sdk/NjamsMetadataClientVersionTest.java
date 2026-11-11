@@ -145,7 +145,7 @@ public class NjamsMetadataClientVersionTest {
             metadataWithVersion("  ");
             fail("expected NjamsSdkRuntimeException");
         } catch (NjamsSdkRuntimeException expected) {
-            assertTrue(expected.getMessage(), expected.getMessage().contains(Njams.CLIENT_VERSION_KEY));
+            assertTrue(expected.getMessage(), expected.getMessage().contains(NjamsMetadata.CLIENT_VERSION_KEY));
         }
     }
 
@@ -155,7 +155,7 @@ public class NjamsMetadataClientVersionTest {
             metadataWithVersion(null);
             fail("expected NjamsSdkRuntimeException");
         } catch (NjamsSdkRuntimeException expected) {
-            assertTrue(expected.getMessage(), expected.getMessage().contains(Njams.CLIENT_VERSION_KEY));
+            assertTrue(expected.getMessage(), expected.getMessage().contains(NjamsMetadata.CLIENT_VERSION_KEY));
         }
     }
 
