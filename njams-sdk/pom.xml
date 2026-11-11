@@ -60,7 +60,7 @@
                                         test
                                     </excludedScopes>
                                     <excludedGroups>
-                                        com.salesfive.njams|com.faizsiegeln|tibco
+                                        com.salesfive.njams|com.faizsiegeln
                                     </excludedGroups>
                                     <outputDirectory>
                                         ${project.build.directory}/../src/license

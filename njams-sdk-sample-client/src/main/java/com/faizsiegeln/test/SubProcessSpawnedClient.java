@@ -137,10 +137,10 @@ public class SubProcessSpawnedClient {
 
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "JMS");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_INITIAL_CONTEXT_FACTORY,
-                "com.tibco.tibjms.naming.TibjmsInitialContextFactory");
+                "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_PRINCIPAL, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_SECURITY_CREDENTIALS, "njams");
-        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tibjmsnaming://vslems01:7222");
+        communicationProperties.put(NjamsSettings.PROPERTY_JMS_PROVIDER_URL, "tcp://localhost:61616");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_CONNECTION_FACTORY, "ConnectionFactory");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_USERNAME, "njams");
         communicationProperties.put(NjamsSettings.PROPERTY_JMS_PASSWORD, "njams");

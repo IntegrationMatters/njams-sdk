@@ -44,7 +44,7 @@ public class ArgosComponent {
     // the measurement name; for example 'jvm' for component, related to a java VM.
     private String measurement;
 
-    // the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
+    // the technology type like: server, process etc.
     private String type;
 
     /**
@@ -54,7 +54,7 @@ public class ArgosComponent {
      * @param name        the logical name (short name) of this component
      * @param containerId the name of the container of this component; can be a server, or JVM name, or similar
      * @param measurement the measurement name; for example 'jvm' for component, related to a java VM.
-     * @param type        the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
+     * @param type        the technology type like: server, process etc.
      */
     public ArgosComponent(String id, String name, String containerId, String measurement, String type) {
         this.id = id;
@@ -93,7 +93,7 @@ public class ArgosComponent {
     }
 
     /**
-     * @return the technology type like: server, process, tibbw6, tipappnode, tibappspace etc.
+     * @return the technology type like: server, process etc.
      */
     public String getType() {
         return type;
