@@ -19,6 +19,8 @@
         <failOnMissingWebXml>false</failOnMissingWebXml>
         <!-- Sample module: built to verify it compiles against the SDK, but never published to Nexus. -->
         <maven.deploy.skip>true</maven.deploy.skip>
+        <!-- Sample module: demo code, deliberately left out of the SonarCloud analysis. -->
+        <sonar.skip>true</sonar.skip>
     </properties>
 
     <dependencies>
