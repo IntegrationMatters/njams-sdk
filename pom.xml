@@ -33,6 +33,10 @@
              sonarcloud profile; that profile's prepare-agent executions fill them in. -->
         <jacoco.surefire.argLine />
         <jacoco.failsafe.argLine />
+        <!-- Integration tests follow -DskipTests unless skip.integration.tests is set explicitly. Failsafe's
+             explicit skipTests configuration would otherwise ignore -DskipTests. -->
+        <skipTests>false</skipTests>
+        <skip.integration.tests>${skipTests}</skip.integration.tests>
 
         <!-- Fallbacks for the Git metadata filtered into sdk.version. The git-commit-id plugin
              overwrites these from the local .git, the branch on CI from GIT_LOCAL_BRANCH instead
