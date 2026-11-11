@@ -7,6 +7,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -36,6 +40,7 @@ public class ScriptedJmsFactory implements JmsFactory {
     private static MessageProducer producer;
     private static Topic topic;
     private static Queue queue;
+    private static final List<String> QUEUE_NAMES = new CopyOnWriteArrayList<>();
 
     /** Creates a fresh, fully stubbed mock chain. */
     public static synchronized void reset() {
@@ -46,6 +51,7 @@ public class ScriptedJmsFactory implements JmsFactory {
         producer = mock(MessageProducer.class);
         topic = mock(Topic.class);
         queue = mock(Queue.class);
+        QUEUE_NAMES.clear();
         try {
             when(connectionFactory.createConnection()).thenReturn(connection);
             when(connectionFactory.createConnection(anyString(), anyString())).thenReturn(connection);
@@ -87,6 +93,11 @@ public class ScriptedJmsFactory implements JmsFactory {
         return queue;
     }
 
+    /** @return the names {@link #createQueue(Session, String)} was called with, in order. */
+    public static List<String> queueNames() {
+        return new ArrayList<>(QUEUE_NAMES);
+    }
+
     @Override
     public String getName() {
         return NAME;
@@ -109,6 +120,7 @@ public class ScriptedJmsFactory implements JmsFactory {
 
     @Override
     public Queue createQueue(Session session, String queueName) {
+        QUEUE_NAMES.add(queueName);
         return queue();
     }
 }
