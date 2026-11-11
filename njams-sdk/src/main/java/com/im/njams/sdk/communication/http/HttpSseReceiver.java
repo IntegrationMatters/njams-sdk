@@ -261,7 +261,10 @@ public class HttpSseReceiver extends AbstractReceiver implements BackgroundEvent
 
     @Override
     public void stop() {
-        if (!isConnected()) {
+        // A dropped stream leaves the receiver disconnected while its event source is still alive and retrying,
+        // so the resources must be released whenever they exist, not only while connected. A connect in progress
+        // releases its own resources when it fails or is cancelled.
+        if (isConnecting() || (!isConnected() && source == null && client == null)) {
             return;
         }
         connectionStatus = ConnectionStatus.DISCONNECTED;

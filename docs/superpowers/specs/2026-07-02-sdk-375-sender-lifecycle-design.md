@@ -97,7 +97,10 @@ It **replaces**:
 
 Senders and the receiver keep their own `connect()`/`close()`/`stop()` and their own `ConnectionStatus`, exactly
 as before; each side **consults its own** coordinator for phase decisions and **reports** connect success/failure
-into it. `NjamsSender.wireReceiver(Receiver)` (built in Part 3 specifically to hand the sender's coordinator
+into it. One exception on the receiver side: when a `connect()` that the SDK's own lifecycle runs (startup
+connect or reconnect loop) fails while the receiver still reports `CONNECTING`, `AbstractReceiver` resets the
+status to `DISCONNECTED` — a receiver stuck in `CONNECTING` would otherwise never be reconnected, and receiver
+implementations (including ones the SDK does not know) cannot be relied on to reset it themselves. `NjamsSender.wireReceiver(Receiver)` (built in Part 3 specifically to hand the sender's coordinator
 instance to the receiver) is removed outright, with no replacement cross-side hook — it must no longer assign
 the *same* coordinator to both sides (D1.7, which would have repurposed this hook, was cut; see §0).
 

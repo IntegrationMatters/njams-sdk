@@ -242,7 +242,7 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
         LOG.debug("Receiver {}: starting connection attempt.", getName());
         startupConnectThread = new Thread(() -> {
             try {
-                connect();
+                attemptConnect();
                 coordinator.markStartupConnected();
             } catch (Exception e) {
                 LOG.debug("Receiver {}: connection attempt failed.", getName(), e);
@@ -254,6 +254,22 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
         startupConnectThread.setDaemon(true);
         startupConnectThread.setName("Receiver-Startup-" + getName());
         startupConnectThread.start();
+    }
+
+    /**
+     * Runs {@link #connect()} on behalf of the SDK's own connection lifecycle. An implementation may fail without
+     * leaving {@code CONNECTING}; since a receiver that still reports {@code CONNECTING} is never reconnected, a
+     * failed attempt resets that status to {@code DISCONNECTED} here.
+     */
+    private void attemptConnect() {
+        try {
+            connect();
+        } catch (RuntimeException e) {
+            if (isConnecting()) {
+                connectionStatus = ConnectionStatus.DISCONNECTED;
+            }
+            throw e;
+        }
     }
 
     /**
@@ -322,7 +338,7 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
             while (!isConnected() && doReconnect && !coordinator.shouldShutdown()) {
                 LOG.debug("Next try to reconnect receivers.");
                 try {
-                    connect();
+                    attemptConnect();
                     if (coordinator.markConnected()) {
                         LOG.info("Receiver reconnected. Handling server commands resumed.");
                         resetReconnectInterval();
