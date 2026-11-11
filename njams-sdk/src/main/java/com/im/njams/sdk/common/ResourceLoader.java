@@ -34,11 +34,24 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.im.njams.sdk.model.image.DirectImageSupplier;
+import com.im.njams.sdk.model.image.FileImageSupplier;
+import com.im.njams.sdk.model.image.ImageSupplier;
+import com.im.njams.sdk.model.image.ResourceImageSupplier;
+import com.im.njams.sdk.model.image.StreamImageSupplier;
+import com.im.njams.sdk.model.image.URLImageSupplier;
+
 /**
  * Loads a resource from a given path with current thread classloader.
  *
  * @author pnientiedt
+ * @deprecated Load resources directly instead, e.g. with {@link ClassLoader#getResourceAsStream(String)}. For
+ *             providing images to the SDK, use an {@link ImageSupplier} implementation, such as
+ *             {@link ResourceImageSupplier}, {@link FileImageSupplier}, {@link URLImageSupplier},
+ *             {@link StreamImageSupplier} or {@link DirectImageSupplier}. Note that this class does not return a
+ *             resource's original bytes, see {@link #getResourceBinary(String)}.
  */
+@Deprecated(since = "6.1.0", forRemoval = true)
 public class ResourceLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResourceLoader.class);
@@ -48,11 +61,16 @@ public class ResourceLoader {
     }
 
     /**
-     * Get a resource from given path as base64 encoded String
+     * Get a resource from given path as base64 encoded String.
+     * <p>
+     * <b>Warning:</b> this encodes the result of {@link #getResourceBinary(String)}, i.e. the resource re-encoded
+     * as PNG image, not its original bytes.
      *
      * @param resourcePath the path to search the resource at.
-     * @return the resource as base65 encoded String
+     * @return the resource re-encoded as PNG, as base64 encoded String
+     * @deprecated See {@link ResourceLoader}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static String getResourceBase64(String resourcePath) {
         byte[] r;
         r = getResourceBinary(resourcePath);
@@ -61,10 +79,17 @@ public class ResourceLoader {
 
     /**
      * Get a resource from a given path.
+     * <p>
+     * <b>Warning:</b> despite its name, this does not return the resource's original bytes. It decodes the
+     * resource as an image and returns that image re-encoded as PNG. A resource that is not a readable image
+     * yields <code>null</code>, and an image in another format yields different bytes than stored.
      *
      * @param resourcePath the path to search the resource at.
-     * @return the resource as byte array
+     * @return the resource re-encoded as PNG image, or <code>null</code> if it is not found or not a readable
+     *         image
+     * @deprecated See {@link ResourceLoader}.
      */
+    @Deprecated(since = "6.1.0", forRemoval = true)
     public static byte[] getResourceBinary(String resourcePath) {
         byte[] ret = null;
         InputStream is = null;
