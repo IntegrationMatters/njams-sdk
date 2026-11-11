@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 import com.im.njams.sdk.Njams;
 import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.settings.ClientSettings;
-import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.ServiceLoaderSupport;
 
 /**
@@ -159,7 +158,7 @@ public class CommunicationFactory {
                     return receiver;
                 }
                 LOG.debug("Creating shared receiver {}", clazz);
-                receiver = newValidatedInstance(clazz);
+                receiver = newInstance(clazz);
                 receiver.init(receiverSettings);
                 // cached only after a successful init, so a failing receiver is never handed out later
                 sharedReceivers.put(clazz, receiver);
@@ -167,17 +166,13 @@ public class CommunicationFactory {
             }
         }
         LOG.debug("Creating dedicated receiver {}", clazz);
-        receiver = newValidatedInstance(clazz);
+        receiver = newInstance(clazz);
         receiver.init(receiverSettings);
         return receiver;
     }
 
-    private static <T> T newValidatedInstance(Class<? extends T> clazz) throws ReflectiveOperationException {
-        final T instance = clazz.getDeclaredConstructor().newInstance();
-        if (instance instanceof ClasspathValidator) {
-            ((ClasspathValidator) instance).validate();
-        }
-        return instance;
+    private static <T> T newInstance(Class<? extends T> clazz) throws ReflectiveOperationException {
+        return clazz.getDeclaredConstructor().newInstance();
     }
 
     /** Creates and initializes one candidate; any failure means the candidate is skipped. */
@@ -309,7 +304,7 @@ public class CommunicationFactory {
     private AbstractSender createInitializedSender(Class<? extends AbstractSender> senderClass)
         throws ReflectiveOperationException {
         LOG.debug("Create sender {}", senderClass.getName());
-        final AbstractSender newInstance = newValidatedInstance(senderClass);
+        final AbstractSender newInstance = newInstance(senderClass);
         newInstance.init(settings);
         return newInstance;
     }

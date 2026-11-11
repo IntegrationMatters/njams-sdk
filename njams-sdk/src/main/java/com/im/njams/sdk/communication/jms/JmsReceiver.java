@@ -59,7 +59,6 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
-import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -69,7 +68,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @version 4.0.5
  */
 public class JmsReceiver extends AbstractJmsReceiver
-    implements MessageListener, ExceptionListener, ClasspathValidator {
+    implements MessageListener, ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
@@ -413,30 +412,6 @@ public class JmsReceiver extends AbstractJmsReceiver
     public void onException(JMSException exception) {
         LOG.trace("JMS failure", exception);
         super.onException(exception);
-    }
-
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     */
-    @Override
-    public String[] librariesToCheck() {
-        return new String[] {
-            "jakarta.jms.Connection",
-            "jakarta.jms.ConnectionFactory",
-            "jakarta.jms.ExceptionListener",
-            "jakarta.jms.JMSException",
-            "jakarta.jms.Message",
-            "jakarta.jms.MessageConsumer",
-            "jakarta.jms.MessageListener",
-            "jakarta.jms.Session",
-            "jakarta.jms.TextMessage",
-            "jakarta.jms.MessageProducer",
-            "jakarta.jms.Topic",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException" };
     }
 
 }

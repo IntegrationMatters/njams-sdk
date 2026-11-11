@@ -49,7 +49,6 @@ import com.im.njams.sdk.common.NjamsSdkRuntimeException;
 import com.im.njams.sdk.settings.ClientSettings;
 import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
-import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -58,7 +57,7 @@ import com.im.njams.sdk.utils.StringUtils;
  * @author hsiegeln
  * @version 4.0.6
  */
-public class JmsSender extends AbstractJmsSender implements ExceptionListener, ClasspathValidator {
+public class JmsSender extends AbstractJmsSender implements ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
@@ -299,20 +298,5 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
     @Override
     public synchronized void onException(JMSException exception) {
         notifyConnectionFailure(new NjamsSdkRuntimeException("JMS Exception", exception));
-    }
-
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     */
-    @Override
-    public String[] librariesToCheck() {
-        return new String[] { "jakarta.jms.Connection", "jakarta.jms.ConnectionFactory", "jakarta.jms.Destination",
-            "jakarta.jms.ExceptionListener",
-            "jakarta.jms.Session", "jakarta.jms.JMSException",
-            "jakarta.jms.MessageProducer",
-            "jakarta.jms.Session", "jakarta.jms.TextMessage", "javax.naming.InitialContext",
-            "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }

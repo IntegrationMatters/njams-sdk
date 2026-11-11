@@ -51,7 +51,6 @@ import com.im.njams.sdk.communication.ConnectionStatus;
 import com.im.njams.sdk.communication.TransportNotApplicableException;
 import com.im.njams.sdk.communication.jms.AbstractJmsSender;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -64,7 +63,7 @@ import com.im.njams.sdk.utils.StringUtils;
  *             stays supported and is not scheduled for removal.
  */
 @Deprecated(since = "6.1.0")
-public class JmsSender extends AbstractJmsSender implements ExceptionListener, ClasspathValidator {
+public class JmsSender extends AbstractJmsSender implements ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSender.class);
 
@@ -318,23 +317,5 @@ public class JmsSender extends AbstractJmsSender implements ExceptionListener, C
     @Override
     public synchronized void onException(JMSException exception) {
         notifyConnectionFailure(new NjamsSdkRuntimeException("JMS Exception", exception));
-    }
-
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     *
-     * @deprecated See {@link JmsSender}.
-     */
-    @Deprecated(since = "6.1.0")
-    @Override
-    public String[] librariesToCheck() {
-        return new String[] { "javax.jms.Connection", "javax.jms.ConnectionFactory", "javax.jms.Destination",
-            "javax.jms.ExceptionListener",
-            "javax.jms.Session", "javax.jms.JMSException",
-            "javax.jms.MessageProducer",
-            "javax.jms.Session", "javax.jms.TextMessage", "javax.naming.InitialContext",
-            "javax.naming" + ".NameNotFoundException", "javax.naming.NamingException" };
     }
 }

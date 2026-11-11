@@ -61,7 +61,6 @@ import com.im.njams.sdk.communication.fragments.JMSChunkAssembly;
 import com.im.njams.sdk.communication.fragments.SplitSupport.SplitIterator;
 import com.im.njams.sdk.communication.jms.AbstractJmsReceiver;
 import com.im.njams.sdk.communication.jms.factory.JmsFactory;
-import com.im.njams.sdk.utils.ClasspathValidator;
 import com.im.njams.sdk.utils.StringUtils;
 
 /**
@@ -75,7 +74,7 @@ import com.im.njams.sdk.utils.StringUtils;
  */
 @Deprecated(since = "6.1.0")
 public class JmsReceiver extends AbstractJmsReceiver
-    implements MessageListener, ExceptionListener, ClasspathValidator {
+    implements MessageListener, ExceptionListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsReceiver.class);
 
@@ -428,33 +427,6 @@ public class JmsReceiver extends AbstractJmsReceiver
     public void onException(JMSException exception) {
         LOG.trace("JMS failure", exception);
         super.onException(exception);
-    }
-
-    /**
-     * This method gets all libraries that need to be checked.
-     *
-     * @return an array of Strings of fully qualified class names.
-     *
-     * @deprecated See {@link JmsReceiver}.
-     */
-    @Deprecated(since = "6.1.0")
-    @Override
-    public String[] librariesToCheck() {
-        return new String[] {
-            "javax.jms.Connection",
-            "javax.jms.ConnectionFactory",
-            "javax.jms.ExceptionListener",
-            "javax.jms.JMSException",
-            "javax.jms.Message",
-            "javax.jms.MessageConsumer",
-            "javax.jms.MessageListener",
-            "javax.jms.Session",
-            "javax.jms.TextMessage",
-            "javax.jms.MessageProducer",
-            "javax.jms.Topic",
-            "javax.naming.InitialContext",
-            "javax.naming.NameNotFoundException",
-            "javax.naming.NamingException" };
     }
 
 }
