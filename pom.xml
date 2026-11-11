@@ -23,19 +23,16 @@
     </scm>
 
     <properties>
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPaths>
-            ${project.basedir}/target/coverage-reports/jacoco-ut.exec,${project.basedir}/target/coverage-reports/jacoco-it.exec
-        </sonar.jacoco.reportPaths>
-        <sonar.language>java</sonar.language>
-
         <javaSourceLevel>11</javaSourceLevel>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <xmArguments>-Xms256m -Xmx512m</xmArguments>
         <argLine>${xmArguments}</argLine>
         <surefire.java.io.tmpdir>${project.build.directory}/tmp</surefire.java.io.tmpdir>
+        <!-- JaCoCo agent arguments for surefire/failsafe. Blank by default, so the build works without the
+             sonarcloud profile; that profile's prepare-agent executions fill them in. -->
+        <jacoco.surefire.argLine />
+        <jacoco.failsafe.argLine />
 
         <!-- Fallbacks for the Git metadata filtered into sdk.version. The git-commit-id plugin
              overwrites these from the local .git, the branch on CI from GIT_LOCAL_BRANCH instead
@@ -49,9 +46,11 @@
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
         <build-helper-maven-plugin.version>3.6.2</build-helper-maven-plugin.version>
-        <!-- Pinned below the latest 10.x, which requires Maven 3.9.0; the build runs on Maven 3.8.5. -->
-        <git-commit-id-maven-plugin.version>9.2.0</git-commit-id-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
+        <git-commit-id-maven-plugin.version>10.0.1</git-commit-id-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.16</jacoco-maven-plugin.version>
+        <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.6.1</maven-failsafe-plugin.version>
+        <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
 
         <!-- Dependency versions -->
         <njams-messageformat.version>5.0.2-SNAPSHOT</njams-messageformat.version>
@@ -59,15 +58,15 @@
         <!-- Both JMS APIs are provided: javax.jms (JMS 2.0) and jakarta.jms (Jakarta Messaging 3.1). -->
         <javax.jms-api.version>2.0.1</javax.jms-api.version>
         <jakarta.jms-api.version>3.1.0</jakarta.jms-api.version>
-        <jakarta.xml.bind-api>4.0.2</jakarta.xml.bind-api>
-        <kafka-version>3.9.2</kafka-version>
+        <jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
+        <kafka.version>3.9.2</kafka.version>
         <!-- ActiveMQ stays on the 5.x line: 6.x requires Java 17, the SDK targets Java 11 (SDK-418). -->
-        <activemq-version>5.19.7</activemq-version>
+        <activemq.version>5.19.7</activemq.version>
         <!-- Artemis 2.34.0 is built for Java 11; 2.44.0 and later require Java 17 (the versions in
              between were not checked). Used only by njams-sdk-jms-mixed-test, as the jakarta broker client
              that can share a classpath with AMQ Classic - activemq-client-jakarta cannot, it collides on
              class names. -->
-        <artemis-version>2.34.0</artemis-version>
+        <artemis.version>2.34.0</artemis.version>
         <!-- Pins the transitive snappy-java pulled in by kafka-clients to a fixed version (SDK-418). -->
         <snappy-java.version>1.1.10.7</snappy-java.version>
         <!-- Pins the transitive okio pulled in by okhttp to a fixed version (SDK-418). -->
@@ -137,6 +136,11 @@
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.12.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>${sonar-maven-plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
@@ -167,8 +171,18 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!-- Sets the VM argument line used when unit tests are run. @{...} is resolved late, so
+                         it picks up the JaCoCo agent set by the sonarcloud profile. -->
+                    <argLine>@{argLine} @{jacoco.surefire.argLine}</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.6</version>
+                <version>${maven-failsafe-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -177,7 +191,7 @@
                         </goals>
                         <configuration>
                             <!-- Sets the VM argument line used when integration tests are run. -->
-                            <argLine>${failsafeArgLine}</argLine>
+                            <argLine>@{jacoco.failsafe.argLine} @{argLine}</argLine>
                             <!--
                                 Skips integration tests if the value of skip.integration.tests property
                                 is true
@@ -283,7 +297,7 @@
             <dependency>
                 <groupId>jakarta.xml.bind</groupId>
                 <artifactId>jakarta.xml.bind-api</artifactId>
-                <version>${jakarta.xml.bind-api}</version>
+                <version>${jakarta.xml.bind-api.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
@@ -365,17 +379,17 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
-                <version>${kafka-version}</version>
+                <version>${kafka.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>${activemq-version}</version>
+                <version>${activemq.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-broker</artifactId>
-                <version>${activemq-version}</version>
+                <version>${activemq.version}</version>
             </dependency>
             <!-- Pin transitive snappy-java (via kafka-clients) to a vulnerability-fixed version (SDK-418). -->
             <dependency>
@@ -399,88 +413,74 @@
 
     <profiles>
         <profile>
-            <id>sonar</id>
+            <id>sonarcloud</id>
+            <properties>
+                <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+                <sonar.organization>integration-matters-gmbh</sonar.organization>
+                <sonar.projectKey>IntegrationMatters_njams-sdk</sonar.projectKey>
+                <sonar.scm.disabled>true</sonar.scm.disabled>
+                <sonar.coverage.jacoco.xmlReportPaths>${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml,${project.reporting.outputDirectory}/jacoco-it/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
+                        <!--
+                            JaCoCo provides the test coverage for Sonar: one report for unit tests and one for
+                            integration tests. Each prepare-agent execution stores the agent in the property that
+                            surefire respectively failsafe adds to its argLine; each report execution writes the
+                            XML report Sonar reads.
+                        -->
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>${jacoco-maven-plugin.version}</version>
-                        <configuration>
-                            <excludes />
-                        </configuration>
                         <executions>
-                            <!--
-                                Prepares the property pointing to the JaCoCo runtime agent which
-                                is passed as VM argument when Maven the Surefire plugin is executed.
-                            -->
                             <execution>
-                                <id>pre-unit-test</id>
+                                <id>jacoco-pre-ut</id>
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- Sets the path to the file which contains the execution data. -->
-                                    <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
-                                    <!--
-                                        Sets the name of the property containing the settings
-                                        for JaCoCo runtime agent.
-                                    -->
-                                    <propertyName>surefire.argLine</propertyName>
+                                    <destFile>${project.build.directory}/coverage/jacoco-ut.exec</destFile>
+                                    <propertyName>jacoco.surefire.argLine</propertyName>
                                 </configuration>
                             </execution>
-                            <!--
-                                Ensures that the code coverage report for unit tests is created after
-                                unit tests have been run.
-                            -->
                             <execution>
-                                <id>post-unit-test</id>
+                                <id>jacoco-post-ut</id>
                                 <phase>test</phase>
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- Sets the path to the file which contains the execution data. -->
-                                    <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
-                                    <!-- Sets the output directory for the code coverage report. -->
+                                    <dataFile>${project.build.directory}/coverage/jacoco-ut.exec</dataFile>
                                     <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+                                    <formats>
+                                        <format>XML</format>
+                                    </formats>
                                 </configuration>
                             </execution>
-                            <!--
-                                Prepares the property pointing to the JaCoCo runtime agent which
-                                is passed as VM argument when Maven the Failsafe plugin is executed.
-                            -->
                             <execution>
-                                <id>pre-integration-test</id>
+                                <id>jacoco-pre-it</id>
                                 <phase>pre-integration-test</phase>
                                 <goals>
                                     <goal>prepare-agent</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- Sets the path to the file which contains the execution data. -->
-                                    <destFile>${project.build.directory}/coverage-reports/jacoco-it.exec</destFile>
-                                    <!--
-                                        Sets the name of the property containing the settings
-                                        for JaCoCo runtime agent.
-                                    -->
-                                    <propertyName>failsafeArgLine</propertyName>
+                                    <destFile>${project.build.directory}/coverage/jacoco-it.exec</destFile>
+                                    <propertyName>jacoco.failsafe.argLine</propertyName>
                                 </configuration>
                             </execution>
-                            <!--
-                                Ensures that the code coverage report for integration tests after
-                                integration tests have been run.
-                            -->
                             <execution>
-                                <id>post-integration-test</id>
+                                <id>jacoco-post-it</id>
                                 <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>report</goal>
                                 </goals>
                                 <configuration>
-                                    <!-- Sets the path to the file which contains the execution data. -->
-                                    <dataFile>${project.build.directory}/coverage-reports/jacoco-it.exec</dataFile>
-                                    <!-- Sets the output directory for the code coverage report. -->
+                                    <dataFile>${project.build.directory}/coverage/jacoco-it.exec</dataFile>
                                     <outputDirectory>${project.reporting.outputDirectory}/jacoco-it</outputDirectory>
+                                    <formats>
+                                        <format>XML</format>
+                                    </formats>
                                 </configuration>
                             </execution>
                         </executions>

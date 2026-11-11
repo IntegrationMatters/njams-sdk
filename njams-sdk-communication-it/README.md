@@ -76,7 +76,7 @@ the mounted files).
 
 ## How to run
 
-Prerequisites: a running Docker daemon, Java 11+, Maven 3.8+, and the `njams-sdk` snapshot artifacts (including its
+Prerequisites: a running Docker daemon, Java 11+, Maven 3.9+, and the `njams-sdk` snapshot artifacts (including its
 test-jar) resolvable — e.g. run `mvn clean install -DskipTests` at the repo root once.
 
 ```bash

@@ -48,13 +48,13 @@ mvn test -Dtest=NjamsSampleTest#testMethodName -pl njams-sdk
 mvn javadoc:javadoc -pl njams-sdk
 
 # Run with SonarQube coverage
-mvn clean test -Psonar -pl njams-sdk
+mvn clean test -Psonarcloud -pl njams-sdk
 
 # Skip tests for faster builds
 mvn clean install -DskipTests
 ```
 
-**Requirements:** Java 11+, Maven 3.8+
+**Requirements:** Java 11+, Maven 3.9+
 
 ## Project Structure
 

@@ -18,9 +18,10 @@ pipeline {
     // Triggering is handled by the (multibranch) job configuration via webhook /
     // branch indexing, so no explicit `triggers` block is required.
 
+    // Build and tests run on Java 11; only the Sonar analysis stage switches to a newer JDK.
     tools {
         jdk 'openJDK-11.0.20'
-        maven 'Maven 3.8.5'
+        maven 'Maven 3.9.6'
     }
 
     stages {
@@ -35,13 +36,28 @@ pipeline {
                 // Commit and branch are resolved by git-commit-id-maven-plugin from the checkout
                 // itself, the branch via the GIT_LOCAL_BRANCH set above. Neither needs to be passed
                 // in, so they are no longer lost in the deploy stage below.
-                sh 'mvn clean install -Pjenkins-cli'
+                // The sonarcloud profile attaches the JaCoCo agent and writes the coverage reports
+                // the Sonar analysis stage consumes.
+                sh 'mvn clean install -Psonarcloud'
             }
             post {
                 always {
                     junit 'njams-sdk/target/surefire-reports/*.xml'
                     junit allowEmptyResults: true, testResults: 'njams-sdk/target/failsafe-reports/*.xml'
                     archiveArtifacts 'njams-sdk/target/*.jar'
+                }
+            }
+        }
+
+        // Analyses njams-sdk only, reusing the classes and coverage reports of the Build stage (no clean).
+        // The SonarCloud scanner needs a newer Java runtime than the build, hence the stage-level JDK.
+        stage('Sonar analysis') {
+            tools {
+                jdk 'openJDK-25'
+            }
+            steps {
+                withCredentials([string(credentialsId: 'sonar-cloud-token', variable: 'SONAR_TOKEN')]) {
+                    sh 'mvn -Psonarcloud -f njams-sdk/pom.xml org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
                 }
             }
         }
@@ -108,7 +124,7 @@ pipeline {
             steps {
                 // Reuse the artifacts already compiled and tested above: no `clean`
                 // and tests are not re-run.
-                sh 'mvn deploy -Pjenkins-cli -DskipTests'
+                sh 'mvn deploy -DskipTests'
             }
         }
     }
