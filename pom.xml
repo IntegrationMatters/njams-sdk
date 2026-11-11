@@ -219,23 +219,41 @@
                             <timeZone>UTC</timeZone>
                         </configuration>
                     </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>5.1.0</version>
+                <executions>
                     <execution>
                         <id>build-id</id>
                         <goals>
-                            <goal>timestamp-property</goal>
+                            <goal>execute</goal>
                         </goals>
+                        <phase>validate</phase>
                         <configuration>
-                            <!-- provides build ID based on build timestamp as replacement for
-                                 SVN commit number as monotonically increasing identifier.
-                                 Fixed size 10 chars and still somewhat readable -->
-                            <locale>en_US</locale>
-                            <name>build.id</name>
-                            <pattern>yyMMddHHmm</pattern>
-                            <timeSource>build</timeSource>
-                            <timeZone>UTC</timeZone>
+                            <scripts>
+                                <!-- provides a monotonically increasing build ID based on
+                                session start time. It encodes minutes since epoch starting at 2026-01-01
+                                as hexadecimal -->
+                                <script><![CDATA[
+              def epoch = java.time.Instant.parse('2026-01-01T00:00:00Z')
+              def mins  = java.time.temporal.ChronoUnit.MINUTES.between(epoch, session.startTime.toInstant())
+              project.properties.setProperty('build.id', Long.toHexString(mins))
+            ]]></script>
+                            </scripts>
                         </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy</artifactId>
+                        <version>5.0.6</version>
+                        <scope>runtime</scope>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
