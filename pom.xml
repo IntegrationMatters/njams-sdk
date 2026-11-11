@@ -34,7 +34,7 @@
         <jacoco.surefire.argLine />
         <jacoco.failsafe.argLine />
         <!-- Integration tests follow -DskipTests unless skip.integration.tests is set explicitly. Failsafe's
-             explicit skipTests configuration would otherwise ignore -DskipTests. -->
+             explicit skipITs configuration would otherwise ignore -DskipTests. -->
         <skipTests>false</skipTests>
         <skip.integration.tests>${skipTests}</skip.integration.tests>
 
@@ -200,7 +200,7 @@
                                 Skips integration tests if the value of skip.integration.tests property
                                 is true
                             -->
-                            <skipTests>${skip.integration.tests}</skipTests>
+                            <skipITs>${skip.integration.tests}</skipITs>
                         </configuration>
                     </execution>
                 </executions>
