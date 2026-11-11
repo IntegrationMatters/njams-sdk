@@ -749,11 +749,10 @@ off that this is in scope **without** an `SER` ticket. Recorded here so the gate
   `org.apache.activemq.ActiveMQSslConnectionFactory`, and only the javax `activemq-client` is on this module's
   test classpath, so the jakarta factory always receives a `javax.jms` factory and its cast throws — the decline
   mechanism of §5.4 working exactly as designed. `activemq-client-jakarta` has colliding package names and
-  cannot share the classpath, the same constraint §6.5 records for `activemq-broker`. The jakarta twin keeps the
-  test with its body intact under `@Ignore`, and **§6.2's `njams-sdk-jms-jakarta-test` carries the assertion
-  instead** — that module is specified to have `activemq-client-jakarta`. Consequence to keep in view: the
-  jakarta `ActiveMqSslJmsFactory.createConnectionFactory()` path has no executing coverage until that module
-  exists.
+  cannot share the classpath, the same constraint §6.5 records for `activemq-broker`. **§6.2's
+  `njams-sdk-jms-jakarta-test` carries the assertion instead** (`JakartaActiveMqSslJmsFactoryTest`) — that module
+  has `activemq-client-jakarta`. The jakarta twin first kept the test with its body intact under `@Ignore`; since
+  it could never run there, SDK-499 removed it (2026-11-11), so this is the one test name the jakarta tree lacks.
 - Existing test cases must not be modified without explicit user permission.
 
 ### 6.2 Four namespace modules — no broker, no Docker, default build

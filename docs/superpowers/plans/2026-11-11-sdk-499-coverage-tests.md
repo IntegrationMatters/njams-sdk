@@ -61,6 +61,18 @@ JaCoCo 0.8.16, SonarCloud.
 3. **SDK-503** tracks the related, separate defect that removing a non-last client does not refresh the selector.
 4. **`#comment`** is not on Task 6's commit; it goes on the commit that concludes the ticket, once the SonarCloud gate
    is confirmed on the pushed branch.
+5. **Split rejection tests.** Each rejection case got its own test instead of one combined test:
+   `rejectedEventsAreNotAnswered` became seven `...IsNotAnswered` tests in `HttpSseReceiverTest`;
+   `onMessageIgnoresNonJsonForeignClientAndInvalidInstruction` became `onMessageIgnoresNonJsonContent`,
+   `onMessageIgnoresForeignClient` and `onMessageIgnoresInvalidInstruction`; `nonJsonAndInvalidMessagesAreIgnored`
+   became `nonJsonMessageIsIgnored`, `invalidInstructionIsIgnored` and `nonTextMessageIsIgnored` (JMS tests in both
+   trees).
+6. **Removed the jakarta `ActiveMqSslJmsFactoryTest.initCreatesActiveMqSslConnectionFactory`.** It was permanently
+   `@Ignore`d because it cannot run in `njams-sdk`; `JakartaActiveMqSslJmsFactoryTest` in the jakarta namespace
+   module covers it. The SDK-495 spec (§6.1) is updated accordingly.
+7. **Mockito in `njams-sdk-communication-it`.** `ScriptedJmsFactory` is registered in the njams-sdk test-jar's
+   services files, which the communication-it module puts on its classpath; Mockito is added there as a test
+   dependency so the provider listing can load it.
 
 ---
 
