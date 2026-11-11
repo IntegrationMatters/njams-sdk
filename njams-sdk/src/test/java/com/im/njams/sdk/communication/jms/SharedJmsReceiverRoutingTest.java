@@ -82,6 +82,7 @@ public class SharedJmsReceiverRoutingTest {
         verify(ScriptedJmsFactory.producer()).send(sent.capture());
         verify(sent.getValue()).setStringProperty(MessageHeaders.NJAMS_CLIENTID_HEADER,
             second.metadata().getClientSessionId());
+        verify(sent.getValue()).setJMSCorrelationID("corr-" + pathOf(second));
     }
 
     @Test
@@ -205,6 +206,7 @@ public class SharedJmsReceiverRoutingTest {
         when(message.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("json");
         when(message.getStringProperty(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(receiverPath);
         when(message.getJMSReplyTo()).thenReturn(mock(Destination.class));
+        when(message.getJMSCorrelationID()).thenReturn("corr-" + receiverPath);
         return message;
     }
 

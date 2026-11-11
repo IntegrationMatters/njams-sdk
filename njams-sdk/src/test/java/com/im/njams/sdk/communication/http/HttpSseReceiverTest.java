@@ -83,7 +83,7 @@ public class HttpSseReceiverTest {
 
     @Test
     public void jsonHeaderEventIsAnswered() throws Exception {
-        receiver.onMessage("message", event(jsonName(clientPath, "req-1", "json", sessionId), PING, "req-1"));
+        receiver.onMessage("message", event(jsonName(clientPath, "req-1", "json", sessionId), PING, "sse-1"));
 
         assertEquals(1, handled.size());
         assertEquals(1, sent.size());
@@ -129,10 +129,10 @@ public class HttpSseReceiverTest {
         String first = chunkName(1);
         String second = chunkName(2);
 
-        receiver.onMessage("message", event(first, PING.substring(0, 10), "g"));
+        receiver.onMessage("message", event(first, PING.substring(0, 10), "sse-g1"));
         assertTrue(sent.isEmpty());
 
-        receiver.onMessage("message", event(second, PING.substring(10), "g"));
+        receiver.onMessage("message", event(second, PING.substring(10), "sse-g2"));
         assertEquals(1, sent.size());
         assertEquals("g", sent.get(0).header(NJAMS_REPLY_FOR_HTTP_HEADER));
     }

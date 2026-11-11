@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -246,8 +247,14 @@ public class JmsReceiverConnectAndReplyTest {
 
         verify(ScriptedJmsFactory.consumer()).close();
         verify(ScriptedJmsFactory.session()).close();
-        // the receiver is stopped synchronously; the reconnect thread may already have reconnected afterwards
         verify(ScriptedJmsFactory.connection()).close();
+        // waiting for the reconnect also ends the reconnect thread before the next test resets the mocks
+        verify(ScriptedJmsFactory.connectionFactory(), timeout(10_000).times(2)).createConnection();
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (!receiver.isConnected() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
+        assertTrue(receiver.isConnected());
     }
 
     private void connect(ClientSettings settings) {
