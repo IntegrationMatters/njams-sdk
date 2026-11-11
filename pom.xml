@@ -424,6 +424,10 @@
                 <sonar.projectKey>IntegrationMatters_njams-sdk</sonar.projectKey>
                 <sonar.scm.disabled>true</sonar.scm.disabled>
                 <sonar.coverage.jacoco.xmlReportPaths>${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml,${project.reporting.outputDirectory}/jacoco-it/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+                <!-- Deliberate decision: the deprecated Kafka transport and Argos metrics get no further test
+                     coverage investment (see .claude/rules/kafka-argos-deprecated.md), so they are left out of the
+                     coverage measurement. Sonar still analyses them for issues. -->
+                <sonar.coverage.exclusions>**/com/im/njams/sdk/communication/kafka/**,**/com/im/njams/sdk/argos/**</sonar.coverage.exclusions>
             </properties>
             <build>
                 <plugins>
