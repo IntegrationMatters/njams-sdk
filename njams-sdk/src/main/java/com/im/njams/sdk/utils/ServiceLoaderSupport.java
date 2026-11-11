@@ -178,17 +178,25 @@ public class ServiceLoaderSupport<S> implements Iterable<S> {
     }
 
     private String getDebugLabel(final S s) {
-        Class<?> c = s.getClass();
-        while (c != null && c != Object.class) {
-            try {
-                s.getClass().getDeclaredMethod("toString");
-                return s.toString();
-            } catch (final Exception e) {
-                // not found or other error
+        try {
+            for (Class<?> c = s.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+                if (declaresToString(c)) {
+                    return s.toString();
+                }
             }
-            c = c.getSuperclass();
+        } catch (final RuntimeException | LinkageError e) {
+            // e.g., a dependency of the implementation is missing; the class name still identifies it
         }
         return s.getClass().getName();
+    }
+
+    private static boolean declaresToString(final Class<?> c) {
+        try {
+            c.getDeclaredMethod("toString");
+            return true;
+        } catch (final NoSuchMethodException e) {
+            return false;
+        }
     }
 
     /**
