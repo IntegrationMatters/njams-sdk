@@ -6,9 +6,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -118,15 +121,31 @@ public class SharedJmsReceiverRoutingTest {
     }
 
     @Test
-    public void failingConsumerCloseIsSurvived() throws Exception {
+    public void failingConsumerCloseReconnectsWithTheCurrentSelector() throws Exception {
         receiver.setNjams(first);
         receiver.connect();
         doThrow(new JMSException("close")).when(ScriptedJmsFactory.consumer()).close();
 
         receiver.setNjams(second);
 
-        verify(ScriptedJmsFactory.consumer()).close();
-        assertTrue(receiver.isConnected());
+        verify(ScriptedJmsFactory.connectionFactory(), timeout(10_000).times(2)).createConnection();
+        verify(ScriptedJmsFactory.session(), timeout(10_000))
+            .createConsumer(eq(ScriptedJmsFactory.topic()), argThat(selector -> selector.contains(pathOf(second))));
+    }
+
+    @Test
+    public void failingConsumerCreationReconnectsWithTheCurrentSelector() throws Exception {
+        receiver.setNjams(first);
+        receiver.connect();
+        doThrow(new JMSException("create")).doReturn(ScriptedJmsFactory.consumer())
+            .when(ScriptedJmsFactory.session()).createConsumer(any(), anyString());
+
+        receiver.setNjams(second);
+
+        verify(ScriptedJmsFactory.connectionFactory(), timeout(10_000).times(2)).createConnection();
+        // the failed attempt and the one made by the reconnect
+        verify(ScriptedJmsFactory.session(), timeout(10_000).times(2))
+            .createConsumer(eq(ScriptedJmsFactory.topic()), argThat(selector -> selector.contains(pathOf(second))));
     }
 
     @Test

@@ -119,7 +119,10 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
             }
             consumer = createConsumer(session, topic);
         } catch (Exception e) {
-            LOG.error("Failed to update consumer", e);
+            // A consumer that could not be replaced either still listens with the outdated selector or is gone, so
+            // the connection is rebuilt; the reconnect creates the consumer with the current selector.
+            LOG.warn("Failed to replace the consumer for the changed clients; reconnecting the receiver.", e);
+            onException(e);
         }
     }
 
