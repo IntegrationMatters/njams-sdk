@@ -1,4 +1,4 @@
-# nJAMS SDK
+# nJAMS SDK 
 
 ![GitHub all releases](https://img.shields.io/github/downloads/IntegrationMatters/njams-sdk/total)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Integrationmatters/njams-sdk)
