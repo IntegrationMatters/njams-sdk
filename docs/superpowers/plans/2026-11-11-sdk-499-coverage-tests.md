@@ -49,6 +49,19 @@ JaCoCo 0.8.16, SonarCloud.
 5. HTTP reply tests must assert `njams-reply-for` matches the request's message id in both event formats (JSON
    headers and legacy) — the server correlates replies by it.
 
+## Deviations (approved during execution)
+
+1. **MSG-32.** An instruction without a request made `Command.getFromInstruction` (njams-messageformat) throw an
+   NPE. Fixed in messageformat 5.0.2 under MSG-32; `SharedReceiverSupportRoutingTest.instructionWithoutRequestGetsResultCode1`
+   depends on that version.
+2. **Production fix in `SharedJmsReceiver` (both trees).** A failure while replacing the consumer for changed clients
+   left the receiver connected with an outdated or missing consumer; it now triggers the receiver's reconnect.
+   Folded into SDK-499. Consequently Task 4's "failing `close()` is survived" became
+   `failingConsumerClose/CreationReconnectsWithTheCurrentSelector`, and `failingConsumerCloseIsSurvived` was deleted.
+3. **SDK-503** tracks the related, separate defect that removing a non-last client does not refresh the selector.
+4. **`#comment`** is not on Task 6's commit; it goes on the commit that concludes the ticket, once the SonarCloud gate
+   is confirmed on the pushed branch.
+
 ---
 
 ## Tasks

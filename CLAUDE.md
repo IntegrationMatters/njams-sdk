@@ -129,7 +129,7 @@ Topic-specific rules that apply either always or only when working with certain 
 | `jira-workflow.md` | always | Ticket lifecycle, labels, fix version, descriptions, closing comments |
 | `commit-conventions.md` | always | Smart Commit message format, branching policy, pushing |
 | `message-format-changes.md` | always | nJAMS message format change-confirmation gate |
-| `development-workflow-skills.md` | always | Which skill to invoke for new features / modifications / bug fixes |
+| `development-workflow-skills.md` | always | Which skill to invoke for new features / modifications / bug fixes / SonarCloud findings |
 | `public-api-design.md` | `njams-sdk/src/main/java/**` | Public API surface, relocated/shaded types, visibility, immutability, Javadoc, checkstyle |
 | `code-quality-general.md` | `njams-sdk/src/main/java/**` | Copyright header, SOLID/DRY principles, Sonar-matching size limits for new/changed code, layering |
 | `reuse-existing-functionality.md` | `njams-sdk/src/main/java/**` | Search for structurally similar existing mechanisms before building a parallel one |

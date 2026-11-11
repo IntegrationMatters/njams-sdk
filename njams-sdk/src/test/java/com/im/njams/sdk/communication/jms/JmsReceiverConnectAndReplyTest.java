@@ -187,17 +187,32 @@ public class JmsReceiverConnectAndReplyTest {
     }
 
     @Test
-    public void onMessageIgnoresNonJsonForeignClientAndInvalidInstruction() throws Exception {
+    public void onMessageIgnoresNonJsonContent() throws Exception {
         connect(settings());
         TextMessage xml = command(PING, clientPath(), System.currentTimeMillis());
         when(xml.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("xml");
+
+        assertIgnored(xml);
+    }
+
+    @Test
+    public void onMessageIgnoresForeignClient() throws Exception {
+        connect(settings());
         TextMessage foreign = command(PING, clientPath(), System.currentTimeMillis());
         when(foreign.getStringProperty(MessageHeaders.NJAMS_CLIENTID_HEADER)).thenReturn("another-client");
-        TextMessage invalid = command("this is not json", clientPath(), System.currentTimeMillis());
 
-        receiver.onMessage(xml);
-        receiver.onMessage(foreign);
-        receiver.onMessage(invalid);
+        assertIgnored(foreign);
+    }
+
+    @Test
+    public void onMessageIgnoresInvalidInstruction() throws Exception {
+        connect(settings());
+
+        assertIgnored(command("this is not json", clientPath(), System.currentTimeMillis()));
+    }
+
+    private void assertIgnored(TextMessage message) throws JMSException {
+        receiver.onMessage(message);
 
         assertTrue(handled.isEmpty());
         verify(ScriptedJmsFactory.session(), never()).createProducer(any());

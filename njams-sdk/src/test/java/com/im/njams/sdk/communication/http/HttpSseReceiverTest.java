@@ -110,15 +110,44 @@ public class HttpSseReceiverTest {
     }
 
     @Test
-    public void rejectedEventsAreNotAnswered() throws Exception {
-        receiver.onMessage("message", event(" ", PING, "a"));
-        receiver.onMessage("message", event(jsonName(">other>", "b", "json", null), PING, "b"));
-        receiver.onMessage("message", event(jsonName(clientPath, "c", "json", "other-client"), PING, "c"));
-        receiver.onMessage("message", event(clientPath, PING, null));
-        receiver.onMessage("message", event(jsonName(clientPath, "d", "xml", null), PING, "d"));
-        receiver.onMessage("message", event(clientPath, "not json", "e"));
+    public void unnamedEventIsNotAnswered() throws Exception {
+        assertNotAnswered(event(" ", PING, "a"));
+    }
+
+    @Test
+    public void eventForOtherReceiverIsNotAnswered() throws Exception {
+        assertNotAnswered(event(jsonName(">other>", "b", "json", null), PING, "b"));
+    }
+
+    @Test
+    public void eventForOtherClientIdIsNotAnswered() throws Exception {
+        assertNotAnswered(event(jsonName(clientPath, "c", "json", "other-client"), PING, "c"));
+    }
+
+    @Test
+    public void legacyEventWithoutIdIsNotAnswered() throws Exception {
+        assertNotAnswered(event(clientPath, PING, null));
+    }
+
+    @Test
+    public void nonJsonEventIsNotAnswered() throws Exception {
+        assertNotAnswered(event(jsonName(clientPath, "d", "xml", null), PING, "d"));
+    }
+
+    @Test
+    public void unparseableEventIsNotAnswered() throws Exception {
+        assertNotAnswered(event(clientPath, "not json", "e"));
+    }
+
+    @Test
+    public void getRequestHandlerOutsideContainerModeIsNotAnswered() throws Exception {
         njams.features().setContainerMode(false);
-        receiver.onMessage("message", event(clientPath, "{\"request\":{\"command\":\"GetRequestHandler\"}}", "f"));
+
+        assertNotAnswered(event(clientPath, "{\"request\":{\"command\":\"GetRequestHandler\"}}", "f"));
+    }
+
+    private void assertNotAnswered(MessageEvent event) throws Exception {
+        receiver.onMessage("message", event);
 
         assertTrue(handled.isEmpty());
         assertTrue(sent.isEmpty());

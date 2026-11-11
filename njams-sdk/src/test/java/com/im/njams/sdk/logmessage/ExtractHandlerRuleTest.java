@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -67,6 +68,11 @@ public class ExtractHandlerRuleTest {
         NjamsConfiguration configurationFacet = spy(njams.configuration());
         doReturn(conf).when(configurationFacet).get();
         doReturn(configurationFacet).when(njams).configuration();
+    }
+
+    @AfterClass
+    public static void stopNjams() {
+        njams.stop();
     }
 
     @Before

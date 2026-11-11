@@ -96,7 +96,9 @@ public class SharedJmsReceiverRoutingTest {
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(ScriptedJmsFactory.session()).createTextMessage(body.capture());
         assertTrue(body.getValue(), body.getValue().contains("\"resultCode\":99"));
-        verify(ScriptedJmsFactory.producer()).send(any(Message.class));
+        ArgumentCaptor<Message> sent = ArgumentCaptor.forClass(Message.class);
+        verify(ScriptedJmsFactory.producer()).send(sent.capture());
+        verify(sent.getValue()).setStringProperty(MessageHeaders.NJAMS_CLIENTID_HEADER, null);
     }
 
     @Test
@@ -150,19 +152,36 @@ public class SharedJmsReceiverRoutingTest {
     }
 
     @Test
-    public void nonJsonAndInvalidMessagesAreIgnored() throws Exception {
+    public void nonJsonMessageIsIgnored() throws Exception {
         connectBoth();
         TextMessage xml = command(PING, pathOf(first));
         when(xml.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("xml");
-        TextMessage invalid = command("this is not json", pathOf(first));
+
+        assertIgnored(xml);
+    }
+
+    @Test
+    public void invalidInstructionIsIgnored() throws Exception {
+        connectBoth();
+
+        assertIgnored(command("this is not json", pathOf(first)));
+    }
+
+    @Test
+    public void nonTextMessageIsIgnored() throws Exception {
+        connectBoth();
         Message notText = mock(Message.class);
         when(notText.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("json");
+        when(notText.getStringProperty(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(pathOf(first));
 
-        receiver.onMessage(xml);
-        receiver.onMessage(invalid);
-        receiver.onMessage(notText);
+        assertIgnored(notText);
+    }
+
+    private void assertIgnored(Message message) throws JMSException {
+        receiver.onMessage(message);
 
         assertTrue(firstHandled.isEmpty());
+        assertTrue(secondHandled.isEmpty());
         verify(ScriptedJmsFactory.session(), never()).createProducer(any());
     }
 
