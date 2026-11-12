@@ -24,7 +24,10 @@ import java.util.Properties;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.Topic;
 
 import org.junit.After;
 import org.junit.Before;
@@ -89,7 +92,8 @@ public class SharedJmsReceiverRoutingTest {
     public void instructionForUnknownClientIsAnsweredWith99() throws Exception {
         connectBoth();
 
-        receiver.onMessage(command(PING, ">SDK4>JMS>unknown>"));
+        // a shared ancestor path passes the selector and filter, but matches no registered client
+        receiver.onMessage(command(PING, ">SDK4>JMS>"));
 
         assertTrue(firstHandled.isEmpty());
         assertTrue(secondHandled.isEmpty());
@@ -114,10 +118,11 @@ public class SharedJmsReceiverRoutingTest {
         verify(ScriptedJmsFactory.session(), times(2)).createConsumer(any(), anyString());
 
         assertFalse(receiver.removeNjams(second));
-        verify(ScriptedJmsFactory.session(), times(2)).createConsumer(any(), anyString());
+        verify(ScriptedJmsFactory.consumer(), times(2)).close();
+        verify(ScriptedJmsFactory.session(), times(3)).createConsumer(any(), anyString());
 
         assertTrue(receiver.removeNjams(first));
-        verify(ScriptedJmsFactory.consumer(), times(2)).close();
+        verify(ScriptedJmsFactory.consumer(), times(3)).close();
         verify(ScriptedJmsFactory.connection()).close();
         assertTrue(receiver.isDisconnected());
         verify(ScriptedJmsFactory.session(), never()).createConsumer(any());
@@ -152,6 +157,85 @@ public class SharedJmsReceiverRoutingTest {
     }
 
     @Test
+    public void removingOneOfSeveralClientsRecreatesTheConsumerWithoutIt() throws Exception {
+        connectBoth();
+
+        assertFalse(receiver.removeNjams(second));
+
+        verify(ScriptedJmsFactory.session()).createConsumer(eq(ScriptedJmsFactory.topic()),
+            argThat(selector -> selector.contains(pathOf(first)) && !selector.contains(pathOf(second))));
+    }
+
+    @Test
+    public void commandForRemovedClientIsNeitherHandledNorAnswered() throws Exception {
+        connectBoth();
+        assertFalse(receiver.removeNjams(second));
+
+        receiver.onMessage(command(PING, pathOf(second)));
+
+        assertTrue(secondHandled.isEmpty());
+        verify(ScriptedJmsFactory.session(), never()).createProducer(any());
+
+        receiver.onMessage(command(PING, pathOf(first)));
+
+        assertEquals(1, firstHandled.size());
+    }
+
+    @Test
+    public void commandForRemovedClientIsNeitherHandledNorAnsweredWithoutSelector() throws Exception {
+        receiver = new SharedJmsReceiver();
+        ClientSettings settings = settings();
+        settings.put(NjamsSettings.PROPERTY_JMS_SUPPORTS_MESSAGE_SELECTOR, "false");
+        receiver.init(settings);
+        connectBoth();
+        assertFalse(receiver.removeNjams(second));
+
+        receiver.onMessage(command(PING, pathOf(second)));
+
+        assertTrue(secondHandled.isEmpty());
+        verify(ScriptedJmsFactory.session(), never()).createProducer(any());
+
+        receiver.onMessage(command(PING, pathOf(first)));
+
+        assertEquals(1, firstHandled.size());
+    }
+
+    @Test
+    public void clientAddedWhileConnectingIsInTheSelectorOfTheResultingConsumer() throws Exception {
+        final Thread[] adder = new Thread[1];
+        receiver = new SharedJmsReceiver() {
+            @Override
+            protected MessageConsumer createConsumer(Session sess, Topic topic) throws JMSException {
+                final MessageConsumer created = super.createConsumer(sess, topic);
+                if (adder[0] == null) {
+                    // a second client starts after this connect has created its consumer, but before it completes
+                    adder[0] = new Thread(() -> setNjams(second));
+                    adder[0].start();
+                    awaitBlockedOrTerminated(adder[0]);
+                }
+                return created;
+            }
+        };
+        receiver.init(settings());
+        receiver.setNjams(first);
+
+        receiver.connect();
+        adder[0].join(10_000);
+
+        assertFalse(adder[0].isAlive());
+        verify(ScriptedJmsFactory.session()).createConsumer(eq(ScriptedJmsFactory.topic()),
+            argThat(selector -> selector.contains(pathOf(first)) && selector.contains(pathOf(second))));
+    }
+
+    private static void awaitBlockedOrTerminated(Thread thread) {
+        final long deadline = System.currentTimeMillis() + 10_000;
+        while (thread.getState() != Thread.State.BLOCKED && thread.getState() != Thread.State.TERMINATED
+            && System.currentTimeMillis() < deadline) {
+            Thread.yield();
+        }
+    }
+
+    @Test
     public void nonJsonMessageIsIgnored() throws Exception {
         connectBoth();
         TextMessage xml = command(PING, pathOf(first));
@@ -172,6 +256,7 @@ public class SharedJmsReceiverRoutingTest {
         connectBoth();
         Message notText = mock(Message.class);
         when(notText.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("json");
+        when(notText.propertyExists(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(true);
         when(notText.getStringProperty(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(pathOf(first));
 
         assertIgnored(notText);
@@ -223,6 +308,7 @@ public class SharedJmsReceiverRoutingTest {
         TextMessage message = mock(TextMessage.class);
         when(message.getText()).thenReturn(body);
         when(message.getStringProperty(MessageHeaders.NJAMS_CONTENT_HEADER)).thenReturn("json");
+        when(message.propertyExists(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(true);
         when(message.getStringProperty(MessageHeaders.NJAMS_RECEIVER_HEADER)).thenReturn(receiverPath);
         when(message.getJMSReplyTo()).thenReturn(mock(Destination.class));
         when(message.getJMSCorrelationID()).thenReturn("corr-" + receiverPath);

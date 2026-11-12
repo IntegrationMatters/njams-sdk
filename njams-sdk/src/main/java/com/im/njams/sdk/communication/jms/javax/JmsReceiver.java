@@ -102,15 +102,12 @@ public class JmsReceiver extends AbstractJmsReceiver
 
 
     /**
-     * This method creates a message filter that is used when message selectors are not supported.
+     * Creates the message filter that accepts only commands addressed to the registered clients.
      *
      * @return the filter to store in {@link #messageFilter}.
      */
     @Override
     protected Predicate<Object> createMessageFilter() {
-        if (useMessageselector) {
-            return m -> true;
-        }
         final Collection<Njams> njamsInstances = provideNjamsInstances();
         if (njamsInstances.isEmpty()) {
             return m -> false;

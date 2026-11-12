@@ -167,6 +167,20 @@ public class JmsReceiverConnectAndReplyTest {
     }
 
     @Test
+    public void messageFilterWithSelector() throws Exception {
+        connect(settings());
+
+        receiver.onMessage(command(PING, clientPath(), System.currentTimeMillis()));
+        assertEquals(1, handled.size());
+
+        // what the broker-side selector would not deliver is dropped by the filter, too
+        receiver.onMessage(command(PING, ">SDK4>OTHER>", System.currentTimeMillis()));
+        receiver.onMessage(command(PING, clientPath(), 1L));
+
+        assertEquals(1, handled.size());
+    }
+
+    @Test
     public void onMessageRepliesToReplyDestination() throws Exception {
         connect(settings());
         Destination replyTo = mock(Destination.class);

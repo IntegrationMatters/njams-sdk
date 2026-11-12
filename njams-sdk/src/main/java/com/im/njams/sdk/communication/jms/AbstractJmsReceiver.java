@@ -81,14 +81,16 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
      */
     private ObjectMapper mapper = null;
 
-    /** Whether the broker supports message selectors; if not, {@link #messageFilter} is used instead. */
+    /** Whether the broker supports message selectors. */
     protected boolean useMessageselector = true;
 
     /** The broker-side message selector, or <code>null</code> if none applies. */
-    protected String messageSelector = null;
+    protected volatile String messageSelector = null;
 
-    /** The client-side replacement for {@link #messageSelector} when the broker supports no selectors. */
-    protected Predicate<Object> messageFilter = m -> true;
+    /** The client-side filter for received commands; the only filtering when the broker supports no selectors. */
+    protected volatile Predicate<Object> messageFilter = m -> true;
+
+    private final Object filterLock = new Object();
 
     /** Messages older than this are discarded by {@link #messageFilter}. */
     protected long oldestMessageTime = Long.MAX_VALUE;
@@ -180,7 +182,7 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
     }
 
     /**
-     * Creates the client-side message filter used when the broker does not support message selectors. The
+     * Creates the client-side message filter, see {@link #messageFilter}. The
      * predicate's body needs the JMS message type, so it is supplied by the namespace-specific subclass.
      *
      * @return the filter to store in {@link #messageFilter}.
@@ -227,9 +229,12 @@ public abstract class AbstractJmsReceiver extends AbstractReceiver {
      * {@link Njams} instances.
      */
     protected void updateFilters() {
-        LOG.debug("Updating selector/filter");
-        messageSelector = createMessageSelector();
-        messageFilter = createMessageFilter();
+        // not this receiver's monitor, which a reconnect holds for its whole retry loop
+        synchronized (filterLock) {
+            LOG.debug("Updating selector/filter");
+            messageSelector = createMessageSelector();
+            messageFilter = createMessageFilter();
+        }
     }
 
     /**
