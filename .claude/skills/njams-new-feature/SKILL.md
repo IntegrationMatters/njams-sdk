@@ -78,7 +78,7 @@ For any public type, consider whether callers need the concrete class or only a 
 Every `public` and `protected` class, interface, method, constructor, and field in production code must have a Javadoc comment. Write it alongside the code, not as an afterthought. Document what the member does, its parameters, return value, and any exceptions. Internal members (`private`, package-private) do not require Javadoc. Test code is exempt from documentation and code quality rules.
 
 **6. Sync settings documentation if the feature introduces any settings.**
-Run `njams-settings-sync` — it keeps `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` consistent in the same change.
+Run `njams-settings-sync` — it keeps `NjamsSettings`, the settings tables and the settings listing in `wiki/FAQ.md` consistent in the same change.
 
 **7. Review before finalising.**
 Before considering the implementation done:

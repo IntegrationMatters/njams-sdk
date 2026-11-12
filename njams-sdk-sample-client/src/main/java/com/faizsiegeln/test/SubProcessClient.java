@@ -165,8 +165,7 @@ public class SubProcessClient {
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "http://localhost:8080/njams/");
-        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "sdk");
-        communicationProperties.put("njams.client.sdk.sharedcommunications", "false");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.suffix", "sdk");
         return communicationProperties;
     }
 }

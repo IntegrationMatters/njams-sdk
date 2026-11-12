@@ -24,4 +24,4 @@ The nJAMS SDK is a Java library for building nJAMS clients. It instruments your 
 - **[Poly-line process-diagram routing](Polyline-Process-Diagram-Routing)** — opt-in alternative that routes transitions around activity icons
 - **[JavaDoc](https://integrationmatters.github.io/njams-sdk/index-njams-sdk.html)** — full API reference
 - **[Sample client](https://github.com/IntegrationMatters/njams-sdk/tree/master/njams-sdk-sample-client/src/main/java/com/faizsiegeln/test)** — runnable usage examples
-- **[Full settings file](https://github.com/IntegrationMatters/njams-sdk/blob/master/njams-sdk-sample-client/src/main/resources/settings_full.properties)** — annotated reference for every available property
+- **[All settings](https://github.com/IntegrationMatters/njams-sdk/wiki/FAQ#which-settings-can-i-use)** — every available property with its default value

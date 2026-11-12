@@ -30,7 +30,7 @@ Write it in Markdown with `contentFormat=markdown` — wiki markup (`h2.`, `_...
 
 **Delete the ticket's plan file only after the ticket is actually resolved, not before.** If `docs/superpowers/plans/` has a `YYYY-MM-DD-sdk-NNN-*.md` file for this ticket, remove it — but only once the resolution transition below has actually happened, since "work has shipped" isn't the same as "ticket resolved." If `docs/superpowers/specs/` has a matching spec, leave it in place permanently — it's kept as reference, not a working document.
 
-**If the ticket touched any settings**, confirm `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` are all in sync before closing — see `njams-settings-sync`. Don't resolve a settings-touching ticket with docs out of sync.
+**If the ticket touched any settings**, confirm `NjamsSettings` and the settings tables and settings listing in `wiki/FAQ.md` are all in sync before closing — see `njams-settings-sync`. Don't resolve a settings-touching ticket with docs out of sync.
 
 **Apply the project rules' completion checks.** Rules under `.claude/rules/` may contribute their own checks in a section titled `## Ticket completion checks`. Before resolving, apply every such section whose rule's path scope (the `globs:` frontmatter, or the "Applies to" column in `CLAUDE.md` for rules without one) matches files in the ticket's diff. A check that says "propose" means propose to the user and wait for the answer; don't resolve the ticket while a proposed check is still unanswered. This keeps project-specific steps in the rules that own them instead of in this skill.
 
@@ -48,7 +48,7 @@ digraph ticket_finish {
     "Decide breaking-change label against real diff" [shape=box];
     "Settings touched?" [shape=diamond];
     "Apply matching rules' '## Ticket completion checks'" [shape=box];
-    "Verify NjamsSettings / FAQ / settings_full.properties in sync" [shape=box];
+    "Verify NjamsSettings / FAQ tables / FAQ listing in sync" [shape=box];
     "Post signed closing comment" [shape=box];
     "Set resolution=Done, unassign" [shape=box];
     "Plan file exists for this ticket?" [shape=box];
@@ -64,9 +64,9 @@ digraph ticket_finish {
     "Touches Wire Contract (message format / fragments / MessageHeaders)?" -> "Decide breaking-change label against real diff" [label="no"];
     "Confirm message-format-changes gate was satisfied" -> "Settings touched?";
     "Decide breaking-change label against real diff" -> "Settings touched?";
-    "Settings touched?" -> "Verify NjamsSettings / FAQ / settings_full.properties in sync" [label="yes"];
+    "Settings touched?" -> "Verify NjamsSettings / FAQ tables / FAQ listing in sync" [label="yes"];
     "Settings touched?" -> "Apply matching rules' '## Ticket completion checks'" [label="no"];
-    "Verify NjamsSettings / FAQ / settings_full.properties in sync" -> "Apply matching rules' '## Ticket completion checks'";
+    "Verify NjamsSettings / FAQ tables / FAQ listing in sync" -> "Apply matching rules' '## Ticket completion checks'";
     "Apply matching rules' '## Ticket completion checks'" -> "Post signed closing comment";
     "Post signed closing comment" -> "Set resolution=Done, unassign";
     "Set resolution=Done, unassign" -> "Plan file exists for this ticket?";

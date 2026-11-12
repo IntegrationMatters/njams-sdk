@@ -104,7 +104,7 @@ All tests must be green before you write a single line of modification. If tests
 Implement the requested modification. Do not touch test code. Apply clean code and architecture principles: keep changes focused, respect layer boundaries, use clear naming, and avoid introducing unnecessary complexity. If the change adds or exposes any new `public` or `protected` member in production code, it must have Javadoc. If it deprecates an existing member, the Javadoc must include a `@deprecated` tag referencing the replacement. Documentation and code quality rules do not apply to test code.
 
 **6. Sync settings documentation if a setting is affected.**
-If the change alters a setting's behavior or default, deprecates a setting, or removes one, run `njams-settings-sync` — it keeps `NjamsSettings`, `wiki/FAQ.md`, and `settings_full.properties` consistent.
+If the change alters a setting's behavior or default, deprecates a setting, or removes one, run `njams-settings-sync` — it keeps `NjamsSettings`, the settings tables and the settings listing in `wiki/FAQ.md` consistent.
 
 **7. Verify the baseline holds.**
 ```bash
@@ -127,7 +127,7 @@ If any test fails, revert your implementation change and rethink the approach. T
 | Changing or removing a public member without being asked | Raise it with the user — adding new members is fine, changing/removing is not |
 | Removing deprecated old API when adding new replacement | Keep both; mark old one `@Deprecated` with `@deprecated` Javadoc pointing to new |
 | Adding a new public member without Javadoc | All public/protected members must have Javadoc — no exceptions |
-| Changing a setting without updating its docs | Run njams-settings-sync — any behavior/default/deprecation change must be reflected in NjamsSettings, the wiki FAQ, and settings_full.properties |
+| Changing a setting without updating its docs | Run njams-settings-sync — any behavior/default/deprecation change must be reflected in NjamsSettings and both the settings tables and the settings listing in the wiki FAQ |
 | Skipping njams-ticket-start / njams-commit / njams-ticket-finish | Use them for kickoff (incl. drafting/confirming the approach), commit formatting, and closeout respectively — don't re-derive that logic here |
 | Modifying message-format types, communication/fragments/, or MessageHeaders without the message-format-changes.md gate | That's the Wire Contract — get human confirmation (and a SER ticket if needed) before proceeding, not just the usual public-API check |
 | Deprecating an SPI template method the SDK calls into (e.g. AbstractSender.doReconnect) with the normal @Deprecated + delegate pattern | That pattern silently drops the old behavior for this kind of member — raise it with the user instead |

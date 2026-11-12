@@ -1,5 +1,5 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/settings/**, njams-sdk/src/main/java/com/im/njams/sdk/configuration/**, njams-sdk/src/main/java/com/im/njams/sdk/NjamsSettings.java, njams-sdk-sample-client/src/main/resources/settings_full.properties"
+globs: "njams-sdk/src/main/java/com/im/njams/sdk/settings/**, njams-sdk/src/main/java/com/im/njams/sdk/configuration/**, njams-sdk/src/main/java/com/im/njams/sdk/NjamsSettings.java"
 ---
 
 # Settings Management
@@ -12,9 +12,9 @@ globs: "njams-sdk/src/main/java/com/im/njams/sdk/settings/**, njams-sdk/src/main
 
 **Use `ClientSettings` by default.** Reach for `ReadOnlyClientSetting` only for `PropertyUtil.toProperties()` and the env-var builder.
 
-## settings_full.properties
+## Settings Reference in the FAQ
 
-`njams-sdk-sample-client/src/main/resources/settings_full.properties` is the canonical reference for all available settings. **Keeping it in sync is a required step, not best-effort**: whenever a setting key is added, changed, or removed in `NjamsSettings`, update this file in the same change. This applies even though the file lives in a sample module that otherwise has looser standards (see `sample-modules.md`) — this specific file is the one exception.
+The "Which settings can I use" section of `wiki/FAQ.md` is the canonical reference for all available settings. It has two parts that must both match `NjamsSettings`: the tables, which describe every setting, including deprecated and removed ones, and a collapsed listing of every setting that is valid in the current version, as plain `key=default` lines without comments. **Keeping both in sync is a required step, not best-effort**: whenever a setting key is added, changed, deprecated or removed, update both in the same change. A deprecated or removed key leaves the listing.
 
 ## Documentation
 

@@ -106,7 +106,7 @@ The sender thread pool (`maxSenderThreads`, default 8) asynchronously dispatches
 
 ### Configuration (`settings/` and `configuration/`)
 
-`Settings` object is created with transport-specific properties before instantiating `Njams`. Key settings are defined as constants in `NjamsSettings`. The `njams-sdk-sample-client/src/main/resources/settings_full.properties` file is the canonical reference for all available settings. See `.claude/rules/settings-management.md` for the rules governing `NjamsSettings` and setting keys.
+`Settings` object is created with transport-specific properties before instantiating `Njams`. Key settings are defined as constants in `NjamsSettings`. The "Which settings can I use" section of `wiki/FAQ.md` is the canonical reference for all available settings: tables with descriptions plus a collapsed listing of every current key with its default. See `.claude/rules/settings-management.md` for the rules governing `NjamsSettings` and setting keys.
 
 Configuration providers (`ConfigurationProvider` implementations) allow loading settings from files, classpath resources, or in-memory properties.
 
@@ -139,7 +139,7 @@ Topic-specific rules that apply either always or only when working with certain 
 | `job-thread-safety.md` | `logmessage/**` | Job/Activity/Group concurrency contract |
 | `communication-layer.md` | `communication/**` | Not-public-API boundary, transport independence, when to propose the communication-it suite |
 | `kafka-argos-deprecated.md` | `communication/kafka/**`, `argos/**` | Standing deprecation policy |
-| `settings-management.md` | `settings/**`, `configuration/**`, `NjamsSettings.java`, `settings_full.properties` | Setting-key rules, canonical properties file sync |
+| `settings-management.md` | `settings/**`, `configuration/**`, `NjamsSettings.java` | Setting-key rules, FAQ settings reference sync |
 | `testing-conventions.md` | `njams-sdk/src/test/**` | Test infra (`AbstractTest`, `TestSender`), coverage requirements |
 | `sample-modules.md` | `njams-sdk-sample-client/**`, `njams-sdk-sample-app/**` | Looser demo-only standards |
 | `wiki-drafts.md` | `wiki/**` | Wiki draft editing workflow, FAQ update triggers, FAQ audience (implementer-facing, not a changelog) |

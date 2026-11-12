@@ -212,8 +212,7 @@ public class SimpleClient {
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTP");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "http://localhost:8080/njams/");
-        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "sdk");
-        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.suffix", "sdk");
         return communicationProperties;
     }
 
@@ -222,12 +221,10 @@ public class SimpleClient {
         communicationProperties.put(NjamsSettings.PROPERTY_COMMUNICATION, "HTTPS");
         communicationProperties.put("njams.sdk.communication.http.base.url",
                 "https://os0100.integrationmatters.com:8443/njams/");
-        communicationProperties.put("njams.sdk.communication.http.dataprovider.prefix", "bw");
+        communicationProperties.put("njams.sdk.communication.http.dataprovider.suffix", "bw");
         communicationProperties
                 .put("njams.sdk.communication.http.ssl.certificate.file",
                         "/Users/bwand/Development/SSLKeystore/cert.wildcard.integrationmatters.com/ca-root-integrationmatters.com.pem");
-
-        communicationProperties.put("njams.client.sdk.sharedcommunications", "true");
         return communicationProperties;
     }
 

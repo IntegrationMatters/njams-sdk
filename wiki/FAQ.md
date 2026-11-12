@@ -250,8 +250,100 @@ ClientSettings settings = HierarchicalSettings.from(child).withName("config.prop
 
 The tables below cover all settings recognized by the nJAMS SDK itself. Settings are passed to the SDK through a
 `ClientSettings` instance (see the section above) as plain key/value pairs. Each key is defined as a constant in
-`NjamsSettings`. A [full settings properties file](https://github.com/IntegrationMatters/njams-sdk/blob/master/njams-sdk-sample-client/src/main/resources/settings_full.properties),
-listing every available setting with its default value, is maintained alongside the SDK as a reference.
+`NjamsSettings`.
+
+<details>
+<summary>All current settings with their default values</summary>
+
+```properties
+njams.sdk.configuration.file.file=configuration.json
+njams.sdk.configuration.provider=file
+
+njams.sdk.bootstrap.recording=true
+njams.sdk.disable.secure.processing=false
+njams.sdk.discardpolicy=discard
+njams.sdk.flush_interval=30
+njams.sdk.flushsize=5242880
+njams.sdk.logAllErrors=false
+njams.sdk.logLevel.default=INFO
+njams.sdk.logMode.default=COMPLETE
+njams.sdk.maxqueuelength=8
+njams.sdk.maxsenderthreads=8
+njams.sdk.minsenderthreads=1
+njams.sdk.payload.limit.applyToStartData=false
+njams.sdk.payload.limit.mode=none
+njams.sdk.payload.limit.size=
+njams.sdk.process.exclude.regex.<name>=
+njams.sdk.senderthreadidletime=10000
+njams.sdk.truncateActivitiesLimit=0
+njams.sdk.truncateOnSuccess=false
+
+njams.sdk.communication=
+njams.sdk.communication.connect.timeout=30000
+njams.sdk.communication.containerMode=true
+njams.sdk.communication.maxMessageSize=0
+njams.sdk.communication.shared=false
+njams.sdk.communication.startup.failbehavior=fail
+njams.sdk.communication.type=
+
+njams.sdk.communication.http.base.url=
+njams.sdk.communication.http.compression.enabled=false
+njams.sdk.communication.http.dataprovider.suffix=
+njams.sdk.communication.http.password=
+njams.sdk.communication.http.proxy.host=
+njams.sdk.communication.http.proxy.password=
+njams.sdk.communication.http.proxy.port=80
+njams.sdk.communication.http.proxy.user=
+njams.sdk.communication.http.ssl.certificate.file=
+njams.sdk.communication.http.ssl.keyStore=
+njams.sdk.communication.http.ssl.keyStorePassword=
+njams.sdk.communication.http.ssl.keyStoreType=jks
+njams.sdk.communication.http.ssl.trustStore=
+njams.sdk.communication.http.ssl.trustStorePassword=
+njams.sdk.communication.http.ssl.trustStoreType=jks
+njams.sdk.communication.http.ssl.unsafe.disableHostnameVerification=false
+njams.sdk.communication.http.ssl.unsafe.trustAllCertificates=false
+njams.sdk.communication.http.user=
+
+njams.sdk.communication.jms.connectionFactory=
+njams.sdk.communication.jms.delivery.mode=PERSISTENT
+njams.sdk.communication.jms.destination=njams
+njams.sdk.communication.jms.destination.commands=
+njams.sdk.communication.jms.destination.prefix=njams
+njams.sdk.communication.jms.java.naming.factory.initial=
+njams.sdk.communication.jms.java.naming.provider.url=
+njams.sdk.communication.jms.java.naming.security.credentials=
+njams.sdk.communication.jms.java.naming.security.principal=
+njams.sdk.communication.jms.javax.net.ssl.keyStore=
+njams.sdk.communication.jms.javax.net.ssl.keyStorePassword=
+njams.sdk.communication.jms.javax.net.ssl.keyStoreType=
+njams.sdk.communication.jms.javax.net.ssl.trustStore=
+njams.sdk.communication.jms.javax.net.ssl.trustStorePassword=
+njams.sdk.communication.jms.javax.net.ssl.trustStoreType=
+njams.sdk.communication.jms.jmsFactory=
+njams.sdk.communication.jms.password=
+njams.sdk.communication.jms.supportsMessageSelector=true
+njams.sdk.communication.jms.username=
+
+njams.sdk.communication.kafka.admin.<kafka-setting>=
+njams.sdk.communication.kafka.client.<kafka-setting>=
+njams.sdk.communication.kafka.client.bootstrap.servers=
+njams.sdk.communication.kafka.consumer.<kafka-setting>=
+njams.sdk.communication.kafka.producer.<kafka-setting>=
+njams.sdk.communication.kafka.replyProducerIdleTime=30000
+njams.sdk.communication.kafka.topicPrefix=njams
+
+njams.sdk.subagent.enabled=true
+njams.sdk.subagent.host=localhost
+njams.sdk.subagent.port=6450
+
+njams.sdk.datamasking.enabled=true
+njams.sdk.datamasking.regex.<name>=
+
+njams.sdk.debug.messagedir=
+```
+
+</details>
 
 > **Note:** nJAMS client implementations built on top of this SDK may define additional settings of their own. Consult
 > the documentation of the specific client for those.
@@ -260,6 +352,7 @@ listing every available setting with its default value, is maintained alongside 
 
 | Property                           | Default | Description                                                                                                                                  | Tags |
 |------------------------------------|---------|----------------------------------------------------------------------------------------------------------------------------------------------|------|
+| `njams.sdk.configuration.file.file` | `configuration.json` | Path of the file the `file` configuration provider persists the runtime configuration to. A relative path is resolved against the working directory. |      |
 | `njams.sdk.configuration.provider` | `file`  | Selects the configuration provider used for persisting runtime settings such as tracepoints and data-masking rules. Values: `file`, `memory` |      |
 
 ### General SDK Settings
@@ -302,7 +395,7 @@ listing every available setting with its default value, is maintained alongside 
 
 | Property                                  | Default | Description                                                                                                                                                                                                                                                                                                                                                                                            | Tags                                                                                                                                                                                    |
 |-------------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `njams.client.sdk.sharedcommunications`   | `false` | Replaced by `njams.sdk.communication.shared`.                                                                                                                                                                                                                                                                                                                                                          | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.3</kbd><br><kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 5.0.0</kbd> |
+| `njams.client.sdk.sharedcommunications`   | `false` | Replaced by `njams.sdk.communication.shared`.                                                                                                                                                                                                                                                                                                                                                          | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.1.3</kbd><br><kbd style="background-color:#cf222e;color:#fff;border-color:#cf222e">deprecated 5.0.0</kbd><br><kbd style="background-color:#24292f;color:#fff;border-color:#24292f">removed 6.0.0</kbd> |
 | `njams.sdk.communication`                 | —       | Selects the communication transport. Values: `HTTP`, `JMS`, `KAFKA`, or a custom implementation name. `njams.sdk.communication.type` is an equally valid alternative key (see below); neither is deprecated.                                                                                                                                                                                          |                                                                                                                                                                                         |
 | `njams.sdk.communication.type`            | —       | Equally valid alternative to `njams.sdk.communication`. `njams.sdk.communication` is also the prefix of every transport-specific setting (e.g. `njams.sdk.communication.http.base.url`), so it cannot be expressed in a hierarchical configuration format such as YAML, where a key is either a scalar or a parent of nested keys, never both. Use this key instead in such sources.                | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>                                                                                                 |
 | `njams.sdk.communication.connect.timeout` | `30000` | Maximum time in milliseconds the SDK waits for the *sender's* initial communication connection during `Njams.start()`. What happens on timeout depends on `njams.sdk.communication.startup.failbehavior`: under the default `fail` policy (or `exit`), `start()` returns `false` and the SDK instance stays inactive; under `reconnect`, `start()` returns `true` instead and the connection is retried in the background. Applies to all transports. The receiver's own connection is independent of this timeout — see [What happens when the communication backend is unreachable at startup](#what-happens-when-the-communication-backend-is-unreachable-at-startup).                                 | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd>                                                                                                 |
@@ -372,8 +465,8 @@ additionally required only if the broker/JNDI provider enforces authentication.
 |----------------------------------------------------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | `njams.sdk.communication.jms.connectionFactory`                | —            | Name used to look up the JMS `ConnectionFactory`. As of 5.0.3, also used for a two-step `JmsFactory` SPI lookup before falling back to JNDI.                                                                                        |                                                                                         |
 | `njams.sdk.communication.jms.delivery.mode`                    | `PERSISTENT` | JMS delivery mode for outbound messages. Values: `PERSISTENT`, `NON_PERSISTENT` / `NONPERSISTENT`, `RELIABLE` (Tibco EMS only, since 5.0.3). **Note:** Non-persistent mode can lead to message loss and inconsistent data in nJAMS. | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 4.2.0</kbd> |
-| `njams.sdk.communication.jms.destination`                      | —            | Common prefix for the event, command, and error queues / topics (e.g. `njams`). `njams.sdk.communication.jms.destination.prefix` is an equally valid alternative key (see below); neither is deprecated.                            |                                                                                         |
-| `njams.sdk.communication.jms.destination.prefix`               | —            | Equally valid alternative to `njams.sdk.communication.jms.destination`, which is also the prefix of `njams.sdk.communication.jms.destination.commands` and therefore cannot be expressed in a hierarchical configuration format such as YAML. Use this key instead in such sources.                                                | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
+| `njams.sdk.communication.jms.destination`                      | `njams`      | Common prefix for the event, command, and error queues / topics (e.g. `njams`). `njams.sdk.communication.jms.destination.prefix` is an equally valid alternative key (see below); neither is deprecated.                            |                                                                                         |
+| `njams.sdk.communication.jms.destination.prefix`               | `njams`      | Equally valid alternative to `njams.sdk.communication.jms.destination`, which is also the prefix of `njams.sdk.communication.jms.destination.commands` and therefore cannot be expressed in a hierarchical configuration format such as YAML. Use this key instead in such sources.                                                | <kbd style="background-color:#2da44e;color:#fff;border-color:#2da44e">since 6.0.0</kbd> |
 | `njams.sdk.communication.jms.destination.commands`             | —            | Overrides the commands topic name when it does not follow the default convention (`<destination>.commands`).                                                                                                                        |                                                                                         |
 | `njams.sdk.communication.jms.java.naming.factory.initial`      | —            | JNDI initial context factory class (e.g. `org.apache.activemq.jndi.ActiveMQInitialContextFactory`).                                                                                                                                    |                                                                                         |
 | `njams.sdk.communication.jms.java.naming.provider.url`         | —            | JNDI provider URL (e.g. `tcp://localhost:61616`).                                                                                                                                                                           |                                                                                         |
