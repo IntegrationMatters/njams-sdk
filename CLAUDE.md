@@ -130,7 +130,8 @@ Topic-specific rules that apply either always or only when working with certain 
 | `commit-conventions.md` | always | Smart Commit message format, branching policy, pushing |
 | `message-format-changes.md` | always | nJAMS message format change-confirmation gate |
 | `development-workflow-skills.md` | always | Which skill to invoke for new features / modifications / bug fixes / SonarCloud findings |
-| `public-api-design.md` | `njams-sdk/src/main/java/**` | Public API surface, relocated/shaded types, visibility, immutability, Javadoc, checkstyle |
+| `public-api-design.md` | `njams-sdk/src/main/java/**` | Public API surface, relocated/shaded types, visibility, immutability |
+| `documentation.md` | `njams-sdk/src/main/java/**` | Javadoc and code comments: what they say, deprecation on overrides, Javadoc/checkstyle verification |
 | `code-quality-general.md` | `njams-sdk/src/main/java/**` | Copyright header, SOLID/DRY principles, Sonar-matching size limits for new/changed code, layering |
 | `reuse-existing-functionality.md` | `njams-sdk/src/main/java/**` | Search for structurally similar existing mechanisms before building a parallel one |
 | `message-sending-control.md` | `njams-sdk/src/main/java/**` | Send-cadence invariant: SDK, not client, controls when project/log messages go out |

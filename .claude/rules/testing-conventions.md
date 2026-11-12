@@ -10,7 +10,7 @@ may require mocking of connection infrastructure. Kafka and Argos/JVM metrics te
 
 Test reports are generated in `njams-sdk/target/surefire-reports/`.
 
-Code quality and documentation rules (`code-quality-general.md`, `public-api-design.md`) do not apply to test code.
+Code quality and documentation rules (`code-quality-general.md`, `public-api-design.md`, `documentation.md`) do not apply to test code.
 
 ## Test support tooling
 
