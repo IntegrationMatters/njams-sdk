@@ -24,7 +24,8 @@ rely on a previously fetched snapshot.
 **Before triaging, consult `docs/sonarcloud-decisions.md`** — the decision register of previously handled findings.
 Findings rejected as false positives recur every time Sonar re-analyses; if a rule there is flagged again on the same
 construct and the rationale still holds, re-apply the recorded decision (re-mark it *False Positive* / *Won't Fix*)
-rather than changing correct code. Record new triage decisions there.
+rather than changing correct code. Record new triage decisions there — but only rejected findings (false positive
+or won't fix): the register exists to avoid re-deciding a finding that recurs, and a fixed finding does not recur.
 
 **Findings in the deprecated Kafka transport and Argos metrics** (`communication/kafka/**`, `argos/**`) fall under
 `kafka-argos-deprecated.md`: they are not worked on proactively, only when the user asks.

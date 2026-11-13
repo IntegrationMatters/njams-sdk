@@ -59,10 +59,10 @@ code → `njams-safe-modification`.
 Never suppress unilaterally. Once confirmed, mark it *False Positive*/*Won't Fix* in SonarCloud and
 record the decision.
 
-**6. Record the decision.**
-Add an entry to `docs/sonarcloud-decisions.md` using `reference/decision-entry-template.md` — rule ID,
+**6. Record the decision — rejected findings only.**
+For a finding marked *False Positive*/*Won't Fix*, add an entry to `docs/sonarcloud-decisions.md` using `reference/decision-entry-template.md` — rule ID,
 verdict, rationale, and the specific fields/methods it covers, so future re-flags can be resolved without
-re-investigating from scratch.
+re-investigating from scratch. Fixed findings get no entry: they do not recur, so there is nothing to re-apply.
 
 ## Reference Files
 
