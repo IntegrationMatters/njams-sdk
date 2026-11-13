@@ -11,10 +11,12 @@ your client code doesn't have to.
 The SDK depends on the [Messageformat](https://github.com/IntegrationMatters/njams-messageformat) project, which
 defines the shared message structures exchanged between client and server.
 
-## Maven repository
+## Using the Maven artifact
 
-Starting with version 6.1.0, releases of the SDK are published to the public nJAMS Maven repository. Add it to your
-project's `pom.xml`:
+Starting with version 6.1.0, releases of the SDK are published to the public nJAMS Maven repository. Earlier
+versions are not available there.
+
+Add the repository and the dependency to your project's `pom.xml`:
 
 ```xml
 <repositories>
@@ -24,6 +26,14 @@ project's `pom.xml`:
         <url>https://maven.njams.com/public</url>
     </repository>
 </repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.salesfive.njams</groupId>
+        <artifactId>njams-sdk</artifactId>
+        <version>6.1.0</version>
+    </dependency>
+</dependencies>
 ```
 
 Available versions are listed in the
