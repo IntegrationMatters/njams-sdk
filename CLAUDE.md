@@ -17,10 +17,7 @@ The `wiki/` folder in this repository contains branch-local drafts of the GitHub
 This branch builds and releases with GitHub Actions (`.github/workflows/`); the Jenkins multibranch job excludes only
 `6.1-dev`, while `master` and the old version branches (`4.x.X`, `5.0.X`) still build on Jenkins. **When `6.1-dev` is
 merged into `master`, remind the user that the Jenkins job configuration has to be switched so that only the old
-version branches are built with Jenkins.** At the same merge, remove the `TEMPORARY` exception in
-`.github/workflows/release.yml` (the `push` trigger, the job's `if:` and `6.1-dev` in the release branch check), which
-only exists so a release can be made from `6.1-dev` before the workflow is on the default branch. Remove this section
-once both are done.
+version branches are built with Jenkins.** Remove this section once that switch is done.
 
 ## No Unsupported Assumptions
 
