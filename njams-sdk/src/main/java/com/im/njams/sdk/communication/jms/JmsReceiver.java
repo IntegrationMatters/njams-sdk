@@ -24,6 +24,7 @@
 package com.im.njams.sdk.communication.jms;
 
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CLIENTID_HEADER;
+import static com.im.njams.sdk.communication.MessageHeaders.CONTENT_TYPE_JSON;
 import static com.im.njams.sdk.communication.MessageHeaders.NJAMS_CONTENT_HEADER;
 
 import java.util.ArrayList;
@@ -319,7 +320,7 @@ public class JmsReceiver extends AbstractJmsReceiver
      */
     @Override
     public void onMessage(Message msg) {
-        if (!messageFilter.test(msg)) {
+        if (msg == null || !messageFilter.test(msg)) {
             return;
         }
         if (LOG.isTraceEnabled()) {
@@ -327,7 +328,7 @@ public class JmsReceiver extends AbstractJmsReceiver
         }
         try {
             final String njamsContent = msg.getStringProperty(NJAMS_CONTENT_HEADER);
-            if (!njamsContent.equalsIgnoreCase("json")) {
+            if (!CONTENT_TYPE_JSON.equalsIgnoreCase(njamsContent)) {
                 LOG.debug("Received non json instruction -> ignore");
                 return;
             }

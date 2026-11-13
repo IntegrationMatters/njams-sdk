@@ -143,7 +143,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
     @Deprecated(since = "6.1.0")
     @Override
     public void onMessage(Message msg) {
-        if (!messageFilter.test(msg)) {
+        if (msg == null || !messageFilter.test(msg)) {
             return;
         }
         if (LOG.isTraceEnabled()) {

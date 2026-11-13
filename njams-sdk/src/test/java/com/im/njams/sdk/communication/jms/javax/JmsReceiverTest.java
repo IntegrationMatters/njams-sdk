@@ -392,6 +392,53 @@ public class JmsReceiverTest {
         JmsReceiverMock.testAfterInit(impl, FILLEDPROPS);
     }
 
+    /**
+     * SDK-500: a message without the content header is ignored like any non-json message, not reported as error.
+     *
+     * @throws JMSException isn't thrown
+     */
+    @Test
+    public void testOnMessageWithoutContentHeaderIsIgnoredWithoutError() throws JMSException {
+        final java.util.List<org.apache.log4j.spi.LoggingEvent> errors = new java.util.concurrent.CopyOnWriteArrayList<>();
+        final org.apache.log4j.AppenderSkeleton appender = new org.apache.log4j.AppenderSkeleton() {
+            @Override
+            protected void append(org.apache.log4j.spi.LoggingEvent event) {
+                if (event.getLevel().isGreaterOrEqual(org.apache.log4j.Level.ERROR)) {
+                    errors.add(event);
+                }
+            }
+
+            @Override
+            public void close() {
+                // nothing to release
+            }
+
+            @Override
+            public boolean requiresLayout() {
+                return false;
+            }
+        };
+        final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger("com.im.njams.sdk.communication.jms.javax.JmsReceiver");
+        logger.addAppender(appender);
+        try {
+            final Message msg = mock(Message.class);
+            when(msg.propertyExists("NJAMS_RECEIVER")).thenReturn(true);
+            when(msg.getStringProperty("NJAMS_RECEIVER")).thenReturn(">SDK4>TEST>");
+            impl.onMessage(msg);
+        } finally {
+            logger.removeAppender(appender);
+        }
+        assertTrue("no error expected, got " + errors, errors.isEmpty());
+    }
+
+    /**
+     * SDK-500: a null message is ignored.
+     */
+    @Test
+    public void testOnMessageWithNullIsIgnored() {
+        impl.onMessage(null);
+    }
+
     //onExceptionTests
 
     /**

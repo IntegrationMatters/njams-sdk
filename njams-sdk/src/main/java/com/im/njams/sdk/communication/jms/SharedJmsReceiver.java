@@ -130,7 +130,7 @@ public class SharedJmsReceiver extends JmsReceiver implements ShareableReceiver<
      */
     @Override
     public void onMessage(Message msg) {
-        if (!messageFilter.test(msg)) {
+        if (msg == null || !messageFilter.test(msg)) {
             return;
         }
         if (LOG.isTraceEnabled()) {
