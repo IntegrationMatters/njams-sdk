@@ -69,7 +69,7 @@ Multi-module Maven project (`com.salesfive.njams`, version 6.1.0-SNAPSHOT):
   - `njams-sdk-jms-absent-test/` — neither JMS API and no broker client at all
   - `njams-sdk-jms-mixed-test/` — both JMS APIs with two broker products at once (ActiveMQ Classic on javax, Artemis on jakarta)
 
-All source code is under `com.im.njams.sdk` (despite the `com.faizsiegeln` groupId).
+All source code is under `com.im.njams.sdk` (despite the `com.salesfive.njams` groupId).
 
 ## Architecture Overview
 

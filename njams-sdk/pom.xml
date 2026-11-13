@@ -321,7 +321,7 @@
 
         <!-- default scope - shaded -->
         <dependency>
-            <groupId>com.faizsiegeln</groupId>
+            <groupId>com.salesfive.njams</groupId>
             <artifactId>njams-messageformat</artifactId>
         </dependency>
   		<dependency>
