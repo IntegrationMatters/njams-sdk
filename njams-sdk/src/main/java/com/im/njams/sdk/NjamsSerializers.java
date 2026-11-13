@@ -164,10 +164,13 @@ public class NjamsSerializers {
      * registered, <b>null</b> will be returned.
      *
      * @param <T>   Type of the class
-     * @param clazz Class for which a serializer will be searched.
+     * @param clazz Class for which a serializer will be searched, or <b>null</b> for none.
      * @return Serializer or <b>null</b>.
      */
     public <T> Serializer<? super T> find(final Class<T> clazz) {
+        if (clazz == null) {
+            return null;
+        }
         Serializer<? super T> serializer = get(clazz);
         if (serializer == null) {
             Serializer<?> cached = cachedSerializers.get(clazz);
