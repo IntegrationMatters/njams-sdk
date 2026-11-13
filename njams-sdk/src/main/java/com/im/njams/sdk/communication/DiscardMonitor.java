@@ -23,6 +23,8 @@
  */
 package com.im.njams.sdk.communication;
 
+import java.util.concurrent.atomic.LongAdder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +44,9 @@ public class DiscardMonitor {
     private static volatile DiscardMonitor instance = DEFAULT;
 
     private long lastMessage = System.currentTimeMillis();
-    private long nextMessage = 0;
-    private int discardCount = 0;
-    private int lastDiscardCount = 0;
+    private volatile long nextMessage = 0;
+    private final LongAdder discardCount = new LongAdder();
+    private long lastDiscardCount = 0;
 
     /** Subclassable so a test can inject an observing instance; not intended for production subclassing. */
     protected DiscardMonitor() {
@@ -82,7 +84,7 @@ public class DiscardMonitor {
         if (!LOG.isWarnEnabled()) {
             return;
         }
-        discardCount++;
+        discardCount.increment();
         final long now = System.currentTimeMillis();
         if (now < nextMessage) {
             return;
@@ -92,10 +94,16 @@ public class DiscardMonitor {
                 nextMessage = now + 60000;
                 final long minutes = (now - lastMessage + 30000) / 60000;
                 lastMessage = now;
-                final int discarded = discardCount - lastDiscardCount;
-                lastDiscardCount = discardCount;
-                LOG.warn("Discarded {} messages in the last {} minutes (total={}).", discarded, minutes, discardCount);
+                final long total = discardCount.sum();
+                final long discarded = total - lastDiscardCount;
+                lastDiscardCount = total;
+                LOG.warn("Discarded {} messages in the last {} minutes (total={}).", discarded, minutes, total);
             }
         }
+    }
+
+    /** Test-only accessor (hence the name) over the accumulated discard count. */
+    long discardCountForTest() {
+        return discardCount.sum();
     }
 }
