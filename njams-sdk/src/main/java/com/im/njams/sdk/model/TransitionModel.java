@@ -240,7 +240,7 @@ public class TransitionModel {
             return false;
         }
         final TransitionModel other = (TransitionModel) obj;
-        return Objects.equals(this.id, other.id);
+        return Objects.equals(this.id, other.id) && Objects.equals(this.processModel, other.processModel);
     }
 
     /**
