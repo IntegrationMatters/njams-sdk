@@ -24,7 +24,7 @@
     </modules>
 
     <properties>
-        <!-- Test harness modules: built and run on every build, but never published to Nexus. -->
+        <!-- Test harness modules: built and run on every build, but never published. -->
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 

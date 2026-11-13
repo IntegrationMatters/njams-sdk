@@ -12,6 +12,13 @@ Consult the FAQ before implementing or modifying anything related to configurati
 
 The `wiki/` folder in this repository contains branch-local drafts of the GitHub wiki pages — see `.claude/rules/wiki-drafts.md` for the editing workflow and when to update them.
 
+## Pending: Jenkins → GitHub Actions Cutover (SDK-381)
+
+This branch builds and releases with GitHub Actions (`.github/workflows/`); the Jenkins multibranch job excludes only
+`6.1-dev`, while `master` and the old version branches (`4.x.X`, `5.0.X`) still build on Jenkins. **When `6.1-dev` is
+merged into `master`, remind the user that the Jenkins job configuration has to be switched so that only the old
+version branches are built with Jenkins.** Remove this section once that switch is done.
+
 ## No Unsupported Assumptions
 
 **Every decision must rest on verified evidence, not inference.** Before asserting a fact about this codebase, a

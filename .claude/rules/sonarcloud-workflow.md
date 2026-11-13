@@ -37,15 +37,16 @@ rather than changing correct code. Record new triage decisions there.
 | Organization | `integration-matters-gmbh`    |
 | Project key  | `IntegrationMatters_njams-sdk` |
 
-The project is private, so API calls require a token. Jenkins supplies it from the `sonar-cloud-token` credential; the
-same value is available locally as `SONAR_TOKEN`. Authenticate with HTTP basic auth using the token as the username and
+The project is private, so API calls require a token. The GitHub build workflow gets it from the `SONAR_TOKEN`
+repository secret; the same value is available locally as `SONAR_TOKEN`. Authenticate with HTTP basic auth using the token as the username and
 an empty password, e.g.
 `curl -u "$SONAR_TOKEN:" "https://sonarcloud.io/api/issues/search?componentKeys=IntegrationMatters_njams-sdk&organization=integration-matters-gmbh&resolved=false&branch=<branch>"`.
 
-Analysis covers only the `njams-sdk` module (the Jenkinsfile's `Sonar analysis` stage). The sample modules
-(`njams-sdk-sample-client`, `njams-sdk-sample-app`) are deliberately excluded — they set `sonar.skip` — and their
-findings are never triaged; issues still listed for them on an older analysis are stale. Jenkins is a multibranch job,
-so **every pushed branch is analysed under its own name** — always pass `&branch=<current git branch>`; without it the
-query returns SonarCloud's main branch (`master`), which is not the branch being worked on. The Sonar stage does not
-wait for the quality gate, so a red gate does **not** fail the Jenkins build — check the gate status in SonarCloud
+Analysis covers only the `njams-sdk` module (the `Sonar analysis` step of `.github/workflows/build.yml`). The sample
+modules (`njams-sdk-sample-client`, `njams-sdk-sample-app`) are deliberately excluded — they set `sonar.skip` — and
+their findings are never triaged; issues still listed for them on an older analysis are stale. **Every pushed branch
+the build workflow runs on (`master`, `N.N.X`, `N.N-dev`, and any branch it is started on manually) is analysed under
+its own name**; pull requests are not analysed. Always pass `&branch=<current git branch>`; without it the query returns SonarCloud's main
+branch (`master`), which is not the branch being worked on. The Sonar step does not wait for the quality gate, so a
+red gate does **not** fail the build — check the gate status in SonarCloud
 (`api/qualitygates/project_status?projectKey=IntegrationMatters_njams-sdk&branch=<branch>`).

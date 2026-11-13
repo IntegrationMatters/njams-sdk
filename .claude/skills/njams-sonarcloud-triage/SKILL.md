@@ -16,7 +16,7 @@ before any action. Consolidates `.claude/rules/sonarcloud-workflow.md`.
 **Query SonarCloud fresh at the start of any Sonar work** — never rely on a previously fetched snapshot of
 open issues. See `reference/query-recipe.md` for the exact API calls.
 
-**Query the branch being worked on.** Jenkins analyses every pushed branch under its own name; pass
+**Query the branch being worked on.** The GitHub build workflow analyses every branch it runs on under its own name; pass
 `&branch=<current git branch>`. Without it the API answers for SonarCloud's main branch (`master`).
 
 **Consult `docs/sonarcloud-decisions.md` before triaging anything.** If a rule is flagged again on a
@@ -77,6 +77,6 @@ re-investigating from scratch.
 | Dismissing a finding as a false positive without asking | Present reasoning and wait for explicit confirmation |
 | Re-applying an old decision without re-checking it still holds | Re-evaluate in context — code may have changed since the decision was recorded |
 | Querying without `&branch=` | That returns `master`; pass the current git branch |
-| Assuming a green Jenkins build means a green quality gate | The Sonar stage doesn't wait for the gate; query the gate status |
+| Assuming a green build means a green quality gate | The Sonar step doesn't wait for the gate; query the gate status |
 | Changing public API to silence a rule | Raise it — `public-api-design.md` governs, not the Sonar rule |
 | Relying on a stale snapshot of issues from earlier in the conversation | Query fresh at the start of any SonarCloud work |

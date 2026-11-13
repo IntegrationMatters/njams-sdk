@@ -39,8 +39,8 @@
         <skip.integration.tests>${skipTests}</skip.integration.tests>
 
         <!-- Fallbacks for the Git metadata filtered into sdk.version. The git-commit-id plugin
-             overwrites these from the local .git, the branch on CI from GIT_LOCAL_BRANCH instead
-             (see the Jenkinsfile). They only survive where that information does not exist, e.g. a
+             overwrites these from the local .git, the branch on GitHub Actions from the workflow's
+             environment instead. They only survive where that information does not exist, e.g. a
              build from a source archive without .git. -->
         <git.branch>unknown</git.branch>
         <git.commit.id>unknown</git.commit.id>
@@ -505,18 +505,53 @@
                 <module>njams-sdk-communication-it</module>
             </modules>
         </profile>
+        <profile>
+            <!-- The nJAMS snapshot repository is not public; only the GitHub workflows have the credentials of its
+                 ci user. Activated from the environment rather than with -P, so it also applies to the build that
+                 release:perform forks. Local builds resolve snapshots through their own mirror. -->
+            <id>njams-snapshots</id>
+            <activation>
+                <property>
+                    <name>env.GITHUB_ACTIONS</name>
+                </property>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>njams-repository-snapshots</id>
+                    <name>nJAMS Repository</name>
+                    <url>https://maven.njams.com/snapshots</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
     </profiles>
+
+    <repositories>
+        <repository>
+            <id>njams-repository-public</id>
+            <name>nJAMS Repository</name>
+            <url>https://maven.njams.com/public</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <distributionManagement>
         <repository>
-            <id>releases</id>
-            <name>Internal Releases on Nexus</name>
-            <url>https://nexus.service.salesfive.io/repository/releases/</url>
+            <id>njams-repository-public</id>
+            <name>nJAMS Repository</name>
+            <url>https://maven.njams.com/public</url>
         </repository>
         <snapshotRepository>
-            <id>snapshots</id>
-            <name>Nightly builds on Nexus</name>
-            <url>https://nexus.service.salesfive.io/repository/snapshots/</url>
+            <id>njams-repository-snapshots</id>
+            <name>nJAMS Repository</name>
+            <url>https://maven.njams.com/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 

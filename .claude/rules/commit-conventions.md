@@ -8,7 +8,7 @@ file under either of those paths, regardless of what else it also touches.
 
 Commits that touch **only** other files — sample modules (`njams-sdk-sample-client/**`, `njams-sdk-sample-app/**`),
 documentation (`CLAUDE.md`, `README.md`, `docs/**`, `wiki/**`, `.claude/**`), or build-related files (any `pom.xml`,
-`Jenkinsfile`, CI/build scripts) — do not need a Jira ticket reference. Use a plain commit message for those, though
+`.github/workflows/**`, CI/build scripts) — do not need a Jira ticket reference. Use a plain commit message for those, though
 referencing `SDK-XXX` is still appropriate when the change obviously relates to that ticket (e.g. a plan or spec
 written for it, a sample update demonstrating a ticket's new feature, or a skill/rule update made as part of a
 ticket's work).

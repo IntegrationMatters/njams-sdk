@@ -10,7 +10,7 @@ while the underlying reason still holds. If the code changed so the rationale no
 finding.
 
 Project coordinates, auth and the query recipe are in `.claude/rules/sonarcloud-workflow.md` and the
-`njams-sonarcloud-triage` skill. Jenkins analyses every branch under its own name, so query with
+`njams-sonarcloud-triage` skill. The GitHub build workflow analyses every branch under its own name, so query with
 `&branch=<current git branch>`.
 
 Entries follow `.claude/skills/njams-sonarcloud-triage/reference/decision-entry-template.md`.

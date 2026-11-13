@@ -1,0 +1,146 @@
+name: Build nJAMS SDK
+
+on:
+  push:
+    branches:
+      - master
+      - '[0-9]*.[0-9]*.[xX]'
+      - '[0-9]*.[0-9]*-dev'
+  pull_request:
+    branches:
+      - master
+      - '[0-9]*.[0-9]*.[xX]'
+      - '[0-9]*.[0-9]*-dev'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Resolving the message-format snapshots needs the ci user as well, not only deploying. A pull request from a
+      # fork gets no secrets, so it cannot resolve them.
+      NJAMS_REPOSITORY_USER: ci
+      NJAMS_REPOSITORY_TOKEN: ${{ secrets.REPOSILITE_CI_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v6
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          # settings.xml entry for the pom's snapshot repository. The *-env-var
+          # inputs take variable names, not values; Maven resolves them in the step that sets them.
+          server-id: njams-repository-snapshots
+          server-username-env-var: NJAMS_REPOSITORY_USER
+          server-password-env-var: NJAMS_REPOSITORY_TOKEN
+
+      # The whole reactor: this also compiles the sample modules against the current SDK and runs the
+      # njams-sdk-jms-namespace-tests harnesses. The sonarcloud profile attaches the JaCoCo agent and writes the
+      # coverage reports the Sonar analysis reads.
+      - name: Build and test
+        run: mvn -B clean verify -Psonarcloud
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            njams-sdk/target/surefire-reports/
+            njams-sdk/target/failsafe-reports/
+          if-no-files-found: ignore
+
+      - name: Upload SDK jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: njams-sdk-jars
+          path: njams-sdk/target/*.jar
+
+      # The site holds the Checkstyle report; the second run fails the build on a violation.
+      - name: Checkstyle
+        run: |
+          mvn -B -f njams-sdk/pom.xml site
+          mvn -B -f njams-sdk/pom.xml validate -Pcheckstyle
+
+      - name: Upload Checkstyle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: |
+            njams-sdk/target/site/
+            njams-sdk/target/checkstyle-result.xml
+          if-no-files-found: ignore
+
+      - name: Verify JavaDoc
+        run: mvn -B -f njams-sdk/pom.xml javadoc:javadoc
+
+      # Pinned to a commit, not a tag: in March 2026 this action's version tags were force-pushed to malicious
+      # commits (CVE-2026-33634). Scans the built jars, including the shaded one; findings are reported, not fatal.
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: rootfs
+          scan-ref: njams-sdk/target
+          scanners: vuln
+          format: table
+          exit-code: '0'
+
+      # Analyses njams-sdk only, reusing the classes and coverage reports of the build (no clean). The SonarCloud
+      # scanner needs a newer Java runtime than the build. Pull requests are not analysed: one from a fork gets no
+      # token.
+      - name: Set up JDK 25 for Sonar
+        if: github.event_name != 'pull_request'
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+          server-id: njams-repository-snapshots
+          server-username-env-var: NJAMS_REPOSITORY_USER
+          server-password-env-var: NJAMS_REPOSITORY_TOKEN
+
+      - name: Sonar analysis
+        if: github.event_name != 'pull_request'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          mvn -B -Psonarcloud -f njams-sdk/pom.xml
+          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          -Dsonar.branch.name="$GITHUB_REF_NAME"
+
+      - name: Set up JDK 11 for deployment
+        if: github.event_name != 'pull_request'
+        uses: actions/setup-java@v6
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          server-id: njams-repository-snapshots
+          server-username-env-var: NJAMS_REPOSITORY_USER
+          server-password-env-var: NJAMS_REPOSITORY_TOKEN
+
+      # Only branches that own a snapshot version deploy, so a branch that still carries the version it was branched
+      # from never overwrites the snapshot of its version branch. The check matters for manually started runs, which
+      # may use any branch. Release versions are published by release.yml. Only njams-sdk and the root POM are
+      # deployed; the sample modules and the namespace harnesses set maven.deploy.skip.
+      - name: Deploy snapshot
+        if: github.event_name != 'pull_request'
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^(master|[0-9]+\.[0-9]+\.[xX]|[0-9]+\.[0-9]+(\.[0-9]+)?-dev)$ ]]; then
+            echo "::notice::Branch $GITHUB_REF_NAME does not deploy snapshots; deployment skipped."
+            exit 0
+          fi
+          version=$(mvn -B -q help:evaluate -Dexpression=project.version -DforceStdout)
+          if [[ "$version" != *-SNAPSHOT ]]; then
+            echo "::notice::Version $version is not a snapshot; deployment skipped."
+            exit 0
+          fi
+          mvn -B deploy -DskipTests

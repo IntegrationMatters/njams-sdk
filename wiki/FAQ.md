@@ -6,6 +6,9 @@
 already uses the replacements listed under "Deprecations and replacements" in
 [What changed in 6.0](#what-changed-in-60) needs no change.
 
+Releases are published to the public nJAMS Maven repository `https://maven.njams.com/public`; add it to your
+project's repositories — see [How to get started](#how-to-get-started).
+
 Removed, or reduced to SDK-internal visibility:
 
 - The flat `Njams` facade members and the flat `Job` getters/setters/factory methods, including `Job.end()` and
@@ -96,7 +99,8 @@ The core lifecycle of any nJAMS client built on this SDK is: define your process
 jobs, then stop the client on shutdown.
 
 1. Add the SDK as a dependency to your project (see [Releases](https://github.com/IntegrationMatters/njams-sdk/releases)
-   for available versions).
+   for available versions). Since 6.1.0, releases are available from the public nJAMS Maven repository
+   `https://maven.njams.com/public`, which has to be added to your project's repositories.
 2. Instantiate `Njams` with your client path, version, category, and [startup settings](#how-to-provide-startup-settings-to-njams)
    (see below).
 3. Define a `ProcessModel` via `njams.model().create(path)`, adding `ActivityModel`s and the transitions between them.

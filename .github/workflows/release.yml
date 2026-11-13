@@ -1,0 +1,132 @@
+name: Release nJAMS SDK
+
+# Manual only. The branch to release from (master or a version branch such as 6.1.X) is chosen with
+# "Use workflow from" when starting the run.
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: "Release version, e.g. 6.1.0 or 6.1.0-RC1 (empty: current version without -SNAPSHOT)"
+        required: false
+      development-version:
+        description: "Next development version without -SNAPSHOT, e.g. 6.1.1 (empty: next patch version)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check release branch
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != branch || ! "$GITHUB_REF_NAME" =~ ^(master|[0-9]+\.[0-9]+\.[xX])$ ]]; then
+            echo "::error::Releases are made from master or a version branch (e.g. 6.1.X), not from '$GITHUB_REF_NAME'."
+            exit 1
+          fi
+
+      # master only accepts pushes from allowed accounts, which the built-in token is not. RELEASE_TOKEN is a
+      # token of the technical user JenkinsIntegrationMatters; the release plugin pushes with it.
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          # settings.xml entry for the pom's release repository. The *-env-var
+          # inputs take variable names, not values; Maven resolves them in the step that sets them.
+          server-id: njams-repository-public
+          server-username-env-var: NJAMS_REPOSITORY_USER
+          server-password-env-var: NJAMS_REPOSITORY_TOKEN
+
+      - name: Release and deploy
+        env:
+          NJAMS_REPOSITORY_USER: ci
+          NJAMS_REPOSITORY_TOKEN: ${{ secrets.REPOSILITE_CI_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.release-version }}
+          DEVELOPMENT_VERSION: ${{ inputs.development-version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          versions=()
+          if [[ -n "$RELEASE_VERSION" ]]; then
+            versions+=("-DreleaseVersion=$RELEASE_VERSION")
+          fi
+          if [[ -n "$DEVELOPMENT_VERSION" ]]; then
+            versions+=("-DdevelopmentVersion=${DEVELOPMENT_VERSION%-SNAPSHOT}-SNAPSHOT")
+          fi
+          mvn -B release:prepare release:perform "${versions[@]}"
+
+      - name: Determine released version
+        id: version
+        run: |
+          version=$(mvn -B -q -f target/checkout/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "${version^^}" =~ -(RC|TEST)[0-9]*$ ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The release plugin tags a release as njams-sdk-root-<version>. Attached are the SDK jar (shaded) with its
+      # sources, and the JavaDoc jar.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          flags=()
+          if [[ "$PRERELEASE" == true ]]; then
+            flags+=(--prerelease)
+          fi
+          jars=()
+          for jar in target/checkout/njams-sdk/target/njams-sdk-"$VERSION"*.jar; do
+            [[ "$jar" == *-tests.jar ]] || jars+=("$jar")
+          done
+          gh release create "njams-sdk-root-$VERSION" "${jars[@]}" \
+            --verify-tag --title "nJAMS SDK $VERSION" --generate-notes "${flags[@]}"
+
+      - name: Build JavaDoc
+        run: mvn -B -f target/checkout/njams-sdk/pom.xml javadoc:javadoc
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      # Every release gets its own folder, <version>/njams-sdk. The redirect index-njams-sdk.html moves only for a
+      # final release that is newer than the one it points at, so RC/TEST builds and maintenance releases of older
+      # lines leave it alone.
+      - name: Publish JavaDoc to GitHub Pages
+        working-directory: gh-pages
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          rm -rf "$VERSION/njams-sdk"
+          mkdir -p "$VERSION"
+          cp -r ../target/checkout/njams-sdk/target/reports/apidocs "$VERSION/njams-sdk"
+          current=$(grep -o 'url=[^/"]*' index-njams-sdk.html | head -1 | cut -d= -f2)
+          newest=$(printf '%s\n%s\n' "$current" "$VERSION" | sort -V | tail -1)
+          if [[ "$PRERELEASE" == false && "$newest" == "$VERSION" ]]; then
+            printf '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><meta http-equiv=Refresh content="0;url=%s/njams-sdk"></head></html>\n' "$VERSION" > index-njams-sdk.html
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "JavaDoc for nJAMS SDK $VERSION"
+          git push
