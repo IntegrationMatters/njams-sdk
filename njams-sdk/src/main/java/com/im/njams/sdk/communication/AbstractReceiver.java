@@ -403,12 +403,13 @@ public abstract class AbstractReceiver implements SenderRecoveryListener {
     public void onException(Exception exception) {
         stop();
         // reconnect
-        reconnectThread = new Thread(() -> reconnect(exception));
-        reconnectThread.setDaemon(true);
-        reconnectThread
-            .setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
-                System.identityHashCode(this)));
-        reconnectThread.start();
+        // SDK-500: configure and start a local reference; the field may be reassigned concurrently.
+        final Thread thread = new Thread(() -> reconnect(exception));
+        thread.setDaemon(true);
+        thread.setName(String.format("Receiver-Sender-Reconnector-Thread[%s/%d]", getName(),
+            System.identityHashCode(this)));
+        reconnectThread = thread;
+        thread.start();
     }
 
     /**

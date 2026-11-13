@@ -548,6 +548,45 @@ public class AbstractReceiverTest {
         assertTrue(impl.isConnected());
     }
 
+    /**
+     * SDK-500: concurrent onException calls must each start their own reconnect thread. Re-reading the shared
+     * field after assigning it let one caller configure and start the other caller's thread, failing with
+     * IllegalThreadStateException.
+     *
+     * @throws InterruptedException for thread
+     */
+    @Test
+    public void testConcurrentOnExceptionDoesNotThrow() throws InterruptedException {
+        final int callers = 8;
+        final int rounds = 200;
+        final List<Throwable> failures = java.util.Collections.synchronizedList(new ArrayList<>());
+        for (int round = 0; round < rounds && failures.isEmpty(); round++) {
+            final AbstractReceiverImpl impl = new AbstractReceiverImpl();
+            impl.setConnectionStatus(ConnectionStatus.CONNECTED);
+            final java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+            final List<Thread> threads = new ArrayList<>();
+            for (int i = 0; i < callers; i++) {
+                final Thread t = new Thread(() -> {
+                    try {
+                        start.await();
+                        impl.onException(null);
+                    } catch (Throwable e) {
+                        failures.add(e);
+                    }
+                });
+                threads.add(t);
+                t.start();
+            }
+            start.countDown();
+            for (Thread t : threads) {
+                t.join();
+            }
+        }
+        if (!failures.isEmpty()) {
+            throw new AssertionError("concurrent onException threw: " + failures.get(0), failures.get(0));
+        }
+    }
+
     //isConnected test
 
     /**
