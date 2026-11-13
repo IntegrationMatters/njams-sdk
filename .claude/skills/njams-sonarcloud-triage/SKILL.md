@@ -44,7 +44,9 @@ trust an earlier fetch from the same conversation if any code has changed since.
 
 **2. Cross-check against the decision register.**
 For each finding, check whether `docs/sonarcloud-decisions.md` already has an entry for that rule +
-construct. If yes, re-verify the rationale still holds (code may have changed); if it does, re-apply the
+construct. If yes, re-verify that the argument still holds and its circumstances are unchanged — the construct,
+its callers and usage, and any dependency version, setting or API constraint the entry names. If anything differs,
+re-evaluate it as a new finding (step 3) and update or replace the entry. If it still holds, re-apply the
 recorded verdict without further debate.
 
 **3. Evaluate each new/unrecorded finding individually.**
