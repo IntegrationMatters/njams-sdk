@@ -11,6 +11,13 @@ on:
       development-version:
         description: "Next development version without -SNAPSHOT, e.g. 6.1.1 (empty: next patch version)"
         required: false
+  # TEMPORARY until 6.1-dev is merged into master: a workflow that is not on the default branch only becomes
+  # startable once it has run, so a push of this file runs it once. The release job is skipped for that run.
+  push:
+    branches:
+      - 6.1-dev
+    paths:
+      - .github/workflows/release.yml
 
 permissions:
   contents: write
@@ -21,12 +28,15 @@ concurrency:
 
 jobs:
   release:
+    # TEMPORARY: remove together with the push trigger above.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
+      # TEMPORARY: 6.1-dev is allowed until it is merged into master.
       - name: Check release branch
         run: |
-          if [[ "$GITHUB_REF_TYPE" != branch || ! "$GITHUB_REF_NAME" =~ ^(master|[0-9]+\.[0-9]+\.[xX])$ ]]; then
+          if [[ "$GITHUB_REF_TYPE" != branch || ! "$GITHUB_REF_NAME" =~ ^(master|[0-9]+\.[0-9]+\.[xX]|6\.1-dev)$ ]]; then
             echo "::error::Releases are made from master or a version branch (e.g. 6.1.X), not from '$GITHUB_REF_NAME'."
             exit 1
           fi
