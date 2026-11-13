@@ -99,7 +99,7 @@ public class DateTimeUtility {
         if (start == null || end == null) {
             return 0L;
         }
-        return ChronoUnit.MILLIS.between(start, end);
+        return ChronoUnit.MILLIS.between(start.toInstant(ZoneOffset.UTC), end.toInstant(ZoneOffset.UTC));
     }
 
     /**

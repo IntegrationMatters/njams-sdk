@@ -276,6 +276,9 @@ public class SplitSupport {
      * @see #iterator(String)
      */
     public List<Range> getSplitIndexes(final String data) {
+        if (data == null) {
+            return Collections.emptyList();
+        }
         final List<Range> list = getSplitIndexesInternal(data);
         if (list == FIT_ALL) {
             // convert the internal marker into an according result

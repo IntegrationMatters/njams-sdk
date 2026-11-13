@@ -24,7 +24,9 @@
 package com.im.njams.sdk.logmessage;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -95,8 +97,10 @@ final class JobFlusher {
         // only send updates automatically, if a change has been
         // made to the job between individual send events.
         final long currentSize = getEstimatedSize();
-        LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", owner, lastFlush,
-                Duration.between(lastFlush, DateTimeUtility.now()), currentSize);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Job {}: lastPush: {}, age: {}, size: {}", owner, lastFlush,
+                Duration.between(lastFlush.toInstant(ZoneOffset.UTC), Instant.now()), currentSize);
+        }
         return (lastFlush.isBefore(sentBefore) || currentSize > flushSize)
                 && (!attributes.isEmpty() || owner.getEndTime() != null || activities.hasActivityToSend());
     }

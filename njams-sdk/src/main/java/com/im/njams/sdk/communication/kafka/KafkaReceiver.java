@@ -31,6 +31,7 @@ import static com.im.njams.sdk.communication.kafka.KafkaUtil.getProducerLimit;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -94,7 +95,9 @@ public class KafkaReceiver extends AbstractReceiver {
         super.init(settings);
         connectionStatus = ConnectionStatus.DISCONNECTED;
         mapper = JsonSerializerFactory._internal().getFastMapper();
-        final String clientPath = settings.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
+        final String clientPath = Objects.requireNonNull(
+            settings.getProperty(CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH),
+            "Missing setting " + CommunicationFactory.INTERNAL_PROPERTY_CLIENTPATH);
         kafkaClientId = getClientId(clientPath.substring(1, clientPath.length() - 1).replace('>', '_'));
         String prefix = settings.getProperty(NjamsSettings.PROPERTY_KAFKA_TOPIC_PREFIX);
         if (StringUtils.isBlank(prefix)) {

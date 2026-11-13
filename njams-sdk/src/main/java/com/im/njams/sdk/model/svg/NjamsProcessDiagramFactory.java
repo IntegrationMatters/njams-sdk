@@ -462,7 +462,7 @@ public class NjamsProcessDiagramFactory implements ProcessDiagramFactory {
         int labelGap = 4;
         int groupTextX = headerX + iconSize + labelGap;
         int groupTextY = headerY + DEFAULT_TEXT_SIZE;
-        double labelAvailableWidth = headerWidth - iconSize - labelGap - GROUP_HEADER_RESERVED_END;
+        int labelAvailableWidth = headerWidth - iconSize - labelGap - GROUP_HEADER_RESERVED_END;
 
         Element groupText = context.getDoc().createElementNS(context.getSvgNS(), "text");
         groupText.setAttributeNS(null, "id", groupModel.getId() + "_label");
