@@ -386,6 +386,68 @@ public class ProcessFilterTest {
     }
 
     @Test
+    public void testConcurrentExcludeFilterQueryAndMutationIsThreadSafe() throws Exception {
+        // SDK-500: hasProcessExcludeFilter streams over the filter list while configuration commands
+        // add and remove entries; without holding the configuration lock it can throw
+        // ConcurrentModificationException.
+        final Configuration config = new Configuration();
+        config.setConfigurationProvider(new MemoryConfigurationProvider());
+        final Path queried = Path.resolve(">q>");
+        for (int i = 0; i < 50; i++) {
+            config.addProcessFilter(new ProcessFilterEntry(FilterType.EXCLUDE, MatcherType.VALUE, ">x" + i + ">"));
+        }
+
+        final int writerThreads = 4;
+        final int togglesPerThread = 100;
+        final int readerThreads = 4;
+        final CountDownLatch start = new CountDownLatch(1);
+        final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
+        final AtomicBoolean readersRun = new AtomicBoolean(true);
+        final List<Thread> writers = new ArrayList<>();
+        final List<Thread> readers = new ArrayList<>();
+        for (int t = 0; t < writerThreads; t++) {
+            final Path own = Path.resolve(">w" + t + ">");
+            writers.add(new Thread(() -> {
+                try {
+                    start.await();
+                    for (int i = 0; i < togglesPerThread; i++) {
+                        config.setProcessExcluded(own, i % 2 == 0);
+                    }
+                } catch (final Throwable e) {
+                    failures.add(e);
+                }
+            }));
+        }
+        for (int t = 0; t < readerThreads; t++) {
+            readers.add(new Thread(() -> {
+                try {
+                    start.await();
+                    while (readersRun.get()) {
+                        config.hasProcessExcludeFilter(queried);
+                    }
+                } catch (final Throwable e) {
+                    failures.add(e);
+                }
+            }));
+        }
+
+        writers.forEach(Thread::start);
+        readers.forEach(Thread::start);
+        start.countDown();
+        for (final Thread w : writers) {
+            w.join();
+        }
+        readersRun.set(false);
+        for (final Thread r : readers) {
+            r.join();
+        }
+
+        if (!failures.isEmpty()) {
+            throw new AssertionError("concurrent exclude-filter query threw: " + failures.get(0), failures.get(0));
+        }
+    }
+
+    @Test
     public void testSetProcessFiltersNullIsTreatedAsEmpty() {
         // Reproducer for SDK-454: passing null to setProcessFilters must not leave the filter list
         // null, otherwise filter operations that read the list (setExcluded / hasExcludeFilter) throw

@@ -61,8 +61,8 @@ public class Configuration {
     // Built lazily without settings if accessed before initialization. Must not be built eagerly:
     // this instance is typically populated by deserialization, where the filter list is set only
     // after construction.
-    // Concurrency: every (re)build and every mutation of processFilters happens under
-    // synchronized(this), so the filter list is never iterated while being modified. The field is
+    // Concurrency: every (re)build, every mutation of processFilters and every query iterating it
+    // happens under synchronized(this), so the filter list is never iterated while being modified. The field is
     // volatile so the runtime read path (processFilter()) can return the cached instance without
     // locking once it has been built.
     @JsonIgnore
@@ -244,7 +244,7 @@ public class Configuration {
     /**
      * @return List of all defined process (-path) filters.
      */
-    public Collection<ProcessFilterEntry> getProcessFilters() {
+    public synchronized Collection<ProcessFilterEntry> getProcessFilters() {
         return processFilters;
     }
 
@@ -286,7 +286,7 @@ public class Configuration {
      * @return Whether there is a specific exclude filter for the given process.
      * @see ProcessFilter#hasExcludeFilter(Path)
      */
-    public boolean hasProcessExcludeFilter(Path processPath) {
+    public synchronized boolean hasProcessExcludeFilter(Path processPath) {
         return processFilter().hasExcludeFilter(processPath);
     }
 
