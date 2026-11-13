@@ -108,4 +108,36 @@ public class SharedJmsReceiverTest {
         receiver.cancelReconnect();
         reconnector.join(2000);
     }
+
+    /** SDK-500: a null message is ignored without being reported as an error. */
+    @Test
+    public void onMessageWithNullIsIgnoredWithoutError() {
+        final java.util.List<org.apache.log4j.spi.LoggingEvent> errors = new java.util.concurrent.CopyOnWriteArrayList<>();
+        final org.apache.log4j.AppenderSkeleton appender = new org.apache.log4j.AppenderSkeleton() {
+            @Override
+            protected void append(org.apache.log4j.spi.LoggingEvent event) {
+                if (event.getLevel().isGreaterOrEqual(org.apache.log4j.Level.ERROR)) {
+                    errors.add(event);
+                }
+            }
+
+            @Override
+            public void close() {
+                // nothing to release
+            }
+
+            @Override
+            public boolean requiresLayout() {
+                return false;
+            }
+        };
+        final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger("com.im.njams.sdk.communication.jms.javax.SharedJmsReceiver");
+        logger.addAppender(appender);
+        try {
+            new SharedJmsReceiver().onMessage(null);
+        } finally {
+            logger.removeAppender(appender);
+        }
+        assertTrue("no error expected, got " + errors, errors.isEmpty());
+    }
 }
