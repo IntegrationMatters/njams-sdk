@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/src/main/java/**/*.java"
+paths:
+  - "njams-sdk/src/main/java/**/*.java"
 ---
 
 # Documentation and Comments

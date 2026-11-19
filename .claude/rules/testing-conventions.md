@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/src/test/**"
+paths:
+  - "njams-sdk/src/test/**"
 ---
 
 # Testing

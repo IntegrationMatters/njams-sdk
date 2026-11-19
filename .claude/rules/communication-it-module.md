@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk-communication-it/**"
+paths:
+  - "njams-sdk-communication-it/**"
 ---
 
 # Communication Resilience Test Module (`njams-sdk-communication-it`)

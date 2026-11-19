@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/**"
+paths:
+  - "njams-sdk/**"
 ---
 
 # SonarCloud Issues

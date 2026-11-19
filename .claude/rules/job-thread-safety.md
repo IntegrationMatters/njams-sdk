@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/logmessage/**"
+paths:
+  - "njams-sdk/src/main/java/com/im/njams/sdk/logmessage/**"
 ---
 
 # Job / Activity / Group Thread-Safety Contract (since 6.0.0, SDK-457)

@@ -1,5 +1,6 @@
 ---
-globs: "wiki/**"
+paths:
+  - "wiki/**"
 ---
 
 # Wiki Drafts

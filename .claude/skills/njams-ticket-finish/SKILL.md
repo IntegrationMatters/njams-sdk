@@ -32,7 +32,7 @@ Write it in Markdown with `contentFormat=markdown` — wiki markup (`h2.`, `_...
 
 **If the ticket touched any settings**, confirm `NjamsSettings` and the settings tables and settings listing in `wiki/FAQ.md` are all in sync before closing — see `njams-settings-sync`. Don't resolve a settings-touching ticket with docs out of sync.
 
-**Apply the project rules' completion checks.** Rules under `.claude/rules/` may contribute their own checks in a section titled `## Ticket completion checks`. Before resolving, apply every such section whose rule's path scope (the `globs:` frontmatter, or the "Applies to" column in `CLAUDE.md` for rules without one) matches files in the ticket's diff. A check that says "propose" means propose to the user and wait for the answer; don't resolve the ticket while a proposed check is still unanswered. This keeps project-specific steps in the rules that own them instead of in this skill.
+**Apply the project rules' completion checks.** Rules under `.claude/rules/` may contribute their own checks in a section titled `## Ticket completion checks`. Before resolving, apply every such section whose rule's path scope (the `paths:` frontmatter; a rule without one applies always) matches files in the ticket's diff. A check that says "propose" means propose to the user and wait for the answer; don't resolve the ticket while a proposed check is still unanswered. This keeps project-specific steps in the rules that own them instead of in this skill.
 
 ## Workflow
 

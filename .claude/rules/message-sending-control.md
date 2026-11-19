@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/src/main/java/**"
+paths:
+  - "njams-sdk/src/main/java/**"
 ---
 
 # Message Sending Control (nJAMS Server Send Cadence)

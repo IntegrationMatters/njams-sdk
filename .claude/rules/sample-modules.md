@@ -1,5 +1,7 @@
 ---
-globs: "njams-sdk-sample-client/**, njams-sdk-sample-app/**"
+paths:
+  - "njams-sdk-sample-client/**"
+  - "njams-sdk-sample-app/**"
 ---
 
 # Sample Modules

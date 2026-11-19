@@ -1,5 +1,6 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/communication/**"
+paths:
+  - "njams-sdk/src/main/java/com/im/njams/sdk/communication/**"
 ---
 
 # Communication Layer

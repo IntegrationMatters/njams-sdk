@@ -1,5 +1,7 @@
 ---
-globs: "docs/superpowers/plans/**, docs/superpowers/specs/**"
+paths:
+  - "docs/superpowers/plans/**"
+  - "docs/superpowers/specs/**"
 ---
 
 # docs/superpowers Lifecycle

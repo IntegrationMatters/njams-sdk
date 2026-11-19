@@ -1,5 +1,7 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/communication/kafka/**, njams-sdk/src/main/java/com/im/njams/sdk/argos/**"
+paths:
+  - "njams-sdk/src/main/java/com/im/njams/sdk/communication/kafka/**"
+  - "njams-sdk/src/main/java/com/im/njams/sdk/argos/**"
 ---
 
 # Kafka Transport & Argos Metrics — Deprecated

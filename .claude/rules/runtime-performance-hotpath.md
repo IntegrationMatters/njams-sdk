@@ -1,5 +1,8 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/logmessage/**, njams-sdk/src/main/java/com/im/njams/sdk/communication/**, njams-sdk/src/main/java/com/im/njams/sdk/argos/**"
+paths:
+  - "njams-sdk/src/main/java/com/im/njams/sdk/logmessage/**"
+  - "njams-sdk/src/main/java/com/im/njams/sdk/communication/**"
+  - "njams-sdk/src/main/java/com/im/njams/sdk/argos/**"
 ---
 
 # Performance Requirements — Runtime Monitoring Path

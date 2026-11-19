@@ -1,5 +1,8 @@
 ---
-globs: "njams-sdk/src/main/java/com/im/njams/sdk/settings/**, njams-sdk/src/main/java/com/im/njams/sdk/configuration/**, njams-sdk/src/main/java/com/im/njams/sdk/NjamsSettings.java"
+paths:
+  - "njams-sdk/src/main/java/com/im/njams/sdk/settings/**"
+  - "njams-sdk/src/main/java/com/im/njams/sdk/configuration/**"
+  - "njams-sdk/src/main/java/com/im/njams/sdk/NjamsSettings.java"
 ---
 
 # Settings Management
