@@ -25,6 +25,16 @@ specs and delete it the same way, with the user's confirmation.
 A topic spec is the single permanent description of one area of the SDK (e.g. sender lifecycle, polyline routing,
 JMS namespace selection). Its readers are SDK developers, and above all AI coding agents about to change that area.
 
+**A topic spec states intended behavior and decisions only.** Ideally the implementation matches it. Gaps, possible
+bugs and behavior nobody decided, even when found in the current code, do not belong in it; they are raised
+separately or ignored.
+
+**Rejected alternatives are listed only with a reason that was actually given.** A reason inferred afterwards does
+not qualify; without a recorded reason the alternative is left out.
+
+**Code never references a spec** — not by path, section or plan item — because the reference drifts. Rules, skills
+and documentation may point to a topic spec.
+
 It contains:
 
 - the current design of the area and the invariants a change must preserve;
