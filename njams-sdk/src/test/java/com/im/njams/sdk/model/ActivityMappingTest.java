@@ -237,4 +237,54 @@ public class ActivityMappingTest {
         assertFalse(root.get("entries").get(0).has("entries"));
         assertNotNull(root.get("entries").get(0).get("value"));
     }
+
+    @Test
+    public void builtMappingIsNotChangedByLaterBuilderUse() {
+        ActivityMapping.Builder builder = ActivityMapping.builder("root").leaf("a", "1");
+        ActivityMapping mapping = builder.build();
+        String json = mapping.toJson();
+
+        builder.leaf("b", "2").branch("c", c -> c.leaf("d", "3"));
+
+        assertEquals(json, mapping.toJson());
+        JsonNode root = parse(mapping.toJson());
+        assertEquals(1, root.get("entries").size());
+        assertNull(entry(root, "b"));
+        assertNull(entry(root, "c"));
+    }
+
+    @Test
+    public void repeatedBuildsYieldIndependentMappings() {
+        ActivityMapping.Builder builder = ActivityMapping.builder("root").leaf("a", "1");
+        ActivityMapping first = builder.build();
+        builder.leaf("b", "2");
+        ActivityMapping second = builder.build();
+        builder.leaf("c", "3");
+
+        JsonNode firstRoot = parse(first.toJson());
+        JsonNode secondRoot = parse(second.toJson());
+        assertEquals(1, firstRoot.get("entries").size());
+        assertEquals(2, secondRoot.get("entries").size());
+        assertNotNull(entry(secondRoot, "b"));
+        assertNull(entry(secondRoot, "c"));
+    }
+
+    @Test
+    public void builtMappingIsNotChangedByRetainedChildBuilder() {
+        ActivityMapping.Builder[] retained = new ActivityMapping.Builder[1];
+        ActivityMapping mapping = ActivityMapping.builder("root")
+                .branch("branch", b -> {
+                    b.leaf("x", "1");
+                    retained[0] = b;
+                })
+                .build();
+        String json = mapping.toJson();
+
+        retained[0].leaf("y", "2");
+
+        assertEquals(json, mapping.toJson());
+        JsonNode branch = entry(parse(mapping.toJson()), "branch");
+        assertEquals(1, branch.get("entries").size());
+        assertNull(entry(branch, "y"));
+    }
 }

@@ -244,12 +244,13 @@ public final class ActivityMapping {
         }
 
         /**
-         * Builds the {@link ActivityMapping} from the nodes added so far.
+         * Builds the {@link ActivityMapping} from the nodes added so far. The result is independent of this builder:
+         * nodes added afterwards, also through a branch's builder, do not change it.
          *
          * @return the resulting {@link ActivityMapping}
          */
         public ActivityMapping build() {
-            return new ActivityMapping(node);
+            return new ActivityMapping(node.deepCopy());
         }
 
         /**

@@ -1,7 +1,5 @@
 # Activity Mapping Builder
 
-Tickets: SDK-437
-
 `com.im.njams.sdk.model.ActivityMapping` produces the tree-viewer JSON that `ActivityModel.mapping` carries, so
 callers never assemble or serialize that structure by hand. The user-facing description of the format and the
 helpers is the "How to set the activity mapping" section of `wiki/FAQ.md`; this spec covers the design and the rules
@@ -44,6 +42,9 @@ or a **branch** `{"name", "entries": [...]}`. The nJAMS UI picks the tree viewer
    and `checkstyle.xml`); every public signature uses `String`, `Object` or SDK types.
 7. **Scope is `mapping` only.** The helpers do not target `ActivityModel.config`, and the class makes no change
    to the message format: its output is an ordinary string in the existing `mapping` field.
+8. **A built mapping never changes.** Nodes added to a builder after `build()`, also through a branch's builder
+   kept by the caller, do not reach a mapping built before; each `build()` yields an independent mapping, and
+   `toJson()` of one mapping always returns the same JSON.
 
 ## Decisions
 
@@ -53,6 +54,6 @@ or a **branch** `{"name", "entries": [...]}`. The nJAMS UI picks the tree viewer
 
 ## Tests
 
-`njams-sdk/src/test/java/com/im/njams/sdk/model/ActivityMappingTest.java` covers invariants 1 to 5 for the builder,
-`fromObject` and `fromPlainJson`, plus the `ActivityModel` overload including `null`. Invariant 6 is guarded by
-review against the relocation list in `checkstyle.xml`, not by a test.
+`njams-sdk/src/test/java/com/im/njams/sdk/model/ActivityMappingTest.java` covers invariants 1 to 5 and 8 for the
+builder, `fromObject` and `fromPlainJson`, plus the `ActivityModel` overload including `null`. Invariant 6 is guarded
+by review against the relocation list in `checkstyle.xml`, not by a test.
