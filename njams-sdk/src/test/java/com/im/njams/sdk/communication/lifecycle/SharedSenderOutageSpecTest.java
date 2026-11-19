@@ -20,7 +20,7 @@ import com.im.njams.sdk.communication.SenderExceptionListener;
 import com.im.njams.sdk.settings.ClientSettings;
 
 /**
- * Specifies §5.4's shared-communications behaviour: two {@code Njams} instances sharing one communication group
+ * Specifies the shared-communications behaviour: two {@code Njams} instances sharing one communication group
  * (via {@link NjamsSender#takeSharedSender(ClientSettings)}) share the group's single reconnector and its
  * exception-listener fan-out, and one instance's {@code close()} does not tear the group down for its sibling.
  */
@@ -104,7 +104,7 @@ public class SharedSenderOutageSpecTest extends AbstractLifecycleSpecTest {
         assertEquals("one reconnector, not one per concurrently failing instance", connectsBeforeOutage + 1,
             LifecycleTestTransport.senderConnectCount());
 
-        // Listener fan-out is one notification per registered listener, per outage (spec 5.4).
+        // Listener fan-out is one notification per registered listener, per outage.
         assertEquals("the first instance's listener is notified exactly once", 1, a.count.get());
         assertEquals("the second instance's listener is notified exactly once", 1, b.count.get());
     }

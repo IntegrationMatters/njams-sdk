@@ -21,8 +21,7 @@ import com.im.njams.sdk.settings.ClientSettings;
 
 /**
  * Specifies the shared retry machinery in {@link AbstractSender}: the bounded smoothing window, the
- * congestion-only indefinite retry, and which failures are propagated to the caller. See
- * docs/superpowers/specs/2026-09-09-sdk-476-sender-retry-unification-discussion.md.
+ * congestion-only indefinite retry, and which failures are propagated to the caller.
  */
 public class SenderRetryLoopTest {
 

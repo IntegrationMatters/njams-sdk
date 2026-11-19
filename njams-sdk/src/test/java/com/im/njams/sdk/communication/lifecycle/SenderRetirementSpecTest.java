@@ -8,7 +8,7 @@ import org.junit.Test;
 import com.im.njams.sdk.communication.SenderPoolTestAccess;
 
 /**
- * Specifies retirement (D2.4): a sender that is checked out when the group fails is flagged retired but never
+ * Specifies retirement: a sender that is checked out when the group fails is flagged retired but never
  * closed by the failing thread — it stays with its borrower until release — while an idle sender with nobody
  * holding it is destroyed immediately.
  */

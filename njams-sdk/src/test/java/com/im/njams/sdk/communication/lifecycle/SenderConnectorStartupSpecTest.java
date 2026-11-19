@@ -22,7 +22,7 @@ public class SenderConnectorStartupSpecTest extends AbstractLifecycleSpecTest {
         SenderConnectorTestAccess c = SenderConnectorTestAccess.create();
         assertTrue(c.awaitStartup(5000));
         int afterFirst = LifecycleTestTransport.senderConnectCount();
-        // A second Njams starting later against the already-connected group (spec 5.1)
+        // A second Njams starting later against the already-connected group
         assertTrue("a late caller must succeed immediately", c.awaitStartup(0));
         assertEquals("no second connect for a late caller", afterFirst,
             LifecycleTestTransport.senderConnectCount());

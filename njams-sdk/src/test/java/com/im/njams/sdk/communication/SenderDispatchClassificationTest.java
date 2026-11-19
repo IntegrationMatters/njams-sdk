@@ -18,7 +18,7 @@ import com.im.njams.sdk.settings.ClientSettings;
 /**
  * Specifies which failures make the dispatching loop retire a sender and which only drop the message. A
  * connection is only ever retired for a failure the sender could not attribute to congestion or to the message
- * itself. See docs/superpowers/specs/2026-09-09-sdk-476-sender-retry-unification-discussion.md.
+ * itself.
  * <p>
  * Retirement is observed through the sender-exception listener, which only ever fires via
  * SenderPool.reportFailure. The absence checks are sound rather than racy: once the discard has been counted the
