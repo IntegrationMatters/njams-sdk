@@ -1,13 +1,13 @@
 ---
 name: njams-ticket-finish
-description: Use when work on a Jira SDK ticket is actually being closed out — the user says something like "this is done, resolve SDK-123", "let's close this ticket", "mark it as Done", or is ready to wrap up after tests pass and verification is complete. Decides the breaking-change label against the real diff (this is usually the first real decision on it, since njams-ticket-start leaves it unset unless the ticket description already made it obvious) — asking the user when the API contract a touched member belongs to is itself unclear rather than guessing, and deferring to the message-format-changes gate instead of the label for Wire Contract changes — posts a signed closing comment, sets resolution to Done and clears the assignee, and removes the ticket's now-obsolete plan file from docs/superpowers/plans/ while keeping its spec. Do not trigger just because code changes feel finished — only when the user is actually ready to resolve the ticket, since closing comments should only be posted at that point.
+description: Use when work on a Jira SDK ticket is actually being closed out — the user says something like "this is done, resolve SDK-123", "let's close this ticket", "mark it as Done", or is ready to wrap up after tests pass and verification is complete. Covers everything due at that point: the breaking-change label decision against the real diff, the message-format gate for Wire Contract changes, consolidating the ticket's specs into the permanent topic specs under docs/specs/, the signed closing comment, the resolve transition, and deleting the ticket's specs and plans under docs/superpowers/. Do not trigger just because code changes feel finished — only when the user is actually ready to resolve the ticket, since closing comments should only be posted at that point.
 ---
 
 # Ticket Wrap-Up for nJAMS SDK
 
 ## Overview
 
-Closing a ticket is the mirror image of `njams-ticket-start`, and it's just as easy to do inconsistently if it isn't checked against a list: the breaking-change label needs an actual decision now that the real diff exists — kickoff deliberately leaves it unset in most cases, so this is usually the first point where the answer is even knowable, not a recheck of an earlier guess. The ticket also needs to actually move to a resolved state, and if the ticket produced a plan file under `docs/superpowers/plans/`, that plan has served its purpose and should go — while any spec for the same ticket stays as permanent reference. Getting this wrong either leaves stale "In Progress" tickets on the board, or clutters Jira with premature closing comments before the user actually wants to resolve anything.
+Closing a ticket is the mirror image of `njams-ticket-start`, and it's just as easy to do inconsistently if it isn't checked against a list: the breaking-change label needs an actual decision now that the real diff exists — kickoff deliberately leaves it unset in most cases, so this is usually the first point where the answer is even knowable, not a recheck of an earlier guess. The ticket also needs to actually move to a resolved state. Its ticket specs and plans under `docs/superpowers/` live only as long as the ticket: what is worth keeping is merged into the permanent topic specs under `docs/specs/` first, and then they go. Skipping the merge loses decisions; skipping the deletion leaves outdated specs that later work scans and trusts. Getting this wrong either leaves stale "In Progress" tickets on the board, or clutters Jira with premature closing comments before the user actually wants to resolve anything.
 
 ## Hard Rules
 
@@ -28,7 +28,13 @@ Write it in Markdown with `contentFormat=markdown` — wiki markup (`h2.`, `_...
 
 **Set resolution to `Done` and clear the assignee** as part of the same transition.
 
-**Delete the ticket's plan file only after the ticket is actually resolved, not before.** If `docs/superpowers/plans/` has a `YYYY-MM-DD-sdk-NNN-*.md` file for this ticket, remove it — but only once the resolution transition below has actually happened, since "work has shipped" isn't the same as "ticket resolved." If `docs/superpowers/specs/` has a matching spec, leave it in place permanently — it's kept as reference, not a working document.
+**Consolidate into the topic specs before resolving — with the user's confirmation.** Topic specs (`docs/specs/<topic>.md`) are the permanent design record; their content rules are in `specs-and-plans-lifecycle.md`. Two sources feed them:
+- every ticket spec of this ticket (`docs/superpowers/specs/*-sdk-<number>-*`) — merge the decisions, invariants and non-obvious reasoning that still hold into the affected topic specs, or create a new topic spec;
+- the ticket's diff itself, also when there is no ticket spec — if it changes what a topic spec states, update that topic spec.
+
+Present the resulting topic-spec diff, and ask in the same message for confirmation of the content and for permission to commit it; commit it before posting the closing comment. If you conclude nothing needs to change, say so with the reason and let the user confirm that too — never skip this step silently.
+
+**Delete the ticket's specs and plans only after the ticket is actually resolved, not before.** Remove `docs/superpowers/plans/*-sdk-<number>-*.md` and `docs/superpowers/specs/*-sdk-<number>-*` together with any asset folder `docs/superpowers/specs/sdk-<number>-*/` once the resolution transition below has actually happened, since "work has shipped" isn't the same as "ticket resolved."
 
 **If the ticket touched any settings**, confirm `NjamsSettings` and the settings tables and settings listing in `wiki/FAQ.md` are all in sync before closing — see `njams-settings-sync`. Don't resolve a settings-touching ticket with docs out of sync.
 
@@ -49,10 +55,12 @@ digraph ticket_finish {
     "Settings touched?" [shape=diamond];
     "Apply matching rules' '## Ticket completion checks'" [shape=box];
     "Verify NjamsSettings / FAQ tables / FAQ listing in sync" [shape=box];
+    "Merge ticket specs + diff into topic specs" [shape=box];
+    "User confirms topic-spec diff?" [shape=diamond];
+    "Commit topic specs" [shape=box];
     "Post signed closing comment" [shape=box];
     "Set resolution=Done, unassign" [shape=box];
-    "Plan file exists for this ticket?" [shape=box];
-    "Delete plan file, keep any spec" [shape=box];
+    "Delete ticket specs and plans" [shape=box];
     "Done" [shape=box, style=filled, fillcolor=green];
 
     "User ready to resolve?" -> "Wait — don't close yet" [label="no"];
@@ -67,11 +75,14 @@ digraph ticket_finish {
     "Settings touched?" -> "Verify NjamsSettings / FAQ tables / FAQ listing in sync" [label="yes"];
     "Settings touched?" -> "Apply matching rules' '## Ticket completion checks'" [label="no"];
     "Verify NjamsSettings / FAQ tables / FAQ listing in sync" -> "Apply matching rules' '## Ticket completion checks'";
-    "Apply matching rules' '## Ticket completion checks'" -> "Post signed closing comment";
+    "Apply matching rules' '## Ticket completion checks'" -> "Merge ticket specs + diff into topic specs";
+    "Merge ticket specs + diff into topic specs" -> "User confirms topic-spec diff?";
+    "User confirms topic-spec diff?" -> "Merge ticket specs + diff into topic specs" [label="no, revise"];
+    "User confirms topic-spec diff?" -> "Commit topic specs" [label="yes"];
+    "Commit topic specs" -> "Post signed closing comment";
     "Post signed closing comment" -> "Set resolution=Done, unassign";
-    "Set resolution=Done, unassign" -> "Plan file exists for this ticket?";
-    "Plan file exists for this ticket?" -> "Delete plan file, keep any spec";
-    "Delete plan file, keep any spec" -> "Done";
+    "Set resolution=Done, unassign" -> "Delete ticket specs and plans";
+    "Delete ticket specs and plans" -> "Done";
 }
 ```
 
@@ -99,11 +110,14 @@ If any `PROPERTY_*` key changed, was added, or was deprecated, don't resolve unt
 **4. Apply the rules' completion checks.**
 List the files in the ticket's diff, then grep `.claude/rules/*.md` for the heading `## Ticket completion checks`. For each rule that has it and whose path scope matches those files, carry out its checks (e.g. proposing a test suite run) and resolve any open question with the user before continuing. Skip rules whose scope doesn't match the diff.
 
-**5. Comment, then resolve.**
+**5. Consolidate into the topic specs.**
+Read the ticket's specs under `docs/superpowers/specs/` and its diff, and find the affected topic specs under `docs/specs/` (grep for the touched classes and the area). Rewrite the affected parts so each topic spec reads as the current state, following `specs-and-plans-lifecycle.md`; add the ticket key to its `Tickets:` line. Create a new topic spec when the ticket introduced an area no topic spec covers yet. Diagrams the topic spec uses go into `docs/specs/<topic>/`. If a ticket spec of an already resolved ticket covers the same topic and is now fully absorbed, propose deleting it in step 7 too. Show the user the diff, revise until they confirm, and commit it once they agree. If nothing needs to change, state why and get that confirmed instead.
+
+**6. Comment, then resolve.**
 Post the closing comment first (or as part of the same transition, depending on the tool), then set resolution to `Done` and clear the assignee.
 
-**6. Only now, clean up the plan.**
-With the ticket actually resolved, find `docs/superpowers/plans/*-sdk-<ticket-number>-*.md` and delete it. Leave `docs/superpowers/specs/*-sdk-<ticket-number>-*` untouched — it's permanent. Don't delete the plan earlier in the sequence — "code shipped" and "ticket resolved" are different things, and the plan should only go once both are true.
+**7. Only now, delete the ticket's specs and plans.**
+With the ticket actually resolved, delete `docs/superpowers/plans/*-sdk-<ticket-number>-*.md`, `docs/superpowers/specs/*-sdk-<ticket-number>-*` and any asset folder `docs/superpowers/specs/sdk-<ticket-number>-*/`. Delete in the same step any absorbed leftover spec the user agreed to in step 5. Commit the deletion once the user agrees. Don't delete anything earlier in the sequence — "code shipped" and "ticket resolved" are different things.
 
 ## Common Mistakes
 
@@ -114,8 +128,11 @@ With the ticket actually resolved, find `docs/superpowers/plans/*-sdk-<ticket-nu
 | Guessing whether a touched member is really public API when it's ambiguous | Ask the user which contract it belongs to (Internal / Client Contract / SPI Contract / Wire Contract) instead of picking a label on a guess |
 | Setting a breaking-change label for a message-format/fragments/MessageHeaders change | That's the Wire Contract — confirm the message-format-changes.md gate instead, don't use the label |
 | Resolving without clearing the assignee | Both happen together: resolution=Done and unassigned |
-| Leaving the plan file in docs/superpowers/plans/ after the ticket is resolved | Delete it — specs stay, plans don't |
-| Deleting the plan file before the ticket is actually resolved (e.g. right after code ships) | Wait until resolution=Done is actually set — merged code isn't the same as a resolved ticket |
+| Leaving the ticket's specs or plans in docs/superpowers/ after the ticket is resolved | Delete them — only topic specs under docs/specs/ are permanent |
+| Deleting a ticket spec without merging it into the topic specs first | Consolidate and get the topic-spec diff confirmed before resolving |
+| Skipping the topic specs because the ticket had no ticket spec | Check the diff against the topic specs anyway — it may change what one states |
+| Appending an "Update (SDK-123)" section to a topic spec | Rewrite the affected parts so the spec describes the current state |
+| Deleting specs or plans before the ticket is actually resolved (e.g. right after code ships) | Wait until resolution=Done is actually set — merged code isn't the same as a resolved ticket |
 | Closing a ticket that changed a setting without checking the FAQ/properties file | Run njams-settings-sync first |
 | Resolving without checking the project rules' `## Ticket completion checks` | Grep `.claude/rules/*.md` for the heading and apply the ones whose scope matches the diff |
 | Writing a long technical closing comment | Keep it to root cause + resolution; details belong in commits |

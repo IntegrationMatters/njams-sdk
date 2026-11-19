@@ -150,7 +150,7 @@ Topic-specific rules that apply either always or only when working with certain 
 | `testing-conventions.md` | `njams-sdk/src/test/**` | Test infra (`AbstractTest`, `TestSender`), coverage requirements |
 | `sample-modules.md` | `njams-sdk-sample-client/**`, `njams-sdk-sample-app/**` | Looser demo-only standards |
 | `wiki-drafts.md` | `wiki/**` | Wiki draft editing workflow, FAQ update triggers, FAQ audience (implementer-facing, not a changelog) |
-| `docs-superpowers-lifecycle.md` | `docs/superpowers/plans/**`, `docs/superpowers/specs/**` | Plan/spec retention policy, plan heading structure |
-| `consult-existing-specs.md` | always | Check a proposed fix against all topic-related specs; later specs override earlier ones |
+| `specs-and-plans-lifecycle.md` | `docs/superpowers/plans/**`, `docs/superpowers/specs/**`, `docs/specs/**` | Ticket specs and plans live until their ticket is resolved, permanent topic specs and their content, plan heading structure |
+| `consult-existing-specs.md` | always | Check a proposed fix against the topic specs and the open ticket specs of the affected area |
 | `sonarcloud-workflow.md` | `njams-sdk/**` | SonarCloud triage workflow, decision register, project coordinates and branch-aware queries |
 | `communication-it-module.md` | `njams-sdk-communication-it/**` | Docker resilience test module: design spec pointer, manual-profile-only, Kafka out of scope, detects not fixes |

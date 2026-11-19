@@ -41,4 +41,4 @@ When unsure whether an entry earns its place, state the change in one sentence a
 would have to do anything about it. If the answer is no, it does not belong in the FAQ; the details belong in
 the commit message, the Jira ticket, or a design spec.
 
-Diagram assets referenced by a wiki page (e.g. `wiki/polyline-routing/*.svg`) are intentionally duplicated into the `docs/superpowers/specs/` folder of the spec that introduced them — see `docs-superpowers-lifecycle.md`. Don't treat that duplication as a leftover to clean up.
+Diagram assets referenced by a wiki page (e.g. `wiki/polyline-routing/*.svg`) are intentionally duplicated into the `docs/specs/<topic>/` folder when the topic spec uses them too — see `specs-and-plans-lifecycle.md`. Don't treat that duplication as a leftover to clean up.

@@ -16,10 +16,10 @@ original ticket is supposed to cover and makes the original look done when it is
 All work described by (or discovered to belong to) a ticket stays under that same ticket, however many
 sessions or specs it takes:
 
-- Reframe the work as multiple specs and/or plans under `docs/superpowers/specs/` /
+- Reframe the work as multiple ticket specs and/or plans under `docs/superpowers/specs/` /
   `docs/superpowers/plans/` — one per sub-task is expected when the scope is too large for a single pass.
   Multiple spec/plan files sharing one ticket key is normal and encouraged (see
-  `docs-superpowers-lifecycle.md`).
+  `specs-and-plans-lifecycle.md`).
 - Keep referencing the same ticket key on every commit for this work (see `commit-conventions.md`),
   regardless of how many sub-tasks or files it took.
 - The ticket can be **assumed complete** only once every sub-task identified during reframing is actually
