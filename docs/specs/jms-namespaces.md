@@ -1,7 +1,5 @@
 # JMS Namespaces (`javax.jms` and `jakarta.jms`)
 
-Tickets: SDK-495, SDK-499
-
 One `njams-sdk` artifact ships the JMS transport twice, once per JMS API namespace, and picks the one that fits at
 runtime, with no change required of existing `javax` consumers. Both APIs are `provided`, so a consumer may have
 either, both, or neither on its classpath. A classpath with **both** is a supported configuration, not a

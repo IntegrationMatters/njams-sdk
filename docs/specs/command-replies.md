@@ -1,7 +1,5 @@
 # Command Replies
 
-Tickets: SDK-422
-
 How the SDK answers a command from nJAMS Server, and what the reply must not carry.
 
 ## Design

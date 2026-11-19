@@ -53,8 +53,7 @@ documentation for SDK users and client developers, a different audience.
 
 **It always describes the current state.** When a ticket changes the area, rewrite the affected parts so the spec
 reads as if it had been written today. Never append "Update (SDK-123): …" sections; superseded content is removed,
-not kept next to its replacement. A `Tickets:` line under the title lists the keys of the tickets that shaped the
-topic, for tracing back to commits and Jira.
+not kept next to its replacement. A topic spec carries no ticket references; its history is in `git log`.
 
 Diagrams a topic spec uses belong in `docs/specs/<topic>/` next to it. When the wiki uses the same diagram, both
 keep their own copy — see `wiki-drafts.md`; do not deduplicate them. Diagrams only the wiki uses (e.g. user-facing

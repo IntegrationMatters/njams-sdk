@@ -1,7 +1,5 @@
 # Sender Lifecycle
 
-Tickets: SDK-375, SDK-472, SDK-476
-
 How the SDK connects, sends through, recovers and shuts down its sender group and its receiver. All classes are in
 `com.im.njams.sdk.communication` unless a package is given. Not covered here, see the rules instead:
 transports, their production weight, the two JMS namespace trees and the SPI/Wire contract boundaries

@@ -1,7 +1,5 @@
 # Polyline Process-Diagram Routing
 
-Tickets: SDK-452, SDK-461, SDK-479, SDK-493
-
 ## Scope
 
 `PolylineProcessDiagramFactory` (`model/svg/`) is an opt-in subclass of `NjamsProcessDiagramFactory` that draws

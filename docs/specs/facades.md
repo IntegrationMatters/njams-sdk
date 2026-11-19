@@ -1,7 +1,5 @@
 # Facades: `Njams` and `Job`
 
-Tickets: SDK-359, SDK-448, SDK-465, SDK-468, SDK-482
-
 `Njams` and `Job` are facades. Each keeps only its lifecycle on its own surface and groups everything else into
 *facets*: small public classes reached through no-prefix accessors (`njams.jobs()`, `job.activities()`). Engine
 mechanics that clients must not see live in package-private *collaborators* that have no accessor.

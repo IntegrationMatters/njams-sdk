@@ -1,7 +1,5 @@
 # Communication Resilience Test Module
 
-Tickets: SDK-483, SDK-485, SDK-495
-
 `njams-sdk-communication-it` drives a real `Njams` instance against a real ActiveMQ broker and a WireMock stand-in for
 the nJAMS Server HTTP API, through Toxiproxy for network fault injection. It verifies documented sender/receiver
 behavior under real timing, real broker connection semantics and real HTTP status codes, which the mocked tests in
