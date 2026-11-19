@@ -182,30 +182,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>io.github.git-commit-id</groupId>
-                <artifactId>git-commit-id-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>resolve-git-metadata</id>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <!-- The repository root is one level up; this module has no .git of its own. -->
-                    <dotGitDirectory>${project.basedir}/../.git</dotGitDirectory>
-                    <!-- A build from a source archive has no .git; it then keeps the POM's fallbacks. -->
-                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
-                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
-                    <generateGitPropertiesFile>false</generateGitPropertiesFile>
-                    <includeOnlyProperties>
-                        <includeOnlyProperty>^git\.branch$</includeOnlyProperty>
-                        <includeOnlyProperty>^git\.commit\.id$</includeOnlyProperty>
-                    </includeOnlyProperties>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
