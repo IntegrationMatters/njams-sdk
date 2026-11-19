@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/** Per-discard-mode outcome check shared by the outage scenarios (spec §6.1). */
+/** Per-discard-mode outcome check shared by the outage scenarios. */
 public final class DeliveryAssertions {
 
     private DeliveryAssertions() {

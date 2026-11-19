@@ -2,7 +2,7 @@
 
 Manual, Docker-based integration tests that drive a **real `Njams` instance** against a **real ActiveMQ broker** (JMS)
 and a **real HTTP stub server** (WireMock) while a **network fault injector** (Toxiproxy) breaks the connection in
-controlled ways. Design spec: `docs/superpowers/specs/2026-09-28-sdk-483-communication-it-module-design.md`.
+controlled ways. Design spec: `docs/specs/communication-it-module.md`.
 
 ## Purpose and intent
 

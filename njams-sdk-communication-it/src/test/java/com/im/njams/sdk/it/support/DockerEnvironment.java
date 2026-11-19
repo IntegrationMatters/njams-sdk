@@ -22,7 +22,7 @@ import com.im.njams.sdk.settings.ClientSettings;
 /**
  * Reads the host ports fabric8's docker-maven-plugin assigned (via {@code target/docker-it.properties}) and
  * exposes typed accessors, plus a per-test reset of Toxiproxy toxics and the WireMock request journal so
- * state from one IT never leaks into the next (Review Focus items 1 and 3).
+ * state from one IT never leaks into the next.
  */
 public class DockerEnvironment extends ExternalResource {
 

@@ -5,10 +5,9 @@ paths:
 
 # Communication Resilience Test Module (`njams-sdk-communication-it`)
 
-Before making any change under this module's path, read
-`docs/superpowers/specs/2026-09-28-sdk-483-communication-it-module-design.md` — it defines the module's
-structure, the fixed message-generation harness (count/size/concurrency knobs), the fault-injection scenario
-catalog, and the stale-structure/leak regression checklist. Keep changes consistent with that design; if a
+Before making any change under this module's path, read the topic spec `docs/specs/communication-it-module.md`
+(build wiring, message harness, delivery accounting, fault injection, test isolation) and the module's `README.md`
+(scenario catalog). Keep changes consistent with that design; if a
 change would deviate from it, update the spec and confirm with the user rather than drifting silently.
 
 - **This module is manual/on-demand, not part of the default build.** It must stay bound to the non-default
@@ -26,7 +25,7 @@ change would deviate from it, update the spec and confirm with the user rather t
   covers it once the fix ships. Add a new scenario only on a deliberate, separate decision that some
   transport behavior genuinely needs additional real-life verification.
 - **Keep the client-side driving logic trivial.** The process/activity model is intentionally fixed and simple
-  (see the spec's harness section) so it cannot itself be a source of test flakiness — do not add branching,
+  (see the topic spec's harness section) so it cannot itself be a source of test flakiness — do not add branching,
   groups, or scenario-specific client logic beyond the three documented knobs.
 - **Leak checks cover SDK-owned threads only.** Thread-count and leak assertions must ignore threads owned by
   third-party libraries (e.g. `OkHttp*`, `ActiveMQ*` pool threads) — their pooling is not under the SDK's control.

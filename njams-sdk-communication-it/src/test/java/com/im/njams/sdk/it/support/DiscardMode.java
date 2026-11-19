@@ -4,7 +4,7 @@ import com.im.njams.sdk.NjamsSettings;
 import com.im.njams.sdk.communication.DiscardPolicy;
 import com.im.njams.sdk.settings.ClientSettings;
 
-/** The three SDK discard policies; every fault scenario runs once per mode (spec §6.1). */
+/** The three SDK discard policies; every fault scenario runs once per mode. */
 public enum DiscardMode {
     NONE(DiscardPolicy.NONE),
     ON_CONNECTION_LOSS(DiscardPolicy.ON_CONNECTION_LOSS),

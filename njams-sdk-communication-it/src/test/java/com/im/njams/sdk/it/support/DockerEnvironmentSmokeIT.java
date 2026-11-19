@@ -23,7 +23,7 @@ public class DockerEnvironmentSmokeIT {
 
     @Test
     public void portsAreDynamicallyAssignedNotFixedDefaults() {
-        // Review Focus #2: a hardcoded default (61616, 8080, 8474) would defeat the purpose of reading
+        // A hardcoded default (61616, 8080, 8474) would defeat the purpose of reading
         // fabric8's generated properties file at all.
         assertNotEquals("tcp://localhost:61616", env.jmsUrlThroughProxy());
         assertNotEquals("http://localhost:8080", env.httpBaseUrlThroughProxy());
@@ -31,7 +31,7 @@ public class DockerEnvironmentSmokeIT {
 
     @Test
     public void toxicOnOneProxyDoesNotAffectTheOther() throws Exception {
-        // Review Focus #5: a toxic on the "jms" proxy must not touch the "http" proxy sharing the same
+        // A toxic on the "jms" proxy must not touch the "http" proxy sharing the same
         // Toxiproxy container.
         env.toxiproxy().addToxic("jms", "cross-check", "timeout", Map.of("timeout", 1));
 
@@ -47,7 +47,7 @@ public class DockerEnvironmentSmokeIT {
 
     @Test
     public void resetAllClearsToxicsBetweenTests() throws Exception {
-        // Review Focus #1: self-contained — arms its own toxic and resets it itself, rather than relying on a
+        // Self-contained — arms its own toxic and resets it itself, rather than relying on a
         // previous test method's @Rule-driven after() having already reset the "jms" proxy. Test execution order
         // must never be load-bearing for correctness (see testing-conventions.md).
         env.toxiproxy().addToxic("jms", "self-reset-check", "timeout", Map.of("timeout", 1));
