@@ -449,7 +449,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
             obstacles.blocks(List.of(new Point(e.scx, e.scy), new Point(e.tcx, e.tcy)), from, to);
         if (colT < colS) {
             // A backward edge runs against the flow, so it arcs over the rows it passes instead of
-            // cutting back through them (spec 6.5).
+            // cutting back through them.
             e.type = Type.BACKWARD;
             e.channelBase = aboveChannelY(Math.min(rowS, rowT), bands);
         } else if (!obstacleBetween && (colS == colT || (rowS == rowT && Math.abs(colT - colS) < 2))) {
@@ -490,7 +490,7 @@ public class PolylineProcessDiagramFactory extends NjamsProcessDiagramFactory {
                 && Math.abs(e.tcy - e.scy) > Math.abs(e.tcx - e.scx);
             if (e.verticalApproach) {
                 // Either way the edge approaches its target from the near side, so it crosses in the
-                // gap BETWEEN the two rows (spec 6.3): below the source's row going down, below the
+                // gap BETWEEN the two rows: below the source's row going down, below the
                 // target's row going up. A channel beyond the target would overshoot it and come back
                 // through its icon. Backward edges never get here — they are classified before this
                 // and follow 6.5, arcing over the rows they pass.
