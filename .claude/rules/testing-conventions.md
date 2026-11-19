@@ -44,18 +44,6 @@ currently installed, and assert on absolute values afterward rather than computi
 delta computation is a symptom of not trusting the starting state — fixing the setup is the correct response,
 not compensating for it in the assertion.
 
-## Test Isolation for Shared State
-
-A test must never assume the state a previous test left behind. If a test observes or depends on shared state —
-a singleton, a JVM-wide static field, a shared fixture — it must establish that state itself in `@Before` (or
-equivalent setup) rather than relying on the default/initial condition or on what ran earlier in the suite, and
-restore it in `@After`. Test execution order must never be load-bearing for correctness.
-
-In practice this means: install a fresh instance/value before each test rather than reading whatever is
-currently installed, and assert on absolute values afterward rather than computing a before/after delta. A
-delta computation is a symptom of not trusting the starting state — fixing the setup is the correct response,
-not compensating for it in the assertion.
-
 ## Waiting on asynchronous outcomes
 
 Waiting for a condition with a generous deadline (polling until it holds, a latch, Mockito's `timeout(...)`) is not a
