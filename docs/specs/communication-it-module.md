@@ -1,6 +1,6 @@
 # Communication Resilience Test Module
 
-Tickets: SDK-483, SDK-485
+Tickets: SDK-483, SDK-485, SDK-495
 
 `njams-sdk-communication-it` drives a real `Njams` instance against a real ActiveMQ broker and a WireMock stand-in for
 the nJAMS Server HTTP API, through Toxiproxy for network fault injection. It verifies documented sender/receiver
@@ -108,15 +108,18 @@ The whole suite shares the containers and `target/docker-it.properties`; only on
 
 ## Transport-Specific Facts
 
-1. The HTTP status classification is pinned by scenarios 7, 8 and 9a and must match `HttpSender.isCongestion` /
+1. **The JMS scenarios run on the deprecated `javax` tree.** Decided: the broker-backed suites stay on javax until
+   the javax tree is removed, because they exercise the communication lifecycle in the shared bases both trees
+   extend. See `jms-namespaces.md`.
+2. The HTTP status classification is pinned by scenarios 7, 8 and 9a and must match `HttpSender.isCongestion` /
    `isMessageRejected`: only `429` is congestion, only `413` is a rejected message, everything else, including
    `502`/`503`/`504` and I/O failures, is a connection problem.
-2. WireMock's default `POST` stub matches method and path only, so both JSON messages and `text/plain` fragment
+3. WireMock's default `POST` stub matches method and path only, so both JSON messages and `text/plain` fragment
    chunks are accepted.
-3. The HTTP command stream is a WireMock SSE stub (`support.WireMockStubs`) using `chunkedDribbleDelay`, with the
+4. The HTTP command stream is a WireMock SSE stub (`support.WireMockStubs`) using `chunkedDribbleDelay`, with the
    event followed by comment-line padding so that the first dribbled chunk already holds the complete event (an SSE
    event is dispatched only at its terminating blank line).
-4. HTTP has no shareable receiver and its sender keeps no connection, so receiver scenarios that depend on a shared
+5. HTTP has no shareable receiver and its sender keeps no connection, so receiver scenarios that depend on a shared
    receiver (R6) or on a recovering sender group (R5) exist for JMS only.
 
 ## Smoke Tier
