@@ -31,9 +31,9 @@ Where to find what this spec does not repeat:
 
 ## Message Harness
 
-1. `harness.FixedProcessModel.build(Njams)` creates the one process shape every scenario drives: one starter
+1. `harness.FixedProcessModel` creates the one process shape every scenario drives: one starter
    activity, no transitions, no groups.
-2. `harness.MessageDriver.run(model, count, payloadBytes, concurrency)` is the only way scenarios produce traffic.
+2. `harness.MessageDriver` is the only way scenarios produce traffic.
    It returns the SDK-assigned `logId` of every driven job, which is the key for all delivery accounting.
    - *count*: jobs, each started and ended at once.
    - *size*: business-data payload bytes; large values trigger fragmentation.
@@ -51,8 +51,8 @@ Where to find what this spec does not repeat:
 1. `support.DiscardMode` (`NONE`, `ON_CONNECTION_LOSS`, `DISCARD`) parameterizes every scenario whose outcome depends
    on the discard policy. Scenarios that are policy-independent by design (startup with `fail`, degraded connect,
    pool bookkeeping, receiver scenarios) do not repeat per mode; those not about delivery pin the policy to `none`
-   through `DockerEnvironment.disableMessageDiscarding`, so a small dispatch queue blocks instead of dropping.
-2. `support.DeliveryAssertions.assertOutcome` is the shared outcome rule:
+   so a small dispatch queue blocks instead of dropping.
+2. `support.DeliveryAssertions` holds the shared outcome rule:
    - nothing is delivered that was not driven;
    - no `logId` is delivered more often than the scenario's bound;
    - `none`: every driven job is delivered and the discard count is 0;
@@ -70,9 +70,8 @@ Where to find what this spec does not repeat:
 The ITs need two package-private SDK hooks. Both are reached through classes that live in the SDK's own packages
 inside this module's test tree, never by widening SDK visibility:
 
-1. `com.im.njams.sdk.SenderProbe.of(Njams)`: the instance's `NjamsSender` (package-private `Njams.sender()`).
-2. `com.im.njams.sdk.communication.CountingDiscardMonitor`: uses the package-private `DiscardMonitor.setInstance`
-   test seam.
+1. `com.im.njams.sdk.SenderProbe`: the instance's `NjamsSender`.
+2. `com.im.njams.sdk.communication.CountingDiscardMonitor`: uses the package-private test seam of `DiscardMonitor`.
 
 A new need for SDK internals follows the same pattern; it never justifies a `public` member in `njams-sdk`.
 
@@ -88,7 +87,7 @@ A new need for SDK internals follows the same pattern; it never justifies a `pub
 3. **`timeout` (connection down) blocks only the response direction.** An HTTP request the client sees as failed may
    still have reached WireMock. This is why delivery is at-least-once (above) and why the HTTP fragmentation
    scenario asserts a contiguous chunk prefix, while JMS asserts complete-or-empty.
-4. `DockerEnvironment.OUTAGE_MS` must outlast the sender's quick-retry window, otherwise local retries alone would
+4. The injected outage must outlast the sender's quick-retry window, otherwise local retries alone would
    save a message and the reconnect / discard-policy path under test would never run.
 5. HTTP receiver outages use a `reset_peer` toxic; it proves recovery of the SSE stream, not which layer (SSE client
    library or the SDK's reconnect loop) re-established it.
