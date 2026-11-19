@@ -32,6 +32,12 @@ separately or ignored.
 **Rejected alternatives are listed only with a reason that was actually given.** A reason inferred afterwards does
 not qualify; without a recorded reason the alternative is left out.
 
+**Implementation details are left to the implementer.** Public API (classes, members and settings a client or SPI
+implementer uses) and the classes that carry a design are named; internal methods, fields and constant names are
+not. The choice of a specific algorithm or technique belongs in the spec when it was a design decision, its coding
+does not. A value belongs in the spec when it is a requirement ("at least 100 px between columns"), never as a
+constant (`MIN_SPACE_PX = 100`).
+
 **Code never references a spec** — not by path, section or plan item — because the reference drifts. Rules, skills
 and documentation may point to a topic spec.
 
